@@ -83,6 +83,7 @@ ENV/
 /public/workbox-*.js.map
 /public/fallback-*.js
 
-# Project-local build instructions (the input spec, not part of the shipped repo)
+# Project-local build instructions (input specs, not part of the shipped repo)
 CLAUDE_CODE_INSTRUCTIONS.md
+VOCAB_UI_INSTRUCTIONS.md
 notion-export.csv
