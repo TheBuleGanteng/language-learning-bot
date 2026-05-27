@@ -154,11 +154,6 @@ function VocabInner() {
     if (pageSize === 'all') {
       qs.set('pageSize', 'all');
     } else {
-      const effectiveSize = Number(pageSize) * loadedPages;
-      qs.set('pageSize', '100'); // unused when we fetch single big slice — see below
-      // Trick: fetch with pageSize=Math.min(..) by issuing the request as
-      // page=1 + pageSize=effectiveSize. But the API only allows 25/50/100
-      // or 'all', so we instead fetch the latest page and append. Simpler.
       qs.set('pageSize', String(pageSize));
       qs.set('page', String(loadedPages));
     }

@@ -194,3 +194,59 @@ matches both.
   and adapter compatibility might matter for a future OAuth provider.
 - **`item_performance` table** is empty in v1 — schema exists for the FSRS
   flashcard work that comes later.
+
+## Vocab UI improvements (post-v1)
+
+### Changes
+
+- **Filter sidebar**: Lessons and Themes are now collapsible accordions
+  (`@base-ui/react/accordion` via shadcn). Open/closed state persists per
+  category to `localStorage` (`lang.filters.lessons.open`,
+  `lang.filters.themes.open`); both default to expanded on first visit.
+  Each section has a per-section client-side search box with an inline
+  X-button to clear, plus "Select all" (respects the visible filter) and
+  "Clear selection" (always wipes) links. Sidebar shows a colored dot per
+  option that matches the pill color used in the table.
+- **Pill coloring**: `src/lib/colors.ts` ships a djb2 hash plus two
+  12-entry palettes — saturated `-100` colors for lessons, muted
+  `-50/-100` colors for tags. `colorForLesson(name)` and `colorForTag(name)`
+  return deterministic `{bg,text,ring}` Tailwind triples, so the same
+  lesson/tag name renders the same color across the table and the filter
+  sidebar.
+- **Table header + sorting**: header row now uses `bg-muted`,
+  `font-semibold`, `border-b-2`, and click-to-sort with hover. Sortable
+  columns (Target, English, Lessons, Tags) cycle None → ASC → DESC → None
+  and persist via `?sort=…&order=…` URL params. Lessons and Tags use a
+  correlated `MIN(name)` subquery so items with multiple associated rows
+  sort by the alphabetically-first; `NULLS LAST` keeps unassociated items
+  at the bottom in either direction.
+- **Pagination**: page size selector (25 / 50 / 100 default / All) above
+  the table, with the choice persisted in the URL (`?pageSize=…`). When a
+  finite page size is selected, a "Load more (N remaining)" button below
+  the table fetches the next page and appends to the current list
+  (cumulative). All filter / sort / search / pageSize changes reset the
+  cumulative list to page 1 via a stable `filterKey` memo.
+- **Edit/Delete buttons**: Edit uses blue outline; Delete uses subtle red
+  ghost. Both grouped right-aligned in the Actions column.
+
+### Issues hit
+
+- **Drizzle SQL objects are circular** — the order-by unit test couldn't
+  `JSON.stringify` the `SQL` expressions returned by `buildOrderBy`
+  because columns and tables reference each other. Resolved with a
+  recursive `chunkString` helper that walks `queryChunks`/`value` and
+  pulls the literal SQL pieces only.
+- **Route module exports** — initially placed `SORT_COLUMNS` and
+  `buildOrderBy` in `src/app/api/vocab/route.ts`. Next.js only allows
+  HTTP-method exports from route files, so the helpers moved to
+  `src/lib/vocab.ts` and the route imports them.
+
+### Known follow-ups
+
+- The `All` page size renders every matching row without virtualization.
+  On the full 1,907-row import that's ~1,900 DOM rows — usable on
+  desktop but laggy on weak devices. Drop in `@tanstack/react-virtual`
+  when this starts to bite.
+- Sorting by Lessons / Tags uses `MIN(name)` of joined rows, so an item
+  tagged `[food, classifier]` sorts as if it were just `classifier`.
+  Acceptable for v1; document in a header tooltip if it confuses anyone.
