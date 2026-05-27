@@ -2,10 +2,7 @@
 // without going through the web UI.
 //
 // Usage:
-//   pnpm tsx scripts/import-notion-csv.ts <user_email> <csv_path>
-import { config } from 'dotenv';
-config({ path: '.env.local' });
-import 'dotenv/config';
+//   node --env-file=.env.local --import tsx scripts/import-notion-csv.ts <user_email> <csv_path>
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { eq } from 'drizzle-orm';
