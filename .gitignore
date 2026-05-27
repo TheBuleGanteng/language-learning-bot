@@ -172,3 +172,9 @@ cython_debug/
 
 # claude code
 .claude/
+
+# env files (local)
+.env*.local
+.env.development.local
+.env.test.local
+.env.production.local
