@@ -7,19 +7,16 @@ import { ChevronDown, ChevronsUpDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { FilterAccordion } from '@/components/vocab/filter-accordion';
 import { colorForLesson, colorForTag } from '@/lib/colors';
 import { cn } from '@/lib/utils';
-
-type SortCol = 'thai' | 'english' | 'lessons' | 'tags';
-type SortOrder = 'asc' | 'desc';
-
-const SORT_COLS: { id: SortCol; label: string }[] = [
-  { id: 'thai', label: 'Target' },
-  { id: 'english', label: 'English' },
-  { id: 'lessons', label: 'Lessons' },
-  { id: 'tags', label: 'Tags' },
-];
 import {
   Table,
   TableBody,
@@ -39,6 +36,24 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
+
+type SortCol = 'thai' | 'english' | 'lessons' | 'tags';
+type SortOrder = 'asc' | 'desc';
+
+const SORT_COLS: { id: SortCol; label: string }[] = [
+  { id: 'thai', label: 'Target' },
+  { id: 'english', label: 'English' },
+  { id: 'lessons', label: 'Lessons' },
+  { id: 'tags', label: 'Tags' },
+];
+
+const PAGE_SIZE_OPTIONS = ['25', '50', '100', 'all'] as const;
+type PageSizeOption = (typeof PAGE_SIZE_OPTIONS)[number];
+
+function parsePageSizeOpt(raw: string | null): PageSizeOption {
+  if (raw === 'all' || raw === '25' || raw === '50') return raw;
+  return '100';
+}
 
 interface Lesson {
   id: string;
@@ -60,7 +75,7 @@ interface VocabItem {
 interface ListResponse {
   items: VocabItem[];
   page: number;
-  pageSize: number;
+  pageSize: number | 'all';
   total: number;
   hasMore: boolean;
 }
@@ -71,19 +86,40 @@ function VocabInner() {
 
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
-  const [data, setData] = useState<ListResponse | null>(null);
+  // `items` is the cumulative list — "Load more" appends to it. `total`
+  // and `hasMore` come from the most recent fetch.
+  const [items, setItems] = useState<VocabItem[]>([]);
+  const [total, setTotal] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadedPages, setLoadedPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const selectedLessons = useMemo(() => new Set(search.getAll('lesson')), [search]);
   const selectedTags = useMemo(() => new Set(search.getAll('tag')), [search]);
   const mode: 'and' | 'or' = search.get('mode') === 'or' ? 'or' : 'and';
-  const page = Math.max(1, parseInt(search.get('page') ?? '1', 10) || 1);
   const searchTerm = search.get('search') ?? '';
   const sortParam = search.get('sort');
   const sortCol: SortCol | null = (SORT_COLS.find((c) => c.id === sortParam)?.id ?? null);
   const sortOrder: SortOrder = search.get('order') === 'desc' ? 'desc' : 'asc';
+  const pageSize: PageSizeOption = parsePageSizeOpt(search.get('pageSize'));
   const [searchInput, setSearchInput] = useState(searchTerm);
+
+  // Build a stable key that represents "everything that should reset the
+  // accumulated list when changed" (filters, sort, search, pageSize).
+  const filterKey = useMemo(
+    () =>
+      [
+        searchTerm,
+        mode,
+        sortCol ?? '',
+        sortOrder,
+        pageSize,
+        Array.from(selectedLessons).sort().join(','),
+        Array.from(selectedTags).sort().join(','),
+      ].join('|'),
+    [searchTerm, mode, sortCol, sortOrder, pageSize, selectedLessons, selectedTags],
+  );
 
   useEffect(() => {
     setSearchInput(searchTerm);
@@ -100,10 +136,32 @@ function VocabInner() {
     })();
   }, []);
 
+  // Reset the cumulative list when anything that affects results changes.
+  // This effect runs first; the load effect below picks up loadedPages=1.
+  useEffect(() => {
+    setItems([]);
+    setLoadedPages(1);
+  }, [filterKey]);
+
+  // Fetch the current "loaded so far" worth of items in one request. We use
+  // page=1 + a synthetic pageSize equal to loadedPages * pageSize so a fresh
+  // reload (or filter change) gets the full accumulated slice in one shot.
+  // For pageSize='all' there's only ever one fetch.
   useEffect(() => {
     setLoading(true);
     const qs = new URLSearchParams();
-    qs.set('page', String(page));
+    qs.set('page', '1');
+    if (pageSize === 'all') {
+      qs.set('pageSize', 'all');
+    } else {
+      const effectiveSize = Number(pageSize) * loadedPages;
+      qs.set('pageSize', '100'); // unused when we fetch single big slice — see below
+      // Trick: fetch with pageSize=Math.min(..) by issuing the request as
+      // page=1 + pageSize=effectiveSize. But the API only allows 25/50/100
+      // or 'all', so we instead fetch the latest page and append. Simpler.
+      qs.set('pageSize', String(pageSize));
+      qs.set('page', String(loadedPages));
+    }
     if (searchTerm) qs.set('search', searchTerm);
     for (const id of selectedLessons) qs.append('lesson', id);
     for (const id of selectedTags) qs.append('tag', id);
@@ -114,14 +172,22 @@ function VocabInner() {
     }
     fetch(`/api/vocab?${qs.toString()}`)
       .then((r) => r.json())
-      .then((d) => setData(d))
+      .then((d: ListResponse) => {
+        setTotal(d.total);
+        setHasMore(d.hasMore);
+        // page 1 (or any "all") replaces; later pages append.
+        if (loadedPages === 1 || pageSize === 'all') {
+          setItems(d.items);
+        } else {
+          setItems((prev) => [...prev, ...d.items]);
+        }
+      })
       .finally(() => setLoading(false));
-  }, [page, searchTerm, selectedLessons, selectedTags, mode, sortCol, sortOrder]);
+  }, [filterKey, loadedPages, pageSize, searchTerm, selectedLessons, selectedTags, mode, sortCol, sortOrder]);
 
   function updateParams(mut: (p: URLSearchParams) => void) {
     const p = new URLSearchParams(search.toString());
     mut(p);
-    // Always reset to page 1 when filters change (except for an explicit page change)
     router.push(`/vocab?${p.toString()}`);
   }
 
@@ -129,34 +195,34 @@ function VocabInner() {
     updateParams((p) => {
       p.delete('lesson');
       for (const v of next) p.append('lesson', v);
-      p.delete('page');
     });
   }
   function setSelectedTags(next: Set<string>) {
     updateParams((p) => {
       p.delete('tag');
       for (const v of next) p.append('tag', v);
-      p.delete('page');
     });
   }
   function setMode(m: 'and' | 'or') {
-    updateParams((p) => {
-      p.set('mode', m);
-      p.delete('page');
-    });
+    updateParams((p) => p.set('mode', m));
   }
   function clearFilters() {
     router.push('/vocab');
   }
-  function gotoPage(n: number) {
-    updateParams((p) => p.set('page', String(n)));
+  function setPageSize(ps: PageSizeOption) {
+    updateParams((p) => {
+      if (ps === '100') p.delete('pageSize');
+      else p.set('pageSize', ps);
+    });
+  }
+  function loadMore() {
+    setLoadedPages((n) => n + 1);
   }
   function submitSearch(e: React.FormEvent) {
     e.preventDefault();
     updateParams((p) => {
       if (searchInput) p.set('search', searchInput);
       else p.delete('search');
-      p.delete('page');
     });
   }
 
@@ -177,7 +243,6 @@ function VocabInner() {
         p.delete('sort');
         p.delete('order');
       }
-      p.delete('page');
     });
   }
 
@@ -197,14 +262,13 @@ function VocabInner() {
     const res = await fetch(`/api/vocab/${deleteId}`, { method: 'DELETE' });
     if (res.ok) {
       toast.success('Deleted');
-      setData((d) => (d ? { ...d, items: d.items.filter((i) => i.id !== deleteId) } : d));
+      setItems((prev) => prev.filter((i) => i.id !== deleteId));
+      setTotal((t) => Math.max(0, t - 1));
     } else {
       toast.error('Delete failed');
     }
     setDeleteId(null);
   }
-
-  const totalPages = data ? Math.max(1, Math.ceil(data.total / data.pageSize)) : 1;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[16rem,1fr] gap-6">
@@ -277,13 +341,33 @@ function VocabInner() {
           </Button>
         </form>
 
-        <p className="text-xs text-muted-foreground">
-          {loading
-            ? 'Loading…'
-            : data
-              ? `Showing ${data.items.length} of ${data.total} items`
-              : ''}
-        </p>
+        <div className="flex items-center justify-between gap-3 flex-wrap text-xs">
+          <p className="text-muted-foreground">
+            {loading && items.length === 0
+              ? 'Loading…'
+              : pageSize === 'all'
+                ? `Showing all ${total} items`
+                : `Showing ${items.length} of ${total} items`}
+          </p>
+          <div className="flex items-center gap-2">
+            <span className="text-muted-foreground">Show:</span>
+            <Select
+              value={pageSize}
+              onValueChange={(v) => v && setPageSize(v as PageSizeOption)}
+            >
+              <SelectTrigger className="h-8 w-24">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {PAGE_SIZE_OPTIONS.map((opt) => (
+                  <SelectItem key={opt} value={opt}>
+                    {opt === 'all' ? 'All' : opt}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
 
         <div className="border rounded-md overflow-x-auto">
           <Table>
@@ -303,7 +387,7 @@ function VocabInner() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {data?.items.map((i) => (
+              {items.map((i) => (
                 <TableRow key={i.id}>
                   <TableCell className="font-medium">
                     <Link href={`/vocab/${i.id}`} className="hover:underline">
@@ -362,7 +446,7 @@ function VocabInner() {
                   </TableCell>
                 </TableRow>
               ))}
-              {data && data.items.length === 0 && !loading && (
+              {items.length === 0 && !loading && (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                     No vocab items match your filters.
@@ -373,29 +457,20 @@ function VocabInner() {
           </Table>
         </div>
 
-        {data && totalPages > 1 && (
-          <div className="flex items-center justify-between text-sm">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page <= 1}
-              onClick={() => gotoPage(page - 1)}
-            >
-              ← Previous
-            </Button>
-            <span className="text-muted-foreground">
-              Page {page} of {totalPages}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page >= totalPages}
-              onClick={() => gotoPage(page + 1)}
-            >
-              Next →
-            </Button>
+        {/* Cumulative "Load more" — appears only when pageSize is not 'all'
+            and the API reports more items available */}
+        {pageSize !== 'all' && (
+          <div className="flex items-center justify-center text-sm">
+            {hasMore ? (
+              <Button variant="outline" size="sm" disabled={loading} onClick={loadMore}>
+                {loading ? 'Loading…' : `Load more (${total - items.length} remaining)`}
+              </Button>
+            ) : items.length > 0 ? (
+              <span className="text-muted-foreground">All {total} items loaded</span>
+            ) : null}
           </div>
         )}
+
       </section>
 
       <AlertDialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>

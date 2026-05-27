@@ -12,8 +12,16 @@ import {
 import { auth } from '@/lib/auth';
 import { findOrCreateLesson, findOrCreateTags, buildOrderBy } from '@/lib/vocab';
 
-const PAGE_SIZE = 50;
+const DEFAULT_PAGE_SIZE = 100;
+const ALLOWED_PAGE_SIZES = new Set([25, 50, 100]);
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function parsePageSize(raw: string | null): number | 'all' {
+  if (raw === 'all') return 'all';
+  const n = parseInt(raw ?? '', 10);
+  if (Number.isFinite(n) && ALLOWED_PAGE_SIZES.has(n)) return n;
+  return DEFAULT_PAGE_SIZE;
+}
 
 export async function GET(req: Request) {
   const session = await auth();
@@ -22,6 +30,7 @@ export async function GET(req: Request) {
 
   const url = new URL(req.url);
   const page = Math.max(1, parseInt(url.searchParams.get('page') ?? '1', 10) || 1);
+  const pageSize = parsePageSize(url.searchParams.get('pageSize'));
   const search = (url.searchParams.get('search') ?? '').trim();
   const lessonIds = url.searchParams.getAll('lesson').filter((s) => UUID_RE.test(s));
   const tagIds = url.searchParams.getAll('tag').filter((s) => UUID_RE.test(s));
@@ -66,13 +75,18 @@ export async function GET(req: Request) {
     .where(whereExpr);
   const total = totalRow?.n ?? 0;
 
-  const items = await db
+  // For pageSize='all' we omit LIMIT entirely so the caller gets every match.
+  // Cumulative "Load more" in the UI re-fetches with `page` bumped: backend
+  // simply returns that page slice — accumulation happens client-side.
+  const baseQuery = db
     .select()
     .from(vocabItems)
     .where(whereExpr)
-    .orderBy(orderByExpr ?? desc(vocabItems.createdAt))
-    .limit(PAGE_SIZE)
-    .offset((page - 1) * PAGE_SIZE);
+    .orderBy(orderByExpr ?? desc(vocabItems.createdAt));
+  const items =
+    pageSize === 'all'
+      ? await baseQuery
+      : await baseQuery.limit(pageSize).offset((page - 1) * pageSize);
 
   const ids = items.map((i) => i.id);
 
@@ -112,7 +126,8 @@ export async function GET(req: Request) {
     tagMap.set(t.vocabItemId, arr);
   }
 
-  const hasMore = (page - 1) * PAGE_SIZE + items.length < total;
+  const hasMore =
+    pageSize === 'all' ? false : (page - 1) * pageSize + items.length < total;
 
   return NextResponse.json({
     items: items.map((i) => ({
@@ -121,7 +136,7 @@ export async function GET(req: Request) {
       tags: tagMap.get(i.id) ?? [],
     })),
     page,
-    pageSize: PAGE_SIZE,
+    pageSize: pageSize === 'all' ? 'all' : pageSize,
     total,
     hasMore,
   });
