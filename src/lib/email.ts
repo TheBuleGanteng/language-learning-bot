@@ -13,7 +13,6 @@ function resend(): Resend {
 }
 
 function logMock(label: string, to: string, link: string) {
-  // eslint-disable-next-line no-console
   console.log(
     [
       '',
@@ -44,7 +43,6 @@ export async function sendVerificationEmail(to: string, link: string): Promise<v
       ].join('\n'),
     });
   } catch (err) {
-    // eslint-disable-next-line no-console
     console.error('Failed to send verification email:', err);
     // Swallow — caller returns generic success to user.
   }
@@ -67,7 +65,6 @@ export async function sendPasswordResetEmail(to: string, link: string): Promise<
       ].join('\n'),
     });
   } catch (err) {
-    // eslint-disable-next-line no-console
     console.error('Failed to send password reset email:', err);
   }
 }

@@ -27,7 +27,6 @@ export async function POST(req: Request) {
     const result = await importNotionCsvForUser(userId, csv);
     return NextResponse.json(result);
   } catch (err) {
-    // eslint-disable-next-line no-console
     console.error('CSV import failed:', err);
     return NextResponse.json(
       { error: 'Import failed', detail: err instanceof Error ? err.message : 'unknown' },
