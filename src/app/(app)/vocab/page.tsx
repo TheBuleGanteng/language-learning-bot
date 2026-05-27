@@ -5,8 +5,8 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
+import { FilterAccordion } from '@/components/vocab/filter-accordion';
 import {
   Table,
   TableBody,
@@ -104,23 +104,17 @@ function VocabInner() {
     router.push(`/vocab?${p.toString()}`);
   }
 
-  function toggleLesson(id: string, checked: boolean) {
+  function setSelectedLessons(next: Set<string>) {
     updateParams((p) => {
-      const set = new Set(p.getAll('lesson'));
       p.delete('lesson');
-      if (checked) set.add(id);
-      else set.delete(id);
-      for (const v of set) p.append('lesson', v);
+      for (const v of next) p.append('lesson', v);
       p.delete('page');
     });
   }
-  function toggleTag(id: string, checked: boolean) {
+  function setSelectedTags(next: Set<string>) {
     updateParams((p) => {
-      const set = new Set(p.getAll('tag'));
       p.delete('tag');
-      if (checked) set.add(id);
-      else set.delete(id);
-      for (const v of set) p.append('tag', v);
+      for (const v of next) p.append('tag', v);
       p.delete('page');
     });
   }
@@ -197,49 +191,23 @@ function VocabInner() {
           </Button>
         </div>
 
-        <div className="border rounded-md p-3 space-y-2">
-          <h3 className="text-sm font-semibold">Lessons</h3>
-          {lessons.length === 0 ? (
-            <p className="text-xs text-muted-foreground">No lessons yet.</p>
-          ) : (
-            <ul className="space-y-1 max-h-64 overflow-y-auto">
-              {lessons.map((l) => (
-                <li key={l.id} className="flex items-center gap-2 text-sm">
-                  <Checkbox
-                    id={`lesson-${l.id}`}
-                    checked={selectedLessons.has(l.id)}
-                    onCheckedChange={(c) => toggleLesson(l.id, c === true)}
-                  />
-                  <label htmlFor={`lesson-${l.id}`} className="cursor-pointer">
-                    {l.name}
-                  </label>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+        <FilterAccordion
+          title="Lessons"
+          slug="lessons"
+          options={lessons}
+          selected={selectedLessons}
+          onChange={setSelectedLessons}
+          emptyHint="No lessons yet."
+        />
 
-        <div className="border rounded-md p-3 space-y-2">
-          <h3 className="text-sm font-semibold">Themes</h3>
-          {tags.length === 0 ? (
-            <p className="text-xs text-muted-foreground">No tags yet.</p>
-          ) : (
-            <ul className="space-y-1 max-h-64 overflow-y-auto">
-              {tags.map((t) => (
-                <li key={t.id} className="flex items-center gap-2 text-sm">
-                  <Checkbox
-                    id={`tag-${t.id}`}
-                    checked={selectedTags.has(t.id)}
-                    onCheckedChange={(c) => toggleTag(t.id, c === true)}
-                  />
-                  <label htmlFor={`tag-${t.id}`} className="cursor-pointer">
-                    {t.name}
-                  </label>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+        <FilterAccordion
+          title="Themes"
+          slug="themes"
+          options={tags}
+          selected={selectedTags}
+          onChange={setSelectedTags}
+          emptyHint="No tags yet."
+        />
       </aside>
 
       <section className="space-y-4">
