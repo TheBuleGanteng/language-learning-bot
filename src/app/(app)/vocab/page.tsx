@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { FilterAccordion } from '@/components/vocab/filter-accordion';
+import { colorForLesson, colorForTag } from '@/lib/colors';
+import { cn } from '@/lib/utils';
 import {
   Table,
   TableBody,
@@ -197,6 +199,7 @@ function VocabInner() {
           options={lessons}
           selected={selectedLessons}
           onChange={setSelectedLessons}
+          swatch={(o) => colorForLesson(o.name)}
           emptyHint="No lessons yet."
         />
 
@@ -206,6 +209,7 @@ function VocabInner() {
           options={tags}
           selected={selectedTags}
           onChange={setSelectedTags}
+          swatch={(o) => colorForTag(o.name)}
           emptyHint="No tags yet."
         />
       </aside>
@@ -257,20 +261,34 @@ function VocabInner() {
                   <TableCell>{i.nativeText}</TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
-                      {i.lessons.map((l) => (
-                        <Badge key={l.id} variant="outline">
-                          {l.name}
-                        </Badge>
-                      ))}
+                      {i.lessons.map((l) => {
+                        const c = colorForLesson(l.name);
+                        return (
+                          <Badge
+                            key={l.id}
+                            variant="outline"
+                            className={cn('border-transparent', c.bg, c.text)}
+                          >
+                            {l.name}
+                          </Badge>
+                        );
+                      })}
                     </div>
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
-                      {i.tags.map((t) => (
-                        <Badge key={t.id} variant="secondary">
-                          {t.name}
-                        </Badge>
-                      ))}
+                      {i.tags.map((t) => {
+                        const c = colorForTag(t.name);
+                        return (
+                          <Badge
+                            key={t.id}
+                            variant="outline"
+                            className={cn('border-transparent', c.bg, c.text)}
+                          >
+                            {t.name}
+                          </Badge>
+                        );
+                      })}
                     </div>
                   </TableCell>
                   <TableCell className="text-right space-x-2">
