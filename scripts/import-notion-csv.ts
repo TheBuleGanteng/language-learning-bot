@@ -3,7 +3,8 @@
 //
 // Usage:
 //   pnpm tsx scripts/import-notion-csv.ts <user_email> <csv_path>
-
+import { config } from 'dotenv';
+config({ path: '.env.local' });
 import 'dotenv/config';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
