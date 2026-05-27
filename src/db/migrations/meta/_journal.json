@@ -8,6 +8,13 @@
       "when": 1779896458285,
       "tag": "0000_fat_turbo",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1779896712415,
+      "tag": "0001_skinny_major_mapleleaf",
+      "breakpoints": true
     }
   ]
 }
