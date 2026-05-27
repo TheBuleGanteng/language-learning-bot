@@ -2,6 +2,7 @@ import type { NextConfig } from 'next';
 import withPWAInit from '@ducanh2912/next-pwa';
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
+const isDev = process.env.NODE_ENV === 'development';
 
 const nextConfig: NextConfig = {
   basePath: basePath || undefined,
@@ -11,12 +12,13 @@ const nextConfig: NextConfig = {
   },
 };
 
+// next-pwa relies on webpack. In dev we want Turbopack (Next 16 default), so
+// only apply the PWA wrapper for production builds. The build script uses
+// --webpack to switch off Turbopack for that pass.
 const withPWA = withPWAInit({
   dest: 'public',
-  disable: process.env.NODE_ENV === 'development',
+  disable: isDev,
   register: true,
-  // App is online-only; service worker provides install/standalone but
-  // doesn't precache much.
   cacheOnFrontEndNav: false,
   workboxOptions: {
     skipWaiting: true,
@@ -24,4 +26,4 @@ const withPWA = withPWAInit({
   },
 });
 
-export default withPWA(nextConfig);
+export default isDev ? nextConfig : withPWA(nextConfig);

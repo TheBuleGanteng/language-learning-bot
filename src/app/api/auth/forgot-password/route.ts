@@ -46,7 +46,8 @@ export async function POST(req: Request) {
       expiresAt: new Date(Date.now() + 60 * 60 * 1000),
     });
     const link = `${env.APP_URL}${env.NEXT_PUBLIC_BASE_PATH ?? ''}/reset-password?token=${token}`;
-    await sendPasswordResetEmail(user.email, link);
+    // Fire-and-forget — never block the response on outbound mail.
+    void sendPasswordResetEmail(user.email, link);
   }
 
   return NextResponse.json({ ok: true });

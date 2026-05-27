@@ -72,7 +72,9 @@ export async function POST(req: Request) {
   });
 
   const link = `${env.APP_URL}${env.NEXT_PUBLIC_BASE_PATH ?? ''}/verify?token=${token}`;
-  await sendVerificationEmail(newUser.email, link);
+  // Fire-and-forget so a slow Resend response doesn't block the user's signup.
+  // sendVerificationEmail swallows its own errors and logs them.
+  void sendVerificationEmail(newUser.email, link);
 
   return NextResponse.json({ ok: true });
 }
