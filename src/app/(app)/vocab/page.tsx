@@ -432,17 +432,25 @@ function VocabInner() {
                       })}
                     </div>
                   </TableCell>
-                  <TableCell className="text-right space-x-2">
-                    <Button asChild size="xs" variant="ghost">
-                      <Link href={`/vocab/${i.id}`}>Edit</Link>
-                    </Button>
-                    <Button
-                      size="xs"
-                      variant="destructive"
-                      onClick={() => setDeleteId(i.id)}
-                    >
-                      Delete
-                    </Button>
+                  <TableCell className="text-right">
+                    <div className="inline-flex items-center gap-1">
+                      <Button
+                        asChild
+                        size="xs"
+                        variant="outline"
+                        className="border-blue-300 text-blue-700 hover:bg-blue-50 hover:text-blue-800"
+                      >
+                        <Link href={`/vocab/${i.id}`}>Edit</Link>
+                      </Button>
+                      <Button
+                        size="xs"
+                        variant="ghost"
+                        className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                        onClick={() => setDeleteId(i.id)}
+                      >
+                        Delete
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
