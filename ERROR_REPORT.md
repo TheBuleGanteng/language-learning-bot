@@ -8,56 +8,21 @@ non-obvious problems.
 
 | Check | Expected | Actual | Status |
 |-------|----------|--------|--------|
-| Node version | 20.x | 22.16.0 (current LTS) | OK — v22 is compatible, newer LTS |
+| Node version | 20.x | 22.16.0 (current LTS) | OK — v22 is compatible, `.nvmrc` set to 22 |
 | pnpm | installed | 10.12.2 | OK |
 | Docker | installed | 24.0.7 | OK |
 | Docker Compose | installed | v2.10.2 | OK |
 | git config | configured | Matthew McDonnell / mcdonnell.matthew@ymail.com | OK |
-| Project directory | should not exist | Exists with only CLAUDE_CODE_INSTRUCTIONS.md, .gitignore, .env, .claude/ | OK — clean enough to build in |
+| Project directory | should not exist | Pre-existing with `.env.local`, `.gitignore`, `.claude/`, `CLAUDE_CODE_INSTRUCTIONS.md` | Resolved by moving conflicting files aside and merging .gitignore after scaffold |
 | GitHub SSH | working | Authenticated as TheBuleGanteng | OK |
 | Port 3000 | free | free | OK |
-| Port 5432 | free | **OCCUPIED** (existing Postgres) | Using 5433 instead |
-
-### Port 5432 conflict
-
-Port 5432 is already in use by an existing Postgres instance. The local dev
-docker-compose.yml will map container port 5432 to host port **5433** instead.
-DATABASE_URL will use port 5433 accordingly.
-
-### Node version
-
-Spec calls for Node 20 LTS, but v22.16.0 is installed (current LTS as of 2026).
-All dependencies are compatible. Proceeding with v22. `.nvmrc` will be set to `22`.
-
-## Build progress
-
-### Completed
-
-- **Section 3 — Pre-flight checks**: All checks passed. Port 5432 occupied (will use 5433). Node 22 instead of 20 (compatible).
-
-### In progress
-
-- **Section 19, Step 1 — Scaffold**: Not yet started. The `pnpm create next-app` command has not been run yet. The project directory contains only pre-existing files (CLAUDE_CODE_INSTRUCTIONS.md, .gitignore, .env) and the newly created ERROR_REPORT.md.
-
-### Remaining (Sections 4–24, Steps 1–11)
-
-- Step 1: Scaffold (Next.js init, shadcn, git init)
-- Step 2: Database (docker-compose, Drizzle schema, migrations)
-- Step 3: Encryption + env validation
-- Step 4: Auth.js (signup, verify, login, password reset)
-- Step 5: Settings + model catalog
-- Step 6: CSV import
-- Step 7: Vocab CRUD + filters
-- Step 8: PWA + basePath
-- Step 9: Playwright E2E
-- Step 10: Docs + GitHub
-- Step 11: Final smoke check
+| Port 5432 | free | **OCCUPIED** (existing host Postgres) | Using **5433** instead in docker-compose.yml and DATABASE_URL |
 
 ## Build issues
 
-### [2025-05-27] next-app create blocked by existing files
+### [2026-05-27] `pnpm create next-app` refuses non-empty directory
 
-**Context**: Step 1 — Scaffold
+**Context**: Section 19, Step 1 — Scaffold
 
 **Error**:
 ```
@@ -68,12 +33,143 @@ The directory language-learning-bot contains files that could conflict:
 Either try using a new directory name, or remove the files listed above.
 ```
 
-**Root cause**: `pnpm create next-app@latest .` refuses to run in a directory with existing files.
+**Root cause**: `create-next-app` whitelists only certain dotfiles; project working
+docs and the pre-populated `.env`/`.env.local` were blockers.
 
-**Resolution**: Pending. Need to either temporarily move conflicting files out, or create in a temp dir and copy back.
+**Resolution**: Move `.env.local`, `.gitignore`, `CLAUDE_CODE_INSTRUCTIONS.md`,
+and `ERROR_REPORT.md` to `/tmp/lang-*-backup` before running the scaffold,
+then restore them afterward. Merge the scaffold's generated `.gitignore` with
+the pre-existing one (the scaffold's was Node-flavored; the original added
+Python/editor patterns and `.env*.local` rules).
 
-**Lessons / Watch-outs**: The project directory must be empty (or contain only dotfiles that Next.js expects) for `create-next-app` to work. Plan to move CLAUDE_CODE_INSTRUCTIONS.md, ERROR_REPORT.md, and .env out before running, then move them back.
+**Lessons / Watch-outs**: For any future re-scaffolds, do the move-aside
+dance up front. Don't forget to restore .env.local **before** running any
+Next.js commands that depend on it.
+
+### [2026-05-27] shadcn `Button` had no `asChild` prop
+
+**Context**: Section 19, Step 1 — `pnpm build` after adding auth pages
+
+**Error**: TypeScript:
+```
+Property 'asChild' does not exist on type 'ButtonProps & VariantProps<...>'.
+```
+
+**Root cause**: The latest shadcn registry (`shadcn@4.8.1`) ships a `Button`
+backed by `@base-ui/react/button`, which doesn't expose `asChild` — that pattern
+is Radix's `Slot` convention. Several of our auth pages relied on
+`<Button asChild><Link>…</Link></Button>` to style links as buttons.
+
+**Resolution**: Reverted `src/components/ui/button.tsx` to the classic shadcn
+Radix-Slot variant: `pnpm add @radix-ui/react-slot`, then `Comp = asChild ? Slot : 'button'`.
+
+**Lessons / Watch-outs**: shadcn registries drift; if any future component
+breaks an API we rely on, check what library it switched to before refactoring
+upstream usage.
+
+### [2026-05-27] `process.env.NODE_ENV` is read-only in Next 16 ambient types
+
+**Context**: Section 19, Step 3 — Vitest test setup
+
+**Error**: `Type error: Cannot assign to 'NODE_ENV' because it is a read-only property.`
+
+**Root cause**: Next's `next-env.d.ts` narrows `NODE_ENV` to a union literal and marks it readonly.
+
+**Resolution**: In `tests/setup.ts`, cast `process.env` through `Record<string, string | undefined>` before assigning.
+
+### [2026-05-27] `next-pwa` requires webpack; Next 16 defaults to Turbopack
+
+**Context**: Section 19, Step 8 — PWA install
+
+**Error 1** (production build):
+```
+ERROR: This build is using Turbopack, with a `webpack` config and no `turbopack` config.
+…Build error occurred — Call retries were exceeded
+```
+**Error 2** (dev): the same error when running `pnpm dev` even though
+`@ducanh2912/next-pwa` is configured with `disable: true` in dev — the plugin
+still injects a webpack config at config-load time.
+
+**Root cause**: Next 16 enabled Turbopack by default; mixing webpack-config-plugins
+with Turbopack now hard-errors.
+
+**Resolution**:
+1. Run production builds explicitly under webpack: `"build": "next build --webpack"`.
+2. In `next.config.ts`, only apply `withPWA` when `NODE_ENV !== 'development'`
+   so the dev server (Turbopack) sees a clean config and the production build
+   (webpack) gets PWA service-worker generation.
+
+**Lessons / Watch-outs**: If a future plugin only ships a webpack hook, either
+mirror this conditional, or look for a Turbopack-native alternative. PWA in
+particular has thin Turbopack support as of Next 16; keep an eye on `next-pwa`
+maintenance.
+
+### [2026-05-27] Resend SDK call blocked the signup HTTP response
+
+**Context**: Section 19, Step 9 — Playwright E2E `toHaveURL(/verify-sent/)` failed
+
+**Error**: The signup page button remained stuck on "Creating account…" until
+Resend responded. With `MOCK_EMAIL=1` set on the webServer env, the email
+function still went down the real-Resend code path (.env.local overrides), and
+the round-trip occasionally exceeded Playwright's 5s default URL assertion.
+
+**Root cause**: `await sendVerificationEmail(...)` in the API route synchronously
+awaited the Resend network call. Errors were already swallowed, so the response
+gained nothing from awaiting.
+
+**Resolution**: Changed the signup and forgot-password routes to fire-and-forget
+(`void sendVerificationEmail(...)`). Outbound mail still happens; the HTTP
+response no longer waits for it.
+
+**Lessons / Watch-outs**: For any future "send a transactional email after a
+mutation" path, prefer fire-and-forget. If the email actually fails, it's
+the user's problem next time they retry — and the rate limit prevents abuse.
+
+### [2026-05-27] Playwright `getByLabel` matched both the visible checkbox and a hidden input
+
+**Context**: Section 19, Step 9 — E2E filter step
+
+**Error**: `strict mode violation: getByLabel('Lesson 1', { exact: true }) resolved to 2 elements`
+
+**Root cause**: shadcn's `Checkbox` (base-ui-backed) renders a visible
+`role="checkbox"` span PLUS a hidden `<input type="checkbox">` for form
+submission. Both share the same `aria-labelledby`/`for`, so `getByLabel`
+matches both.
+
+**Resolution**: Used `page.getByRole('checkbox', { name: 'Lesson 1' }).click()` — the role-based locator only sees the visible span. Asserted row visibility via `getByRole('row').filter({hasText: ...})` for the same reason.
+
+## Build progress
+
+### Completed
+
+- Section 3 — Pre-flight checks
+- Step 1 — Scaffold (Next 16, Tailwind v4, src/, Turbopack, shadcn/ui, 12 base components)
+- Step 2 — Database: docker-compose Postgres 16 on host 5433, Drizzle schema (12 tables), migrations applied
+- Step 3 — Crypto (AES-256-GCM) + env validation (Zod) + 11 unit tests
+- Step 4 — Auth.js v5 (Credentials + JWT, strict email verification, password reset with JWT invalidation via sessions_invalidated_at), 5 API routes, 7 auth pages, mock-email mode
+- Step 5 — `src/lib/models.ts` catalog + `/api/settings` GET/PATCH + `/settings` UI with masked/reveal API key flows
+- Step 6 — CSV import: parser, find-or-create lessons & tags, batched insert in one txn, UI page, API route, CLI script, 15 unit tests (incl. fixture coverage of every edge case)
+- Step 7 — Vocab CRUD: `/api/vocab` list/create with lesson+tag filters (AND/OR), `/api/vocab/[id]` GET/PATCH/DELETE, `/api/lessons`, `/api/tags`, full UI (list with sidebar filters, add/edit forms with datalist suggestions, AlertDialog-confirmed delete)
+- Step 8 — `@ducanh2912/next-pwa` wired (production-only), `public/manifest.webmanifest`, generated 192/512 icons via sharp, `next.config.ts` supports `NEXT_PUBLIC_BASE_PATH` for sub-path deploys
+- Step 9 — Playwright config + 1 happy-path E2E: signup → mark verified (DB) → login → CSV import → lesson filter → settings save/reveal. Passing.
+- Step 10 — Dockerfile (multi-stage), docker-compose.prod.yml snippet, nginx location snippet, LICENSE (MIT), README with all 15 spec sections
+
+### Remaining
+
+- Step 10 — push to GitHub (the project already has a local git history; PR comes after `gh repo create`)
+- Step 11 — Final smoke checks (lint, test, test:e2e, build, dev)
 
 ## Known issues / deferred
 
-(none yet)
+- **PWA icons are placeholders** — solid `#0ea5e9` square with a white "L".
+  Re-run `pnpm tsx scripts/gen-icons.ts` after dropping branded artwork into
+  the script. Acceptable for v1; should be swapped before any public launch.
+- **Anthropic / OpenAI / Google API keys in .env.local** are unused by the
+  app at runtime (per-user keys live encrypted in `user_settings`). They
+  exist only as developer-side fallbacks; safe to remove.
+- **Auth.js sessions/accounts tables** are created via the Drizzle adapter
+  schema but unused in practice (JWT strategy + Credentials provider doesn't
+  need them). Left in place because removing them would be a schema change
+  and adapter compatibility might matter for a future OAuth provider.
+- **`item_performance` table** is empty in v1 — schema exists for the FSRS
+  flashcard work that comes later.

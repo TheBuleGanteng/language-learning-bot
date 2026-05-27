@@ -83,6 +83,5 @@ ENV/
 /public/workbox-*.js.map
 /public/fallback-*.js
 
-# Build instructions and error report (project-local working docs)
+# Project-local build instructions (the input spec, not part of the shipped repo)
 CLAUDE_CODE_INSTRUCTIONS.md
-ERROR_REPORT.md

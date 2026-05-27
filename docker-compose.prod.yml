@@ -1,0 +1,43 @@
+# =============================================================================
+# Production compose snippet — DOES NOT run on its own.
+# Merge these services and volumes into your existing
+# vm-infrastructure/docker-compose.yml. Path on the VM is assumed to be
+# /home/thebuleganteng/01_Repos/06_personal_work/vm-infrastructure with this
+# app checked out at apps/language-learning-bot.
+# =============================================================================
+#
+#  language-learning-postgres:
+#    image: postgres:16-alpine
+#    restart: unless-stopped
+#    environment:
+#      POSTGRES_USER: lang
+#      POSTGRES_PASSWORD_FILE: /run/secrets/lang_pg_password
+#      POSTGRES_DB: language_learning
+#    volumes:
+#      - lang_pg_data:/var/lib/postgresql/data
+#    secrets:
+#      - lang_pg_password
+#    # No host port exposed — only reachable on the docker network
+#
+#  language-learning-bot:
+#    build:
+#      context: ./apps/language-learning-bot
+#      dockerfile: Dockerfile
+#      args:
+#        - NEXT_PUBLIC_BASE_PATH=/language-learning
+#    restart: unless-stopped
+#    depends_on:
+#      - language-learning-postgres
+#    env_file:
+#      - /home/matt/secrets/language-learning-bot/.env
+#
+# Add to your top-level keys:
+#
+# volumes:
+#   lang_pg_data:
+#
+# secrets:
+#   lang_pg_password:
+#     file: /home/matt/secrets/language-learning-bot/pg_password
+#
+# And add `language-learning-bot` to your nginx service's depends_on list.
