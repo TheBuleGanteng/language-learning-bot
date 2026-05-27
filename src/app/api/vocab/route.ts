@@ -10,7 +10,7 @@ import {
   tags,
 } from '@/db/schema';
 import { auth } from '@/lib/auth';
-import { findOrCreateLesson, findOrCreateTags } from '@/lib/vocab';
+import { findOrCreateLesson, findOrCreateTags, buildOrderBy } from '@/lib/vocab';
 
 const PAGE_SIZE = 50;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -26,6 +26,10 @@ export async function GET(req: Request) {
   const lessonIds = url.searchParams.getAll('lesson').filter((s) => UUID_RE.test(s));
   const tagIds = url.searchParams.getAll('tag').filter((s) => UUID_RE.test(s));
   const mode = url.searchParams.get('mode') === 'or' ? 'or' : 'and';
+  const orderByExpr = buildOrderBy(
+    url.searchParams.get('sort'),
+    url.searchParams.get('order'),
+  );
 
   const wheres = [eq(vocabItems.userId, userId)];
   if (search) {
@@ -66,7 +70,7 @@ export async function GET(req: Request) {
     .select()
     .from(vocabItems)
     .where(whereExpr)
-    .orderBy(desc(vocabItems.createdAt))
+    .orderBy(orderByExpr ?? desc(vocabItems.createdAt))
     .limit(PAGE_SIZE)
     .offset((page - 1) * PAGE_SIZE);
 
@@ -108,6 +112,8 @@ export async function GET(req: Request) {
     tagMap.set(t.vocabItemId, arr);
   }
 
+  const hasMore = (page - 1) * PAGE_SIZE + items.length < total;
+
   return NextResponse.json({
     items: items.map((i) => ({
       ...i,
@@ -117,8 +123,10 @@ export async function GET(req: Request) {
     page,
     pageSize: PAGE_SIZE,
     total,
+    hasMore,
   });
 }
+
 
 const createSchema = z.object({
   targetText: z.string().min(1).max(500),

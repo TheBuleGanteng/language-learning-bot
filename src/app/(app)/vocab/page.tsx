@@ -3,12 +3,23 @@
 import { Suspense, useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { ChevronDown, ChevronsUpDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { FilterAccordion } from '@/components/vocab/filter-accordion';
 import { colorForLesson, colorForTag } from '@/lib/colors';
 import { cn } from '@/lib/utils';
+
+type SortCol = 'thai' | 'english' | 'lessons' | 'tags';
+type SortOrder = 'asc' | 'desc';
+
+const SORT_COLS: { id: SortCol; label: string }[] = [
+  { id: 'thai', label: 'Target' },
+  { id: 'english', label: 'English' },
+  { id: 'lessons', label: 'Lessons' },
+  { id: 'tags', label: 'Tags' },
+];
 import {
   Table,
   TableBody,
@@ -51,6 +62,7 @@ interface ListResponse {
   page: number;
   pageSize: number;
   total: number;
+  hasMore: boolean;
 }
 
 function VocabInner() {
@@ -68,6 +80,9 @@ function VocabInner() {
   const mode: 'and' | 'or' = search.get('mode') === 'or' ? 'or' : 'and';
   const page = Math.max(1, parseInt(search.get('page') ?? '1', 10) || 1);
   const searchTerm = search.get('search') ?? '';
+  const sortParam = search.get('sort');
+  const sortCol: SortCol | null = (SORT_COLS.find((c) => c.id === sortParam)?.id ?? null);
+  const sortOrder: SortOrder = search.get('order') === 'desc' ? 'desc' : 'asc';
   const [searchInput, setSearchInput] = useState(searchTerm);
 
   useEffect(() => {
@@ -93,11 +108,15 @@ function VocabInner() {
     for (const id of selectedLessons) qs.append('lesson', id);
     for (const id of selectedTags) qs.append('tag', id);
     qs.set('mode', mode);
+    if (sortCol) {
+      qs.set('sort', sortCol);
+      qs.set('order', sortOrder);
+    }
     fetch(`/api/vocab?${qs.toString()}`)
       .then((r) => r.json())
       .then((d) => setData(d))
       .finally(() => setLoading(false));
-  }, [page, searchTerm, selectedLessons, selectedTags, mode]);
+  }, [page, searchTerm, selectedLessons, selectedTags, mode, sortCol, sortOrder]);
 
   function updateParams(mut: (p: URLSearchParams) => void) {
     const p = new URLSearchParams(search.toString());
@@ -139,6 +158,38 @@ function VocabInner() {
       else p.delete('search');
       p.delete('page');
     });
+  }
+
+  /**
+   * Click a sortable column header. Cycles: None → asc → desc → None.
+   * Clicking a different column resets the cycle to asc on that column.
+   */
+  function cycleSort(col: SortCol) {
+    updateParams((p) => {
+      const cur = p.get('sort');
+      const ord = p.get('order') === 'desc' ? 'desc' : 'asc';
+      if (cur !== col) {
+        p.set('sort', col);
+        p.set('order', 'asc');
+      } else if (ord === 'asc') {
+        p.set('order', 'desc');
+      } else {
+        p.delete('sort');
+        p.delete('order');
+      }
+      p.delete('page');
+    });
+  }
+
+  function sortIcon(col: SortCol) {
+    if (sortCol !== col) {
+      return <ChevronsUpDown className="ml-1 inline h-3.5 w-3.5 opacity-40" />;
+    }
+    return sortOrder === 'asc' ? (
+      <ChevronUp className="ml-1 inline h-3.5 w-3.5" />
+    ) : (
+      <ChevronDown className="ml-1 inline h-3.5 w-3.5" />
+    );
   }
 
   async function doDelete() {
@@ -237,12 +288,18 @@ function VocabInner() {
         <div className="border rounded-md overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead>Target</TableHead>
-                <TableHead>English</TableHead>
-                <TableHead>Lessons</TableHead>
-                <TableHead>Tags</TableHead>
-                <TableHead className="w-32 text-right">Actions</TableHead>
+              <TableRow className="bg-muted border-b-2">
+                {SORT_COLS.map((c) => (
+                  <TableHead
+                    key={c.id}
+                    onClick={() => cycleSort(c.id)}
+                    className="font-semibold cursor-pointer select-none hover:bg-muted-foreground/10"
+                  >
+                    {c.label}
+                    {sortIcon(c.id)}
+                  </TableHead>
+                ))}
+                <TableHead className="w-32 text-right font-semibold">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

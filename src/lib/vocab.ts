@@ -1,6 +1,38 @@
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray, sql, type SQL } from 'drizzle-orm';
 import { db } from '@/db';
-import { lessons, tags } from '@/db/schema';
+import { lessons, tags, vocabItems } from '@/db/schema';
+
+export const SORT_COLUMNS = ['thai', 'english', 'lessons', 'tags'] as const;
+export type SortColumn = (typeof SORT_COLUMNS)[number];
+
+/**
+ * Resolve sort/order query params into an ORDER BY expression for the
+ * vocab list. Returns null when no explicit sort was requested — caller
+ * falls back to `created_at DESC` (insertion order, newest first).
+ */
+export function buildOrderBy(
+  sortParam: string | null,
+  orderParam: string | null,
+): SQL | null {
+  if (!sortParam || !(SORT_COLUMNS as readonly string[]).includes(sortParam)) {
+    return null;
+  }
+  const direction = orderParam === 'desc' ? 'desc' : 'asc';
+  const dirSql = direction === 'desc' ? sql`DESC` : sql`ASC`;
+
+  switch (sortParam as SortColumn) {
+    case 'thai':
+      return sql`${vocabItems.targetText} ${dirSql} NULLS LAST`;
+    case 'english':
+      return sql`${vocabItems.nativeText} ${dirSql} NULLS LAST`;
+    case 'lessons':
+      // Correlated subquery: alphabetically-first associated lesson name.
+      // NULLS LAST keeps items with no lesson at the bottom in either dir.
+      return sql`(SELECT MIN(l.name) FROM vocab_lessons vl JOIN lessons l ON l.id = vl.lesson_id WHERE vl.vocab_item_id = ${vocabItems.id}) ${dirSql} NULLS LAST`;
+    case 'tags':
+      return sql`(SELECT MIN(t.name) FROM vocab_tags vt JOIN tags t ON t.id = vt.tag_id WHERE vt.vocab_item_id = ${vocabItems.id}) ${dirSql} NULLS LAST`;
+  }
+}
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 

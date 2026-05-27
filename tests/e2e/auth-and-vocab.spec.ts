@@ -79,6 +79,32 @@ test('full flow: signup → verify → login → import → filter → settings 
   // The 'กิน' row is in Lesson 2 only and should be filtered out
   await expect(page.getByRole('row').filter({ hasText: 'กิน' })).toHaveCount(0);
 
+  // 6b. Column sort — clear filter first, then exercise Thai column header
+  await page.goto('/vocab');
+  // Capture the default-order first body row Thai value (created_at DESC)
+  const defaultFirstThai = (
+    await page.locator('tbody tr').first().locator('td').first().textContent()
+  )?.trim();
+  expect(defaultFirstThai).toBeTruthy();
+
+  // First click → ascending. Lowest Unicode Thai char in the fixture is "ก" (กิน).
+  await page.getByRole('columnheader', { name: /Target/ }).click();
+  await expect(page).toHaveURL(/sort=thai/);
+  await expect(page).toHaveURL(/order=asc/);
+  await expect(page.locator('tbody tr').first().locator('td').first()).toContainText('กิน');
+
+  // Second click → descending. Highest Thai char in the fixture is "ห" (หิว).
+  await page.getByRole('columnheader', { name: /Target/ }).click();
+  await expect(page).toHaveURL(/order=desc/);
+  await expect(page.locator('tbody tr').first().locator('td').first()).toContainText('หิว');
+
+  // Third click → back to default (no sort/order in URL)
+  await page.getByRole('columnheader', { name: /Target/ }).click();
+  await expect(page).not.toHaveURL(/sort=/);
+  await expect(page.locator('tbody tr').first().locator('td').first()).toContainText(
+    defaultFirstThai!,
+  );
+
   // 7. Settings page — set Anthropic key, verify mask, then reveal
   await page.goto('/settings');
   // Wait for the settings to load
