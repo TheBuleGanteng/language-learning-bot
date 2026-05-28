@@ -13,6 +13,13 @@ import {
 } from '@/lib/models';
 import { encryptString, decryptString, maskKey } from '@/lib/crypto';
 import { LANGUAGES, normalizeLanguageCode } from '@/lib/languages';
+import {
+  IMAGE_PROVIDERS,
+  defaultImageModel,
+  isImageProvider,
+  isValidImageModel,
+  type ImageProviderId,
+} from '@/lib/image-gen';
 
 const LANGUAGE_CODES = LANGUAGES.map((l) => l.code) as [string, ...string[]];
 
@@ -72,6 +79,10 @@ export async function GET(req: Request) {
     llmModel: s.llmModel,
     targetLanguage: normalizeLanguageCode(u?.targetLanguage),
     nativeLanguage: normalizeLanguageCode(u?.nativeLanguage),
+    imageProvider: s.imageProvider,
+    imageModel: s.imageModel,
+    imageSpendReminderUsd: Number(s.imageSpendReminderUsd ?? 25),
+    imageSpendHardStopUsd: Number(s.imageSpendHardStopUsd ?? 100),
     keys: {
       anthropic: formatKey(s.anthropicApiKeyEncrypted, reveal === 'anthropic'),
       openai: formatKey(s.openaiApiKeyEncrypted, reveal === 'openai'),
@@ -83,6 +94,10 @@ export async function GET(req: Request) {
 const patchSchema = z.object({
   llmProvider: z.enum(PROVIDERS).optional(),
   llmModel: z.string().min(1).max(100).optional(),
+  imageProvider: z.enum(IMAGE_PROVIDERS as readonly [ImageProviderId, ...ImageProviderId[]]).optional(),
+  imageModel: z.string().min(1).max(100).optional(),
+  imageSpendReminderUsd: z.number().min(1).max(99999).optional(),
+  imageSpendHardStopUsd: z.number().min(1).max(99999).optional(),
   targetLanguage: z.enum(LANGUAGE_CODES).optional(),
   nativeLanguage: z.enum(LANGUAGE_CODES).optional(),
   apiKey: z
@@ -119,7 +134,6 @@ export async function PATCH(req: Request) {
   if (parsed.data.llmProvider) {
     const p = parsed.data.llmProvider;
     updates.llmProvider = p;
-    // If model isn't being explicitly set, snap to the provider's default
     if (!parsed.data.llmModel) {
       updates.llmModel = defaultModelFor(p);
     }
@@ -136,14 +150,64 @@ export async function PATCH(req: Request) {
     updates.llmModel = parsed.data.llmModel;
   }
 
+  if (parsed.data.imageProvider) {
+    const p = parsed.data.imageProvider;
+    updates.imageProvider = p;
+    if (!parsed.data.imageModel) {
+      updates.imageModel = defaultImageModel(p);
+    }
+  }
+
+  if (parsed.data.imageModel) {
+    const ip = parsed.data.imageProvider ?? (await getCurrentImageProvider(userId));
+    if (!isValidImageModel(ip, parsed.data.imageModel)) {
+      return NextResponse.json(
+        { error: `Image model ${parsed.data.imageModel} is not valid for provider ${ip}` },
+        { status: 400 },
+      );
+    }
+    updates.imageModel = parsed.data.imageModel;
+  }
+
+  if (parsed.data.imageSpendReminderUsd !== undefined) {
+    updates.imageSpendReminderUsd = parsed.data.imageSpendReminderUsd.toFixed(2);
+  }
+  if (parsed.data.imageSpendHardStopUsd !== undefined) {
+    updates.imageSpendHardStopUsd = parsed.data.imageSpendHardStopUsd.toFixed(2);
+  }
+
+  // Cross-field check: hard stop must be >= reminder. Use the post-patch
+  // values, falling back to stored values for fields not in this PATCH.
+  if (
+    parsed.data.imageSpendReminderUsd !== undefined ||
+    parsed.data.imageSpendHardStopUsd !== undefined
+  ) {
+    const [stored] = await db
+      .select({
+        reminder: userSettings.imageSpendReminderUsd,
+        hardStop: userSettings.imageSpendHardStopUsd,
+      })
+      .from(userSettings)
+      .where(eq(userSettings.userId, userId))
+      .limit(1);
+    const newReminder =
+      parsed.data.imageSpendReminderUsd ?? Number(stored?.reminder ?? 25);
+    const newHardStop =
+      parsed.data.imageSpendHardStopUsd ?? Number(stored?.hardStop ?? 100);
+    if (newHardStop < newReminder) {
+      return NextResponse.json(
+        { error: 'Hard stop must be ≥ reminder' },
+        { status: 400 },
+      );
+    }
+  }
+
   if (parsed.data.apiKey) {
     const { provider, value } = parsed.data.apiKey;
     const col = PROVIDER_KEY_COL[provider];
     updates[col] = value ? encryptString(value) : null;
   }
 
-  // The user_settings table doesn't store language fields — they live on
-  // `users`. Update those in a separate query when present.
   const userUpdates: Record<string, unknown> = {};
   if (parsed.data.targetLanguage) userUpdates.targetLanguage = parsed.data.targetLanguage;
   if (parsed.data.nativeLanguage) userUpdates.nativeLanguage = parsed.data.nativeLanguage;
@@ -152,8 +216,6 @@ export async function PATCH(req: Request) {
     await db.update(users).set(userUpdates).where(eq(users.id, userId));
   }
 
-  // Only run the settings update if there's an actual settings field to write
-  // (avoid no-op writes that just bump updatedAt).
   if (Object.keys(updates).length > 1) {
     await db.update(userSettings).set(updates).where(eq(userSettings.userId, userId));
   }
@@ -169,4 +231,14 @@ async function getCurrentProvider(userId: string): Promise<Provider> {
     .limit(1);
   if (row && isProvider(row.p)) return row.p;
   return 'anthropic';
+}
+
+async function getCurrentImageProvider(userId: string): Promise<ImageProviderId> {
+  const [row] = await db
+    .select({ p: userSettings.imageProvider })
+    .from(userSettings)
+    .where(eq(userSettings.userId, userId))
+    .limit(1);
+  if (row && isImageProvider(row.p)) return row.p;
+  return 'google';
 }

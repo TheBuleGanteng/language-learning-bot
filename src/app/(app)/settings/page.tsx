@@ -26,6 +26,13 @@ import {
   languageDisplayLabel,
   type LanguageCode,
 } from '@/lib/languages';
+import {
+  IMAGE_MODELS,
+  IMAGE_PROVIDERS,
+  defaultImageModel,
+  imageModelCost,
+  type ImageProviderId,
+} from '@/lib/image-gen';
 import { useRouter } from 'next/navigation';
 import { useFieldAutoSave, SaveStatus } from '@/components/save-status';
 
@@ -39,7 +46,23 @@ interface SettingsState {
   llmModel: string;
   targetLanguage: LanguageCode;
   nativeLanguage: LanguageCode;
+  imageProvider: ImageProviderId;
+  imageModel: string;
+  imageSpendReminderUsd: number;
+  imageSpendHardStopUsd: number;
   keys: Record<Provider, KeyInfo | null>;
+}
+
+interface SpendSnapshot {
+  currentSpend: number;
+  hardStop: number;
+  reminder: number;
+  lastReminderBand: number;
+  nextReminderBand: number;
+  monthLabel: string;
+  provider: string;
+  model: string;
+  estimatedCostPerImage: number;
 }
 
 const PROVIDER_LABELS: Record<Provider, string> = {
@@ -48,17 +71,34 @@ const PROVIDER_LABELS: Record<Provider, string> = {
   google: 'Google',
 };
 
+const IMAGE_PROVIDER_LABELS: Record<ImageProviderId, string> = {
+  google: 'Google',
+  openai: 'OpenAI',
+};
+
+const IMAGE_PROVIDER_KEY: Record<ImageProviderId, Provider> = {
+  google: 'google',
+  openai: 'openai',
+};
+
 export default function SettingsPage() {
   const router = useRouter();
   const [state, setState] = useState<SettingsState | null>(null);
+  const [spend, setSpend] = useState<SpendSnapshot | null>(null);
   const [busy, setBusy] = useState(false);
 
   const targetSave = useFieldAutoSave();
   const nativeSave = useFieldAutoSave();
   const providerSave = useFieldAutoSave();
   const modelSave = useFieldAutoSave();
+  const imageProviderSave = useFieldAutoSave();
+  const imageModelSave = useFieldAutoSave();
+  const reminderSave = useFieldAutoSave();
+  const hardStopSave = useFieldAutoSave();
 
-  // Per-row input state for the key editors
+  const [reminderDraft, setReminderDraft] = useState('');
+  const [hardStopDraft, setHardStopDraft] = useState('');
+
   const [keyDrafts, setKeyDrafts] = useState<Record<Provider, string>>({
     anthropic: '',
     openai: '',
@@ -77,14 +117,23 @@ export default function SettingsPage() {
       toast.error('Failed to load settings');
       return;
     }
-    setState((await res.json()) as SettingsState);
+    const data = (await res.json()) as SettingsState;
+    setState(data);
+    setReminderDraft(String(data.imageSpendReminderUsd ?? 25));
+    setHardStopDraft(String(data.imageSpendHardStopUsd ?? 100));
+  }
+
+  async function loadSpend() {
+    const res = await fetch('/api/settings/image-spend');
+    if (!res.ok) return;
+    setSpend((await res.json()) as SpendSnapshot);
   }
 
   useEffect(() => {
     load();
+    loadSpend();
   }, []);
 
-  /** PATCH that throws on failure so auto-save hooks can flip to "error". */
   async function patchOrThrow(body: Record<string, unknown>) {
     const res = await fetch('/api/settings', {
       method: 'PATCH',
@@ -97,7 +146,6 @@ export default function SettingsPage() {
     }
   }
 
-  /** Older API-key path keeps its on-button-click semantics + toast feedback. */
   async function patchForKey(body: Record<string, unknown>) {
     setBusy(true);
     try {
@@ -188,7 +236,67 @@ export default function SettingsPage() {
     });
   }
 
+  function onImageProviderChange(p: ImageProviderId) {
+    if (!state || p === state.imageProvider) return;
+    const newModel = defaultImageModel(p);
+    setState({ ...state, imageProvider: p, imageModel: newModel });
+    void imageProviderSave.run(async () => {
+      await patchOrThrow({ imageProvider: p, imageModel: newModel });
+      await loadSpend();
+    });
+  }
+
+  function onImageModelChange(modelId: string) {
+    if (!state || modelId === state.imageModel) return;
+    setState({ ...state, imageModel: modelId });
+    void imageModelSave.run(async () => {
+      await patchOrThrow({ imageModel: modelId });
+      await loadSpend();
+    });
+  }
+
+  function saveReminder() {
+    if (!state) return;
+    const next = Number(reminderDraft);
+    if (!Number.isFinite(next) || next < 1) {
+      reminderSave.run(async () => {
+        throw new Error('Must be at least $1');
+      });
+      return;
+    }
+    if (next === state.imageSpendReminderUsd) return;
+    setState({ ...state, imageSpendReminderUsd: next });
+    void reminderSave.run(async () => {
+      await patchOrThrow({ imageSpendReminderUsd: next });
+      await loadSpend();
+    });
+  }
+
+  function saveHardStop() {
+    if (!state) return;
+    const next = Number(hardStopDraft);
+    if (!Number.isFinite(next) || next < state.imageSpendReminderUsd) {
+      hardStopSave.run(async () => {
+        throw new Error('Must be ≥ reminder');
+      });
+      return;
+    }
+    if (next === state.imageSpendHardStopUsd) return;
+    setState({ ...state, imageSpendHardStopUsd: next });
+    void hardStopSave.run(async () => {
+      await patchOrThrow({ imageSpendHardStopUsd: next });
+      await loadSpend();
+    });
+  }
+
   if (!state) return <p className="text-sm text-muted-foreground">Loading settings…</p>;
+
+  const imageProviderHasKey = !!state.keys[IMAGE_PROVIDER_KEY[state.imageProvider]];
+  const imageCostPerImage = imageModelCost(state.imageProvider, state.imageModel);
+  const imagesPossible =
+    spend && spend.estimatedCostPerImage > 0
+      ? Math.max(0, Math.floor((spend.hardStop - spend.currentSpend) / spend.estimatedCostPerImage))
+      : 0;
 
   return (
     <div className="space-y-6 max-w-2xl">
@@ -257,9 +365,9 @@ export default function SettingsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>LLM provider</CardTitle>
+          <CardTitle>Chat Model</CardTitle>
           <CardDescription>
-            Choose which model the AI tutor uses. Each user can pick independently.
+            Choose which model the AI tutor uses for chat. Each user can pick independently.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -304,6 +412,144 @@ export default function SettingsPage() {
               </Select>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Image Model</CardTitle>
+          <CardDescription>
+            Choose which model generates illustrations for your vocabulary.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Label>Provider</Label>
+                <SaveStatus status={imageProviderSave.status} />
+              </div>
+              <Select
+                value={state.imageProvider}
+                onValueChange={(v) => v && onImageProviderChange(v as ImageProviderId)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {IMAGE_PROVIDERS.map((p) => (
+                    <SelectItem key={p} value={p}>
+                      {IMAGE_PROVIDER_LABELS[p]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Label>Model</Label>
+                <SaveStatus status={imageModelSave.status} />
+              </div>
+              <Select
+                value={state.imageModel}
+                onValueChange={(v) => v && onImageModelChange(v)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {IMAGE_MODELS[state.imageProvider].map((m) => (
+                    <SelectItem key={m.id} value={m.id}>
+                      {m.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Estimated cost: ${imageCostPerImage.toFixed(3)} per image
+          </p>
+          {!imageProviderHasKey && (
+            <p className="text-xs text-amber-700">
+              You haven&apos;t entered an API key for{' '}
+              {IMAGE_PROVIDER_LABELS[state.imageProvider]}. Add one below to use this
+              model.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Image generation budget</CardTitle>
+          <CardDescription>
+            Set monthly spending controls for image generation. Estimated based on provider
+            price-per-image. Resets on the 1st of each calendar month.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="reminder">Reminder every</Label>
+                <SaveStatus status={reminderSave.status} />
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">$</span>
+                <Input
+                  id="reminder"
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={reminderDraft}
+                  onChange={(e) => setReminderDraft(e.target.value)}
+                  onBlur={saveReminder}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Show a banner each time your month-to-date spend crosses this amount.
+              </p>
+            </div>
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="hardstop">Hard stop at</Label>
+                <SaveStatus status={hardStopSave.status} />
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">$</span>
+                <Input
+                  id="hardstop"
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={hardStopDraft}
+                  onChange={(e) => setHardStopDraft(e.target.value)}
+                  onBlur={saveHardStop}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Block further image generation when month-to-date spend reaches this amount.
+              </p>
+            </div>
+          </div>
+          {spend && (
+            <p className="text-xs text-muted-foreground border-t pt-3">
+              {spend.monthLabel}: ${spend.currentSpend.toFixed(2)} spent of $
+              {spend.hardStop.toFixed(2)} hard stop
+              {spend.reminder > 0 && (
+                <>
+                  {' · '}Next reminder at ${spend.nextReminderBand.toFixed(2)}
+                </>
+              )}
+              {spend.estimatedCostPerImage > 0 && (
+                <>
+                  {' · '}
+                  {imagesPossible.toLocaleString()} images possible at current model price
+                </>
+              )}
+            </p>
+          )}
         </CardContent>
       </Card>
 
