@@ -330,3 +330,59 @@ matches both.
 - Drag-to-reorder for useful links (position column exists; no UI).
 - E2E spec for PDF upload + delete is not yet added; the storage
   round-trip is covered by the local-storage unit test instead.
+
+## UI remediation pass (post-lesson-pages)
+
+### Changes
+
+- Confirm-delete dialog now shows the item name in the description
+  ("This will permanently delete &ldquo;…&rdquo;"), disables both Cancel
+  and Delete during the in-flight request, blocks dismissal mid-delete,
+  and surfaces server errors inline (dialog stays open for retry).
+  Applied to PDFs, audio, and useful links via a shared
+  `<ConfirmDeleteDialog>` component.
+- Top nav consolidated: only Vocab and Lessons on the left; Settings
+  and Sign out moved into a user-email dropdown menu on the right.
+  Sign-out switched from a `<form>` server action to client-side
+  `next-auth/react`'s `signOut({callbackUrl: '/'})` so it can live as a
+  DropdownMenuItem.
+- Settings language dropdowns show `Name - CODE` (e.g. "Thai - TH") via
+  a new `languageDisplayLabel()` helper. Content-descriptive labels
+  (vocab table column header, lesson vocab section heading) still show
+  just the name — picker-style labels only get the code.
+- Inline editing replaces the per-lesson "Edit lesson details" modal:
+  `<InlineEdit>` for name + topic, `<InlineDateEdit>` for the date
+  using a popover calendar. Enter saves (Cmd/Ctrl+Enter for multiline),
+  Escape or click-outside cancels. Date picker saves on select with a
+  "Clear" footer button.
+- Notes and Audio drop zones compressed from a tall vertical card
+  (~150–200px) to a single horizontal bar (~64px): icon on the left,
+  instruction in the middle, size/format hint on the right. During
+  upload the bar height stays the same; the text becomes the filename
+  plus an indeterminate progress bar.
+- CSV import page replaced the raw `<input type="file">` (Tailwind
+  `file:*` selectors) with a `react-dropzone` drop area containing a
+  styled shadcn "Choose file" button. Hidden input stays in the DOM so
+  E2E `setInputFiles` keeps working.
+
+### Issues hit
+
+- **shadcn `add calendar popover` interactive prompt blocks**. Running
+  `pnpm dlx shadcn@latest add calendar popover` stops at a y/N prompt
+  to overwrite the existing `button.tsx`, which we customised earlier
+  (Radix Slot variant — see prior section). The non-interactive flag
+  `--yes` would overwrite our button. Workaround: kill the prompt,
+  accept the popover.tsx that shadcn already wrote before stopping,
+  and create `calendar.tsx` by hand as a thin `react-day-picker`
+  wrapper (installed directly via `pnpm add react-day-picker date-fns`).
+- **InlineDateEdit + base-ui Popover**. The shadcn `PopoverTrigger` in
+  this codebase is base-ui-backed, so it uses `render={<button .../>}`
+  rather than `asChild`. Passing a button via the `render` prop works
+  but the typings are subtly different from radix; worth noting if a
+  future codemod tries to swap libraries.
+- **Date timezone drift**. The lesson `date` column is `date` (no
+  timezone). Initial implementation used `new Date(yyyyMmDd)` which
+  parses as UTC midnight and renders as the previous day in non-UTC
+  zones. Fixed by parsing as `new Date(\`${date}T00:00:00\`)` (local
+  midnight) and serializing back with a hand-rolled local
+  `YYYY-MM-DD` formatter that doesn't go through `toISOString()`.
