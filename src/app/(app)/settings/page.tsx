@@ -20,6 +20,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { MODELS, PROVIDERS, type Provider } from '@/lib/models';
+import { LANGUAGES, UNLOCKED_TARGET_LANGUAGES, type LanguageCode } from '@/lib/languages';
+import { useRouter } from 'next/navigation';
 
 interface KeyInfo {
   masked: string;
@@ -29,6 +31,8 @@ interface KeyInfo {
 interface SettingsState {
   llmProvider: Provider;
   llmModel: string;
+  targetLanguage: LanguageCode;
+  nativeLanguage: LanguageCode;
   keys: Record<Provider, KeyInfo | null>;
 }
 
@@ -39,6 +43,7 @@ const PROVIDER_LABELS: Record<Provider, string> = {
 };
 
 export default function SettingsPage() {
+  const router = useRouter();
   const [state, setState] = useState<SettingsState | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -141,10 +146,75 @@ export default function SettingsPage() {
     setReveal({ ...reveal, [provider]: true });
   }
 
+  async function onLanguageChange(field: 'targetLanguage' | 'nativeLanguage', code: LanguageCode) {
+    if (!state) return;
+    const ok = await patch({ [field]: code });
+    if (ok) {
+      setState({ ...state, [field]: code });
+      toast.success('Saved');
+      // Trigger layout re-render to refresh the top-nav links and any other
+      // language-dependent UI.
+      router.refresh();
+    }
+  }
+
   if (!state) return <p className="text-sm text-muted-foreground">Loading settings…</p>;
 
   return (
     <div className="space-y-6 max-w-2xl">
+      <Card>
+        <CardHeader>
+          <CardTitle>Languages</CardTitle>
+          <CardDescription>
+            Pick which language you&apos;re studying (target) and your home language (native).
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>Target language</Label>
+              <Select
+                value={state.targetLanguage}
+                onValueChange={(v) => v && onLanguageChange('targetLanguage', v as LanguageCode)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {LANGUAGES.map((l) => {
+                    const unlocked = UNLOCKED_TARGET_LANGUAGES.includes(l.code);
+                    return (
+                      <SelectItem key={l.code} value={l.code} disabled={!unlocked}>
+                        {l.name}
+                        {!unlocked && ' (coming soon)'}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Native language</Label>
+              <Select
+                value={state.nativeLanguage}
+                onValueChange={(v) => v && onLanguageChange('nativeLanguage', v as LanguageCode)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {LANGUAGES.map((l) => (
+                    <SelectItem key={l.code} value={l.code}>
+                      {l.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle>LLM provider</CardTitle>

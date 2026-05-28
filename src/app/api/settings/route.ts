@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { eq } from 'drizzle-orm';
 import { db } from '@/db';
-import { userSettings } from '@/db/schema';
+import { userSettings, users } from '@/db/schema';
 import { auth } from '@/lib/auth';
 import {
   PROVIDERS,
@@ -12,6 +12,9 @@ import {
   type Provider,
 } from '@/lib/models';
 import { encryptString, decryptString, maskKey } from '@/lib/crypto';
+import { LANGUAGES, normalizeLanguageCode } from '@/lib/languages';
+
+const LANGUAGE_CODES = LANGUAGES.map((l) => l.code) as [string, ...string[]];
 
 const PROVIDER_KEY_COL = {
   anthropic: 'anthropicApiKeyEncrypted',
@@ -55,10 +58,20 @@ export async function GET(req: Request) {
   const reveal = revealParam && isProvider(revealParam) ? revealParam : null;
 
   const s = await getOrCreateSettings(userId);
+  const [u] = await db
+    .select({
+      targetLanguage: users.targetLanguage,
+      nativeLanguage: users.nativeLanguage,
+    })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
 
   return NextResponse.json({
     llmProvider: s.llmProvider,
     llmModel: s.llmModel,
+    targetLanguage: normalizeLanguageCode(u?.targetLanguage),
+    nativeLanguage: normalizeLanguageCode(u?.nativeLanguage),
     keys: {
       anthropic: formatKey(s.anthropicApiKeyEncrypted, reveal === 'anthropic'),
       openai: formatKey(s.openaiApiKeyEncrypted, reveal === 'openai'),
@@ -70,6 +83,8 @@ export async function GET(req: Request) {
 const patchSchema = z.object({
   llmProvider: z.enum(PROVIDERS).optional(),
   llmModel: z.string().min(1).max(100).optional(),
+  targetLanguage: z.enum(LANGUAGE_CODES).optional(),
+  nativeLanguage: z.enum(LANGUAGE_CODES).optional(),
   apiKey: z
     .object({
       provider: z.enum(PROVIDERS),
@@ -127,7 +142,21 @@ export async function PATCH(req: Request) {
     updates[col] = value ? encryptString(value) : null;
   }
 
-  await db.update(userSettings).set(updates).where(eq(userSettings.userId, userId));
+  // The user_settings table doesn't store language fields — they live on
+  // `users`. Update those in a separate query when present.
+  const userUpdates: Record<string, unknown> = {};
+  if (parsed.data.targetLanguage) userUpdates.targetLanguage = parsed.data.targetLanguage;
+  if (parsed.data.nativeLanguage) userUpdates.nativeLanguage = parsed.data.nativeLanguage;
+  if (Object.keys(userUpdates).length > 0) {
+    userUpdates.updatedAt = new Date();
+    await db.update(users).set(userUpdates).where(eq(users.id, userId));
+  }
+
+  // Only run the settings update if there's an actual settings field to write
+  // (avoid no-op writes that just bump updatedAt).
+  if (Object.keys(updates).length > 1) {
+    await db.update(userSettings).set(updates).where(eq(userSettings.userId, userId));
+  }
 
   return NextResponse.json({ ok: true });
 }
