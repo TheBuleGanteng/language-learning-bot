@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { MODELS, PROVIDERS, type Provider } from '@/lib/models';
+import { MODELS, PROVIDERS, defaultModelFor, type Provider } from '@/lib/models';
 import {
   LANGUAGES,
   UNLOCKED_TARGET_LANGUAGES,
@@ -27,6 +27,7 @@ import {
   type LanguageCode,
 } from '@/lib/languages';
 import { useRouter } from 'next/navigation';
+import { useFieldAutoSave, SaveStatus } from '@/components/save-status';
 
 interface KeyInfo {
   masked: string;
@@ -51,6 +52,11 @@ export default function SettingsPage() {
   const router = useRouter();
   const [state, setState] = useState<SettingsState | null>(null);
   const [busy, setBusy] = useState(false);
+
+  const targetSave = useFieldAutoSave();
+  const nativeSave = useFieldAutoSave();
+  const providerSave = useFieldAutoSave();
+  const modelSave = useFieldAutoSave();
 
   // Per-row input state for the key editors
   const [keyDrafts, setKeyDrafts] = useState<Record<Provider, string>>({
@@ -78,7 +84,21 @@ export default function SettingsPage() {
     load();
   }, []);
 
-  async function patch(body: Record<string, unknown>) {
+  /** PATCH that throws on failure so auto-save hooks can flip to "error". */
+  async function patchOrThrow(body: Record<string, unknown>) {
+    const res = await fetch('/api/settings', {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data?.error ?? 'Save failed');
+    }
+  }
+
+  /** Older API-key path keeps its on-button-click semantics + toast feedback. */
+  async function patchForKey(body: Record<string, unknown>) {
     setBusy(true);
     try {
       const res = await fetch('/api/settings', {
@@ -97,30 +117,13 @@ export default function SettingsPage() {
     }
   }
 
-  async function onProviderChange(p: Provider) {
-    if (!state) return;
-    const newModel = MODELS[p].find((m) => m.isDefault)?.id ?? MODELS[p][0]!.id;
-    setState({ ...state, llmProvider: p, llmModel: newModel });
-  }
-
-  async function onModelChange(modelId: string) {
-    if (!state) return;
-    setState({ ...state, llmModel: modelId });
-  }
-
-  async function saveLlm() {
-    if (!state) return;
-    const ok = await patch({ llmProvider: state.llmProvider, llmModel: state.llmModel });
-    if (ok) toast.success('LLM settings saved');
-  }
-
   async function saveKey(provider: Provider) {
     const value = keyDrafts[provider].trim();
     if (!value) {
       toast.error('Enter a key first');
       return;
     }
-    const ok = await patch({ apiKey: { provider, value } });
+    const ok = await patchForKey({ apiKey: { provider, value } });
     if (ok) {
       toast.success(`${PROVIDER_LABELS[provider]} key saved`);
       setKeyDrafts({ ...keyDrafts, [provider]: '' });
@@ -129,7 +132,7 @@ export default function SettingsPage() {
   }
 
   async function removeKey(provider: Provider) {
-    const ok = await patch({ apiKey: { provider, value: null } });
+    const ok = await patchForKey({ apiKey: { provider, value: null } });
     if (ok) {
       toast.success(`${PROVIDER_LABELS[provider]} key removed`);
       await load();
@@ -141,7 +144,6 @@ export default function SettingsPage() {
       setReveal({ ...reveal, [provider]: false });
       return;
     }
-    // Fetch with reveal=provider then mark as revealed locally
     const res = await fetch(`/api/settings?reveal=${provider}`);
     if (!res.ok) {
       toast.error('Failed to fetch key');
@@ -151,16 +153,39 @@ export default function SettingsPage() {
     setReveal({ ...reveal, [provider]: true });
   }
 
-  async function onLanguageChange(field: 'targetLanguage' | 'nativeLanguage', code: LanguageCode) {
-    if (!state) return;
-    const ok = await patch({ [field]: code });
-    if (ok) {
-      setState({ ...state, [field]: code });
-      toast.success('Saved');
-      // Trigger layout re-render to refresh the top-nav links and any other
-      // language-dependent UI.
+  function onTargetLanguageChange(code: LanguageCode) {
+    if (!state || code === state.targetLanguage) return;
+    setState({ ...state, targetLanguage: code });
+    void targetSave.run(async () => {
+      await patchOrThrow({ targetLanguage: code });
       router.refresh();
-    }
+    });
+  }
+
+  function onNativeLanguageChange(code: LanguageCode) {
+    if (!state || code === state.nativeLanguage) return;
+    setState({ ...state, nativeLanguage: code });
+    void nativeSave.run(async () => {
+      await patchOrThrow({ nativeLanguage: code });
+      router.refresh();
+    });
+  }
+
+  function onProviderChange(p: Provider) {
+    if (!state || p === state.llmProvider) return;
+    const newModel = defaultModelFor(p);
+    setState({ ...state, llmProvider: p, llmModel: newModel });
+    void providerSave.run(async () => {
+      await patchOrThrow({ llmProvider: p, llmModel: newModel });
+    });
+  }
+
+  function onModelChange(modelId: string) {
+    if (!state || modelId === state.llmModel) return;
+    setState({ ...state, llmModel: modelId });
+    void modelSave.run(async () => {
+      await patchOrThrow({ llmModel: modelId });
+    });
   }
 
   if (!state) return <p className="text-sm text-muted-foreground">Loading settings…</p>;
@@ -177,10 +202,13 @@ export default function SettingsPage() {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label>Target language</Label>
+              <div className="flex items-center justify-between">
+                <Label>Target language</Label>
+                <SaveStatus status={targetSave.status} />
+              </div>
               <Select
                 value={state.targetLanguage}
-                onValueChange={(v) => v && onLanguageChange('targetLanguage', v as LanguageCode)}
+                onValueChange={(v) => v && onTargetLanguageChange(v as LanguageCode)}
               >
                 <SelectTrigger>
                   <SelectValue>
@@ -201,10 +229,13 @@ export default function SettingsPage() {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label>Native language</Label>
+              <div className="flex items-center justify-between">
+                <Label>Native language</Label>
+                <SaveStatus status={nativeSave.status} />
+              </div>
               <Select
                 value={state.nativeLanguage}
-                onValueChange={(v) => v && onLanguageChange('nativeLanguage', v as LanguageCode)}
+                onValueChange={(v) => v && onNativeLanguageChange(v as LanguageCode)}
               >
                 <SelectTrigger>
                   <SelectValue>
@@ -234,7 +265,10 @@ export default function SettingsPage() {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label>Provider</Label>
+              <div className="flex items-center justify-between">
+                <Label>Provider</Label>
+                <SaveStatus status={providerSave.status} />
+              </div>
               <Select
                 value={state.llmProvider}
                 onValueChange={(v) => v && onProviderChange(v as Provider)}
@@ -252,7 +286,10 @@ export default function SettingsPage() {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label>Model</Label>
+              <div className="flex items-center justify-between">
+                <Label>Model</Label>
+                <SaveStatus status={modelSave.status} />
+              </div>
               <Select value={state.llmModel} onValueChange={(v) => v && onModelChange(v)}>
                 <SelectTrigger>
                   <SelectValue />
@@ -267,9 +304,6 @@ export default function SettingsPage() {
               </Select>
             </div>
           </div>
-          <Button onClick={saveLlm} disabled={busy}>
-            Save
-          </Button>
         </CardContent>
       </Card>
 
