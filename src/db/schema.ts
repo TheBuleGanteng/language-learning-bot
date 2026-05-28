@@ -7,6 +7,7 @@ import {
   real,
   date,
   numeric,
+  boolean,
   primaryKey,
   uniqueIndex,
   index,
@@ -327,6 +328,34 @@ export const imageGenerationLog = pgTable(
 );
 
 // =============================================================================
+// image_generation_batches (cross-page completion notification + history)
+// =============================================================================
+
+export const imageGenerationBatches = pgTable(
+  'image_generation_batches',
+  {
+    id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    startedAt: timestamp('started_at', { withTimezone: true }).notNull().defaultNow(),
+    finishedAt: timestamp('finished_at', { withTimezone: true }),
+    requestedCount: integer('requested_count').notNull(),
+    succeededCount: integer('succeeded_count').notNull().default(0),
+    failedCount: integer('failed_count').notNull().default(0),
+    refusedCount: integer('refused_count').notNull().default(0),
+    stopped: boolean('stopped').notNull().default(false),
+    // Stamped when the client confirms it has shown the completion popup.
+    // While null and finishedAt is set, the active-batch endpoint surfaces
+    // this row as a pendingNotification so the client can pop the dialog.
+    notificationDismissedAt: timestamp('notification_dismissed_at', {
+      withTimezone: true,
+    }),
+  },
+  (t) => [index('image_gen_batches_user_idx').on(t.userId, t.startedAt)],
+);
+
+// =============================================================================
 // item_performance (placeholder for FSRS — schema only, not written to in v1)
 // =============================================================================
 
@@ -377,3 +406,5 @@ export type LessonLink = typeof lessonLinks.$inferSelect;
 export type NewLessonLink = typeof lessonLinks.$inferInsert;
 export type ImageGenerationLog = typeof imageGenerationLog.$inferSelect;
 export type NewImageGenerationLog = typeof imageGenerationLog.$inferInsert;
+export type ImageGenerationBatch = typeof imageGenerationBatches.$inferSelect;
+export type NewImageGenerationBatch = typeof imageGenerationBatches.$inferInsert;

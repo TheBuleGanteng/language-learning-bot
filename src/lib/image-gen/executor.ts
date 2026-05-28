@@ -1,7 +1,13 @@
 import { randomUUID } from 'crypto';
 import { and, eq, inArray, sql, lt } from 'drizzle-orm';
 import { db } from '@/db';
-import { imageGenerationLog, userSettings, users, vocabItems } from '@/db/schema';
+import {
+  imageGenerationBatches,
+  imageGenerationLog,
+  userSettings,
+  users,
+  vocabItems,
+} from '@/db/schema';
 import { storage } from '@/lib/storage';
 import { decryptString } from '@/lib/crypto';
 import { languageName } from '@/lib/languages';
@@ -248,7 +254,8 @@ async function markFailure(vocabItemId: string): Promise<void> {
 /**
  * Start a background batch. Marks all rows 'generating' then returns
  * immediately. The actual provider calls happen in a fire-and-forget
- * loop tracked in the BATCHES map.
+ * loop tracked in the BATCHES map AND in the image_generation_batches
+ * table (source of truth for cross-page completion notifications).
  */
 export async function startBatch(
   userId: string,
@@ -279,7 +286,14 @@ export async function startBatch(
       ),
     );
 
-  const batchId = randomUUID();
+  // Persist the batch row first so its UUID can drive both the in-process
+  // state and any cross-page polling that arrives mid-batch.
+  const [row] = await db
+    .insert(imageGenerationBatches)
+    .values({ userId, requestedCount: ids.length })
+    .returning({ id: imageGenerationBatches.id });
+  const batchId = row.id;
+
   const state: BatchState = {
     userId,
     total: ids.length,
@@ -305,6 +319,22 @@ async function runBatch(
   state: BatchState,
 ): Promise<void> {
   let cursor = 0;
+
+  /**
+   * Mirror the in-memory counters to the batches row. Cheap UPDATEs (single
+   * indexed PK lookup) and they run in the worker's gap between API calls,
+   * so the polling endpoint never has to read in-memory state.
+   */
+  async function persistCounts() {
+    await db
+      .update(imageGenerationBatches)
+      .set({
+        succeededCount: state.completed,
+        failedCount: state.failed,
+        refusedCount: state.refused,
+      })
+      .where(eq(imageGenerationBatches.id, batchId));
+  }
 
   async function worker() {
     while (cursor < vocabIds.length) {
@@ -338,8 +368,10 @@ async function runBatch(
           state.cancelled = true; // stop the rest
         } else state.failed += 1;
         if (r.bandCrossed) state.bandReminders.push(r.bandCrossed);
+        await persistCounts();
       } catch {
         state.failed += 1;
+        await persistCounts();
       }
     }
   }
@@ -347,8 +379,20 @@ async function runBatch(
   const workers = Array.from({ length: CONCURRENCY }, () => worker());
   await Promise.all(workers);
 
-  // Keep finished state around for a minute so the client's last poll can
-  // see the totals before they disappear.
+  // Final counts + finish marker.
+  await db
+    .update(imageGenerationBatches)
+    .set({
+      succeededCount: state.completed,
+      failedCount: state.failed,
+      refusedCount: state.refused,
+      stopped: state.cancelled,
+      finishedAt: new Date(),
+    })
+    .where(eq(imageGenerationBatches.id, batchId));
+
+  // Keep finished in-memory state around for a minute so the vocab page's
+  // own status poll can see the totals before they disappear.
   setTimeout(() => BATCHES.delete(batchId), 60_000);
 }
 
