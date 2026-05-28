@@ -6,9 +6,10 @@
  */
 export function stripHtml(html: string | null | undefined): string {
   if (!html) return '';
-  // Remove tags and decode the small handful of entities the Tiptap
-  // editor commonly emits. Anything else passes through unchanged.
-  const stripped = html
+  // Replace block-level closing tags with a space so adjacent paragraphs
+  // / list items don't run together when their tags are dropped.
+  const spaced = html.replace(/<\/(p|div|li|ul|ol|h[1-6]|br|blockquote)>/gi, ' ');
+  const stripped = spaced
     .replace(/<[^>]*>/g, '')
     .replace(/&nbsp;/g, ' ')
     .replace(/&amp;/g, '&')

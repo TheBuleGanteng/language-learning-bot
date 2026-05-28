@@ -386,3 +386,65 @@ matches both.
   zones. Fixed by parsing as `new Date(\`${date}T00:00:00\`)` (local
   midnight) and serializing back with a hand-rolled local
   `YYYY-MM-DD` formatter that doesn't go through `toISOString()`.
+
+## UI polish pass 3 (post-UI-remediation)
+
+### Changes
+
+- Settings language dropdowns now display the full `Name - CODE` label
+  in the trigger (was showing just the bare code after selection). Uses
+  `base-ui`'s `Select.Value` children render-function: `<SelectValue>
+  {(v) => languageDisplayLabel(v)}</SelectValue>`.
+- Auto-save for the Languages and LLM provider sections: each dropdown
+  PATCHes immediately, a per-field `<SaveStatus>` chip flashes
+  Saving… → Saved (1.5s, green check) → fades back. Provider change
+  still snaps the model to that provider's default and persists both in
+  a single PATCH. The API-key sub-section keeps its explicit Save
+  button — text inputs shouldn't save on each keystroke.
+- Lessons index rows: hover bg, active tap bg, link-styled name with
+  hover underline, and a trailing `ChevronRight` icon column for the
+  iOS-Settings "tap to drill in" affordance. Row remains the click
+  target.
+- Vocab-table lesson pills become `<Link>` to the lesson detail page
+  with hover underline + opacity dip; `stopPropagation` on the click so
+  any future row-level handler won't fight the pill nav. Tag pills
+  intentionally stay non-clickable (no tag detail page yet).
+- Tiptap rich-text editor (StarterKit minus headings + underline +
+  link) for the lesson topic and useful-link notes. Modal-hosted via
+  `<RichTextEditModal>` for topic; inline within the existing add-link
+  form for notes. Rendering goes through DOMPurify-based
+  `<RenderedHtml>` with a strict allowlist (p/br/strong/em/u/ul/ol/li/a;
+  href/target/rel attrs only).
+- Lessons index Topic cell strips HTML via `stripHtml()` + Tailwind
+  `line-clamp-2` so HTML topics render readably in the small table cell.
+
+### Issues hit
+
+- **base-ui `Select.Value` default rendering**. Out of the box,
+  `<Select.Value>` renders the bare value attribute. The official
+  base-ui pattern to override this is a children render-function:
+  `<SelectValue>{(value, item) => ...}</SelectValue>`. The shadcn
+  wrapper preserves children pass-through; no library change needed.
+- **Tailwind v4 typography plugin syntax**. The standard
+  `tailwind.config.js` JS-plugin pattern (`plugins:
+  [require('@tailwindcss/typography')]`) doesn't apply here — this
+  project is Tailwind v4 with CSS-based config. Wired the plugin via
+  `@plugin "@tailwindcss/typography";` in `globals.css` alongside the
+  existing `@import "tailwindcss";` and `@import "tw-animate-css";`.
+- **stripHtml whitespace at block boundaries**. A naive
+  `replace(/<[^>]*>/g, '')` glues consecutive `<p>` blocks together
+  ("oneTwo"). Fixed by first inserting a space after each block-level
+  closing tag (`</p>`, `</li>`, `</div>`, `</h{1-6}>`, `</br>`,
+  `</blockquote>`) then collapsing runs of whitespace.
+
+### Known follow-ups
+
+- Vocab notes column is unused; could become rich-text in a later pass.
+- A "general lesson notes" field (separate from PDFs) was discussed;
+  deferred.
+- Tag pill clickability deferred (no tag detail page yet).
+- The rich-text editor `<input>`-style placeholder is wired via a
+  `data-placeholder` attribute on the editor body but the CSS to
+  render it visually is not yet added — empty editors look blank
+  rather than showing the placeholder. Cosmetic; revisit when other
+  Tiptap polish lands.
