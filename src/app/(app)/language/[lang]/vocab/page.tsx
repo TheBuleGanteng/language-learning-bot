@@ -1,12 +1,22 @@
 'use client';
 
-import { Suspense, useEffect, useState, useMemo } from 'react';
+import { Suspense, useEffect, useRef, useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams, useParams } from 'next/navigation';
-import { ChevronDown, ChevronsUpDown, ChevronUp } from 'lucide-react';
+import {
+  AlertTriangle,
+  ChevronDown,
+  ChevronsUpDown,
+  ChevronUp,
+  ImageIcon,
+  ImageOff,
+  Loader2,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import { BulkImageDialog } from '@/components/vocab/bulk-image-dialog';
 import {
   Select,
   SelectContent,
@@ -66,6 +76,22 @@ interface VocabItem {
   transliteration: string | null;
   lessons: { id: string; name: string }[];
   tags: { id: string; name: string }[];
+  imageStorageKey: string | null;
+  imageStatus: 'none' | 'generating' | 'completed' | 'refused' | 'failed';
+  imageUrl: string | null;
+}
+
+type ImageStatusFilter = 'all' | 'has' | 'none' | 'failed';
+
+interface BatchSnapshot {
+  total: number;
+  completed: number;
+  failed: number;
+  refused: number;
+  done: number;
+  inFlight: boolean;
+  cancelled: boolean;
+  hardStopHit: boolean;
 }
 interface ListResponse {
   items: VocabItem[];
@@ -94,6 +120,12 @@ function VocabInner() {
   const [loadedPages, setLoadedPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [imageStatusFilter, setImageStatusFilter] = useState<ImageStatusFilter>('all');
+  const [showBulkDialog, setShowBulkDialog] = useState(false);
+  const [batch, setBatch] = useState<BatchSnapshot | null>(null);
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const selectedLessons = useMemo(() => new Set(search.getAll('lesson')), [search]);
   const selectedTags = useMemo(() => new Set(search.getAll('tag')), [search]);
@@ -277,16 +309,138 @@ function VocabInner() {
     setDeleteId(null);
   }
 
+  function enterSelectionMode() {
+    setSelectionMode(true);
+    setSelectedIds(new Set());
+    if (imageStatusFilter === 'all') setImageStatusFilter('none');
+  }
+
+  function exitSelectionMode() {
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+  }
+
+  function toggleSelect(id: string, checked: boolean) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  }
+
+  function selectAllVisible() {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      for (const i of items) {
+        if (i.imageStatus !== 'generating') next.add(i.id);
+      }
+      return next;
+    });
+  }
+
+  function refreshItems() {
+    setLoadedPages(1);
+    setItems([]);
+  }
+
+  function startPolling() {
+    if (pollingRef.current) clearInterval(pollingRef.current);
+    pollingRef.current = setInterval(async () => {
+      const res = await fetch('/api/vocab/generation-status');
+      if (!res.ok) return;
+      const data = (await res.json()) as { batch: BatchSnapshot | null };
+      setBatch(data.batch);
+      refreshItems();
+      if (!data.batch || !data.batch.inFlight) {
+        if (pollingRef.current) {
+          clearInterval(pollingRef.current);
+          pollingRef.current = null;
+        }
+      }
+    }, 5000);
+  }
+
+  useEffect(() => {
+    return () => {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+    };
+  }, []);
+
+  // On first paint, hydrate any in-flight batch — survives page reload.
+  useEffect(() => {
+    (async () => {
+      const res = await fetch('/api/vocab/generation-status');
+      if (!res.ok) return;
+      const data = (await res.json()) as { batch: BatchSnapshot | null };
+      if (data.batch?.inFlight) {
+        setBatch(data.batch);
+        startPolling();
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function confirmBulkGenerate(vocabIds: string[]) {
+    const res = await fetch('/api/vocab/generate-images', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ vocabIds }),
+    });
+    if (res.status === 402) {
+      const data = await res.json().catch(() => ({}));
+      toast.error(data?.message ?? 'Hard stop reached.');
+      return;
+    }
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      toast.error(data?.error ?? 'Bulk generate failed.');
+      return;
+    }
+    const data = (await res.json()) as { batchId: string; total: number };
+    toast.success(`Started generating ${data.total} image${data.total === 1 ? '' : 's'}.`);
+    setBatch({
+      total: data.total,
+      completed: 0,
+      failed: 0,
+      refused: 0,
+      done: 0,
+      inFlight: true,
+      cancelled: false,
+      hardStopHit: false,
+    });
+    setShowBulkDialog(false);
+    exitSelectionMode();
+    refreshItems();
+    startPolling();
+  }
+
+  async function cancelBatch() {
+    await fetch('/api/vocab/generation-status', { method: 'DELETE' });
+    toast.message('Stopping batch — items already in flight will still finish.');
+  }
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[16rem,1fr] gap-6">
       <aside className="space-y-4">
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Button asChild size="sm">
             <Link href={vocabPath(lang, '/new')}>Add vocab</Link>
           </Button>
           <Button asChild size="sm" variant="outline">
             <Link href={vocabPath(lang, '/import')}>Import CSV</Link>
           </Button>
+          {!selectionMode && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={enterSelectionMode}
+              className="gap-1.5"
+            >
+              <ImageIcon className="h-3.5 w-3.5" />
+              Generate Images
+            </Button>
+          )}
         </div>
 
         <div className="space-y-2 border rounded-md p-3">
@@ -348,6 +502,74 @@ function VocabInner() {
           </Button>
         </form>
 
+        <div className="flex items-center gap-2 text-xs flex-wrap">
+          <span className="text-muted-foreground">Image status:</span>
+          {(['all', 'has', 'none', 'failed'] as const).map((opt) => (
+            <button
+              key={opt}
+              type="button"
+              onClick={() => setImageStatusFilter(opt)}
+              className={cn(
+                'rounded-full px-2.5 py-1 border transition-colors',
+                imageStatusFilter === opt
+                  ? 'bg-foreground text-background border-foreground'
+                  : 'border-muted-foreground/30 hover:bg-muted',
+              )}
+            >
+              {opt === 'all'
+                ? 'All'
+                : opt === 'has'
+                  ? 'Has image'
+                  : opt === 'none'
+                    ? 'No image'
+                    : 'Failed/refused'}
+            </button>
+          ))}
+        </div>
+
+        {selectionMode && (
+          <div className="sticky top-0 z-10 flex items-center gap-2 flex-wrap rounded-md border bg-background p-2 shadow-sm">
+            <span className="text-sm font-medium">
+              {selectedIds.size.toLocaleString()} selected
+            </span>
+            <Button size="xs" variant="outline" onClick={selectAllVisible}>
+              Select all visible
+            </Button>
+            <Button
+              size="xs"
+              variant="outline"
+              onClick={() => setSelectedIds(new Set())}
+              disabled={selectedIds.size === 0}
+            >
+              Clear selection
+            </Button>
+            <Button
+              size="xs"
+              onClick={() => setShowBulkDialog(true)}
+              disabled={selectedIds.size === 0}
+            >
+              Generate Images for {selectedIds.size.toLocaleString()}
+            </Button>
+            <Button size="xs" variant="ghost" onClick={exitSelectionMode} className="ml-auto">
+              Cancel
+            </Button>
+          </div>
+        )}
+
+        {batch && batch.inFlight && (
+          <div className="flex items-center gap-3 rounded-md border bg-muted/40 p-3 text-sm">
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            <span>
+              Generating images: {batch.completed} of {batch.total} complete
+              {batch.failed > 0 && ` · ${batch.failed} failed`}
+              {batch.refused > 0 && ` · ${batch.refused} refused`}
+            </span>
+            <Button size="xs" variant="outline" onClick={cancelBatch} className="ml-auto">
+              Stop
+            </Button>
+          </div>
+        )}
+
         <div className="flex items-center justify-between gap-3 flex-wrap text-xs">
           <p className="text-muted-foreground">
             {loading && items.length === 0
@@ -380,6 +602,8 @@ function VocabInner() {
           <Table className="w-full">
             <TableHeader>
               <TableRow className="bg-muted border-b-2">
+                {selectionMode && <TableHead className="w-10" />}
+                <TableHead className="w-14 font-semibold">Image</TableHead>
                 {SORT_COLS.map((c) => (
                   <TableHead
                     key={c.id}
@@ -396,6 +620,19 @@ function VocabInner() {
             <TableBody>
               {items.map((i) => (
                 <TableRow key={i.id}>
+                  {selectionMode && (
+                    <TableCell className="align-top">
+                      <Checkbox
+                        checked={selectedIds.has(i.id)}
+                        disabled={i.imageStatus === 'generating'}
+                        onCheckedChange={(c) => toggleSelect(i.id, c === true)}
+                        aria-label="Select row"
+                      />
+                    </TableCell>
+                  )}
+                  <TableCell className="align-top">
+                    <ThumbCell item={i} lang={lang} />
+                  </TableCell>
                   <TableCell className="font-medium whitespace-normal break-words align-top">
                     <Link href={vocabPath(lang, `/${i.id}`)} className="hover:underline">
                       {i.targetText}
@@ -473,7 +710,10 @@ function VocabInner() {
               ))}
               {items.length === 0 && !loading && (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                  <TableCell
+                    colSpan={SORT_COLS.length + 2 + (selectionMode ? 1 : 0)}
+                    className="text-center py-8 text-muted-foreground"
+                  >
                     No vocab items match your filters.
                   </TableCell>
                 </TableRow>
@@ -511,8 +751,42 @@ function VocabInner() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <BulkImageDialog
+        open={showBulkDialog}
+        onOpenChange={setShowBulkDialog}
+        selectedCount={selectedIds.size}
+        vocabIds={Array.from(selectedIds)}
+        onConfirm={confirmBulkGenerate}
+      />
     </div>
   );
+}
+
+function ThumbCell({ item }: { item: VocabItem; lang: string }) {
+  if (item.imageStatus === 'generating') {
+    return <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />;
+  }
+  if (item.imageStatus === 'refused' || item.imageStatus === 'failed') {
+    return (
+      <AlertTriangle
+        className="h-4 w-4 text-amber-600/60"
+        aria-label="Generation failed/refused"
+      />
+    );
+  }
+  if (item.imageUrl) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={item.imageUrl}
+        alt=""
+        loading="lazy"
+        className="w-10 h-10 rounded-md object-cover border"
+      />
+    );
+  }
+  return <ImageOff className="h-4 w-4 text-muted-foreground/40" />;
 }
 
 export default function VocabPage() {

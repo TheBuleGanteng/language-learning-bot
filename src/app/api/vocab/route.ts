@@ -11,6 +11,7 @@ import {
 } from '@/db/schema';
 import { auth } from '@/lib/auth';
 import { findOrCreateLesson, findOrCreateTags, buildOrderBy } from '@/lib/vocab';
+import { storage } from '@/lib/storage';
 
 const DEFAULT_PAGE_SIZE = 100;
 const ALLOWED_PAGE_SIZES = new Set([25, 50, 100]);
@@ -42,6 +43,11 @@ export async function GET(req: Request) {
   }
   const tagIds = url.searchParams.getAll('tag').filter((s) => UUID_RE.test(s));
   const mode = url.searchParams.get('mode') === 'or' ? 'or' : 'and';
+
+  // imageStatus filter: 'has' (completed), 'none', 'failed' (failed+refused).
+  // 'generating' is intentionally folded into 'none' for selection-mode UX —
+  // those items show a spinner but aren't user-actionable.
+  const imageFilter = url.searchParams.get('imageStatus');
   const orderByExpr = buildOrderBy(
     url.searchParams.get('sort'),
     url.searchParams.get('order'),
@@ -72,6 +78,18 @@ export async function GET(req: Request) {
     wheres.push(lessonClause);
   } else if (tagClause) {
     wheres.push(tagClause);
+  }
+
+  if (imageFilter === 'has') {
+    wheres.push(eq(vocabItems.imageStatus, 'completed'));
+  } else if (imageFilter === 'none') {
+    wheres.push(
+      or(eq(vocabItems.imageStatus, 'none'), eq(vocabItems.imageStatus, 'generating'))!,
+    );
+  } else if (imageFilter === 'failed') {
+    wheres.push(
+      or(eq(vocabItems.imageStatus, 'failed'), eq(vocabItems.imageStatus, 'refused'))!,
+    );
   }
 
   const whereExpr = and(...wheres);
@@ -136,12 +154,18 @@ export async function GET(req: Request) {
   const hasMore =
     pageSize === 'all' ? false : (page - 1) * pageSize + items.length < total;
 
-  return NextResponse.json({
-    items: items.map((i) => ({
+  const store = storage();
+  const itemsWithUrls = await Promise.all(
+    items.map(async (i) => ({
       ...i,
       lessons: lessonMap.get(i.id) ?? [],
       tags: tagMap.get(i.id) ?? [],
+      imageUrl: i.imageStorageKey ? await store.getUrl(i.imageStorageKey) : null,
     })),
+  );
+
+  return NextResponse.json({
+    items: itemsWithUrls,
     page,
     pageSize: pageSize === 'all' ? 'all' : pageSize,
     total,
