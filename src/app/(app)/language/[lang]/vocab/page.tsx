@@ -61,6 +61,11 @@ function parsePageSizeOpt(raw: string | null): PageSizeOption {
   return '100';
 }
 
+function parseImageStatusFilter(raw: string | null): ImageStatusFilter {
+  if (raw === 'has' || raw === 'none' || raw === 'failed') return raw;
+  return 'all';
+}
+
 interface Lesson {
   id: string;
   name: string;
@@ -123,15 +128,18 @@ function VocabInner() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [imageStatusFilter, setImageStatusFilter] = useState<ImageStatusFilter>('all');
   const [showBulkDialog, setShowBulkDialog] = useState(false);
   const [batch, setBatch] = useState<BatchSnapshot | null>(null);
   const [previewItem, setPreviewItem] = useState<VocabItem | null>(null);
+  // Bumping this state forces the fetch effect to re-run even when none of
+  // the other deps changed. Used by the bulk-batch polling loop.
+  const [refetchCounter, setRefetchCounter] = useState(0);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const selectedLessons = useMemo(() => new Set(search.getAll('lesson')), [search]);
   const selectedTags = useMemo(() => new Set(search.getAll('tag')), [search]);
   const mode: 'and' | 'or' = search.get('mode') === 'or' ? 'or' : 'and';
+  const imageStatusFilter = parseImageStatusFilter(search.get('imageStatus'));
   const searchTerm = search.get('search') ?? '';
   const sortParam = search.get('sort');
   const sortCol: SortCol | null = ((['thai', 'english', 'lessons', 'tags'] as const).find(
@@ -159,10 +167,20 @@ function VocabInner() {
         sortCol ?? '',
         sortOrder,
         pageSize,
+        imageStatusFilter,
         Array.from(selectedLessons).sort().join(','),
         Array.from(selectedTags).sort().join(','),
       ].join('|'),
-    [searchTerm, mode, sortCol, sortOrder, pageSize, selectedLessons, selectedTags],
+    [
+      searchTerm,
+      mode,
+      sortCol,
+      sortOrder,
+      pageSize,
+      imageStatusFilter,
+      selectedLessons,
+      selectedTags,
+    ],
   );
 
   useEffect(() => {
@@ -211,6 +229,7 @@ function VocabInner() {
     if (searchTerm) qs.set('search', searchTerm);
     for (const id of selectedLessons) qs.append('lesson', id);
     for (const id of selectedTags) qs.append('tag', id);
+    if (imageStatusFilter !== 'all') qs.set('imageStatus', imageStatusFilter);
     qs.set('mode', mode);
     if (sortCol) {
       qs.set('sort', sortCol);
@@ -228,7 +247,19 @@ function VocabInner() {
         }
       })
       .finally(() => setLoading(false));
-  }, [filterKey, loadedPages, pageSize, searchTerm, selectedLessons, selectedTags, mode, sortCol, sortOrder]);
+  }, [
+    filterKey,
+    loadedPages,
+    pageSize,
+    searchTerm,
+    selectedLessons,
+    selectedTags,
+    mode,
+    sortCol,
+    sortOrder,
+    imageStatusFilter,
+    refetchCounter,
+  ]);
 
   function updateParams(mut: (p: URLSearchParams) => void) {
     const p = new URLSearchParams(search.toString());
@@ -309,6 +340,13 @@ function VocabInner() {
       toast.error('Delete failed');
     }
     setDeleteId(null);
+  }
+
+  function setImageStatusFilter(next: ImageStatusFilter) {
+    updateParams((p) => {
+      if (next === 'all') p.delete('imageStatus');
+      else p.set('imageStatus', next);
+    });
   }
 
   function enterSelectionMode() {

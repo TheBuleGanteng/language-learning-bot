@@ -44,9 +44,12 @@ export async function GET(req: Request) {
   const tagIds = url.searchParams.getAll('tag').filter((s) => UUID_RE.test(s));
   const mode = url.searchParams.get('mode') === 'or' ? 'or' : 'and';
 
-  // imageStatus filter: 'has' (completed), 'none', 'failed' (failed+refused).
-  // 'generating' is intentionally folded into 'none' for selection-mode UX —
-  // those items show a spinner but aren't user-actionable.
+  // imageStatus filter: 'has' (completed), 'none' (strict — only
+  // image_status='none'), 'failed' (failed+refused). 'generating' is
+  // intentionally NOT folded into 'none' so items don't briefly disappear
+  // from the No-image view as they transition through 'generating'; the
+  // bulk-batch flow switches the filter to 'all' on submit to keep
+  // in-flight items visible.
   const imageFilter = url.searchParams.get('imageStatus');
   const orderByExpr = buildOrderBy(
     url.searchParams.get('sort'),
@@ -83,9 +86,7 @@ export async function GET(req: Request) {
   if (imageFilter === 'has') {
     wheres.push(eq(vocabItems.imageStatus, 'completed'));
   } else if (imageFilter === 'none') {
-    wheres.push(
-      or(eq(vocabItems.imageStatus, 'none'), eq(vocabItems.imageStatus, 'generating'))!,
-    );
+    wheres.push(eq(vocabItems.imageStatus, 'none'));
   } else if (imageFilter === 'failed') {
     wheres.push(
       or(eq(vocabItems.imageStatus, 'failed'), eq(vocabItems.imageStatus, 'refused'))!,
