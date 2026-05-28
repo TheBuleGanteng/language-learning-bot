@@ -379,9 +379,14 @@ function VocabInner() {
     });
   }
 
+  /**
+   * Force the fetch effect to re-run. Bumping `refetchCounter` is the
+   * canonical "refetch now" signal — earlier versions reset `loadedPages`
+   * to 1, but React bails on no-op setState when it was already 1, so the
+   * fetch effect's dep array never observed a change and nothing fired.
+   */
   function refreshItems() {
-    setLoadedPages(1);
-    setItems([]);
+    setRefetchCounter((n) => n + 1);
   }
 
   function startPolling() {
@@ -451,6 +456,10 @@ function VocabInner() {
     });
     setShowBulkDialog(false);
     exitSelectionMode();
+    // Keep generating + completed items visible while the batch runs —
+    // otherwise they'd vanish from the No-image view as their status
+    // changes. Users can re-apply No-image after the batch finishes.
+    setImageStatusFilter('all');
     refreshItems();
     startPolling();
   }
