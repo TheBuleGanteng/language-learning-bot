@@ -1,0 +1,4 @@
+# Local file storage for lesson uploads (PDFs, audio).
+# Real files in subdirectories (users/<userId>/lessons/...) are gitignored;
+# this file just preserves the directory in git so the local storage driver
+# has a base to write into.

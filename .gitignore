@@ -87,3 +87,8 @@ ENV/
 CLAUDE_CODE_INSTRUCTIONS.md
 VOCAB_UI_INSTRUCTIONS.md
 notion-export.csv
+
+# Local file storage (lesson PDFs / audio uploaded in dev)
+/storage/*
+!/storage/.gitkeep
+LESSON_PAGES_INSTRUCTIONS.md

@@ -239,6 +239,51 @@ Inside the `server { ... server_name kebayorantechnologies.com www.kebayorantech
 A good place is right after the existing `/model-architecture/computer-vision` block,
 before the catch-all root location.
 
+### 4.5. Setting up GCS for file storage
+
+Lesson PDFs and audio files use a pluggable storage abstraction
+(`src/lib/storage`). In dev, files land on disk under `./storage`. In prod
+we use Google Cloud Storage with v4 signed URLs (15-minute TTL).
+
+1. Create a GCS bucket:
+   ```bash
+   gsutil mb -l us-central1 gs://kebayoran-language-learning-bot/
+   ```
+
+2. Create a service account:
+   ```bash
+   gcloud iam service-accounts create lang-storage \
+     --display-name="Language Learning Bot storage"
+   ```
+
+3. Grant the SA write access to the bucket only (no project-wide perms):
+   ```bash
+   gsutil iam ch \
+     serviceAccount:lang-storage@<PROJECT-ID>.iam.gserviceaccount.com:objectAdmin \
+     gs://kebayoran-language-learning-bot
+   ```
+
+4. Download a JSON key:
+   ```bash
+   gcloud iam service-accounts keys create \
+     /home/matt/secrets/language-learning-bot/gcs-sa.json \
+     --iam-account lang-storage@<PROJECT-ID>.iam.gserviceaccount.com
+   chmod 600 /home/matt/secrets/language-learning-bot/gcs-sa.json
+   ```
+
+5. Add to the production `.env`:
+   ```
+   STORAGE_DRIVER=gcs
+   GCS_BUCKET=kebayoran-language-learning-bot
+   GOOGLE_APPLICATION_CREDENTIALS=/app/secrets/gcs-sa.json
+   ```
+
+6. Mount the SA JSON read-only in `docker-compose.yml`:
+   ```yaml
+   volumes:
+     - /home/matt/secrets/language-learning-bot/gcs-sa.json:/app/secrets/gcs-sa.json:ro
+   ```
+
 ### 5. Build and start
 
 ```bash
