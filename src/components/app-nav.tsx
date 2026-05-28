@@ -12,15 +12,11 @@ interface Props {
 export function AppNav({ lang }: Props) {
   const pathname = usePathname();
   const langPrefix = `/language/${lang}`;
-  const isActive = (target: string) => {
-    if (target === '/settings') return pathname === '/settings';
-    return pathname.startsWith(target);
-  };
+  const isActive = (target: string) => pathname.startsWith(target);
 
   const items = [
     { label: 'Vocab', href: vocabPath(lang), match: `${langPrefix}/vocab` },
     { label: 'Lessons', href: lessonsPath(lang), match: `${langPrefix}/lessons` },
-    { label: 'Settings', href: '/settings', match: '/settings' },
   ];
 
   return (
