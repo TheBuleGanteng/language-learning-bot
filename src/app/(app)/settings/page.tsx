@@ -183,7 +183,9 @@ export default function SettingsPage() {
                 onValueChange={(v) => v && onLanguageChange('targetLanguage', v as LanguageCode)}
               >
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue>
+                    {(value: string) => languageDisplayLabel(value)}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {LANGUAGES.map((l) => {
@@ -205,7 +207,9 @@ export default function SettingsPage() {
                 onValueChange={(v) => v && onLanguageChange('nativeLanguage', v as LanguageCode)}
               >
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue>
+                    {(value: string) => languageDisplayLabel(value)}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {LANGUAGES.map((l) => (
