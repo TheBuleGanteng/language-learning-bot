@@ -1,7 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
+import { useDropzone } from 'react-dropzone';
 import Papa from 'papaparse';
+import { Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -18,6 +20,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
 interface ImportResult {
@@ -44,7 +47,7 @@ export default function ImportPage() {
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<ImportResult | null>(null);
 
-  function onFile(f: File | null) {
+  const onFile = useCallback((f: File | null) => {
     setFile(f);
     setResult(null);
     setPreview([]);
@@ -56,13 +59,20 @@ export default function ImportPage() {
       preview: 10,
       complete: (res) => setPreview(res.data),
     });
-    // Count total rows in a second pass (cheap enough for a few MB)
     Papa.parse<PreviewRow>(f, {
       header: true,
       skipEmptyLines: true,
       complete: (res) => setTotalRows(res.data.length),
     });
-  }
+  }, []);
+
+  const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
+    onDrop: (files) => onFile(files[0] ?? null),
+    accept: { 'text/csv': ['.csv'] },
+    multiple: false,
+    noClick: true,
+    noKeyboard: true,
+  });
 
   async function onImport() {
     if (!file) return;
@@ -94,12 +104,30 @@ export default function ImportPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <input
-            type="file"
-            accept=".csv,text/csv"
-            onChange={(e) => onFile(e.target.files?.[0] ?? null)}
-            className="block w-full text-sm file:mr-3 file:rounded file:border file:border-input file:bg-background file:px-3 file:py-1.5 file:text-sm file:font-medium file:hover:bg-muted"
-          />
+          <div
+            {...getRootProps()}
+            className={cn(
+              'flex flex-col items-center justify-center gap-3 px-6 py-8 rounded-md border-2 border-dashed transition-colors text-sm',
+              isDragActive
+                ? 'border-primary bg-primary/5'
+                : 'border-muted-foreground/30 hover:border-muted-foreground/60 hover:bg-muted/30',
+            )}
+          >
+            {/* Keep a real <input type="file"> in the DOM (hidden) so the
+                file picker keyboard / accessibility / E2E paths all work. */}
+            <input {...getInputProps()} />
+            <Upload className="h-7 w-7 text-muted-foreground" />
+            <p className="text-center">
+              {isDragActive ? 'Drop to upload' : 'Drop your CSV file here'}
+            </p>
+            <Button type="button" variant="outline" onClick={open}>
+              <Upload className="mr-2 h-4 w-4" />
+              Choose file
+            </Button>
+            <p className="text-xs text-muted-foreground">
+              Exported from Notion&apos;s Vocabulary database
+            </p>
+          </div>
           {file && (
             <p className="text-xs text-muted-foreground">
               {file.name} — {(file.size / 1024).toFixed(1)} KB
