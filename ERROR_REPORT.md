@@ -684,3 +684,54 @@ notification's pending state. The existing in-process executor + 60s
 retention stays untouched — it's still the fastest path for the vocab
 page's thumbnail polling. The DB row is the source of truth for
 "happened across pages / sessions / restarts."
+
+### Changes
+
+- New `image_generation_batches` table tracks the lifecycle of each
+  bulk run: `started_at`, `finished_at`, per-status counts
+  (`succeeded`/`failed`/`refused`), `stopped` flag, and a
+  `notification_dismissed_at` timestamp the client stamps after
+  showing the popup.
+- Executor wired at two points: `startBatch()` inserts the row (its
+  uuid becomes the in-memory `batchId`); the worker loop UPDATEs the
+  counters after each image and writes `finished_at` + `stopped` on
+  the final pass.
+- `GET /api/vocab/active-batch` returns one of three shapes —
+  `{ active: true, ...counts }`, `{ active: false,
+  pendingNotification: {...} }`, or `{ active: false }` — driving the
+  watcher's poll/idle/popup decision.
+- `POST /api/vocab/active-batch/dismiss` stamps
+  `notification_dismissed_at` scoped by `(batchId, userId)` so a
+  forged batch id from another user is a no-op.
+- `<BatchWatcher userLang={...} />` client component mounted in the
+  `(app)` layout. Polls every 5s on success, 10s backoff on transport
+  errors. Stops polling once the popup is on screen or both
+  "active" and "pendingNotification" are absent. Restarts on the next
+  mount.
+- Popup shows Requested / Successfully created / Errors. Title is
+  "Batch stopped" when the user cancelled. When errors > 0, a "View
+  failed items" button navigates to
+  `/language/{userLang}/vocab?imageStatus=failed`. Dismissal is
+  optimistic — the dialog closes immediately and the
+  `/dismiss` POST happens in the background.
+
+### Issues hit
+
+None during this pass. The two-source-of-truth design (in-memory
+`BATCHES` Map for the vocab page's fast thumbnail poll, DB row for
+cross-page) was deliberate and the persistCounts UPDATE inside the
+worker loop landed without complication — Drizzle handles the single-
+PK UPDATE in ~1ms per call which is far smaller than the per-image
+provider call.
+
+### Known follow-ups
+
+- The vocab page still runs its own 5s polling against
+  `/api/vocab/generation-status` for thumbnail refresh, in parallel
+  with the `<BatchWatcher>`'s polling against
+  `/api/vocab/active-batch`. Two redundant polls while on the vocab
+  page during a batch. Could be unified by having the vocab page
+  subscribe to the watcher's state via context — left as a follow-up.
+- No browser Notifications API integration (out of scope per spec).
+- No completion sound (out of scope).
+- No batch-history view ("show me my past batches") (out of scope).
