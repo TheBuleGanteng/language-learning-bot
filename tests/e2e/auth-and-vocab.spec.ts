@@ -59,7 +59,9 @@ test('full flow: signup → verify → login → import → filter → settings 
   await expect(page).toHaveURL(/\/vocab/, { timeout: 30_000 });
 
   // 4. Import the fixture CSV via the import page
-  await page.goto('/vocab/import');
+  // (The legacy /vocab path is auto-redirected by middleware/proxy to the
+  // user's target-language equivalent.)
+  await page.goto('/language/th/vocab/import');
   const fixturePath = path.resolve(__dirname, '../fixtures/sample-notion-export.csv');
   await page.locator('input[type="file"]').setInputFiles(fixturePath);
   await page.getByRole('button', { name: /import/i }).click();
@@ -68,7 +70,7 @@ test('full flow: signup → verify → login → import → filter → settings 
   await expect(page.getByText('Inserted')).toBeVisible();
 
   // 5. Vocab list shows items
-  await page.goto('/vocab');
+  await page.goto('/language/th/vocab');
   await expect(page.getByText('สวัสดี')).toBeVisible();
   await expect(page.getByText(/Showing \d+ of \d+ items/)).toBeVisible();
 
@@ -80,7 +82,7 @@ test('full flow: signup → verify → login → import → filter → settings 
   await expect(page.getByRole('row').filter({ hasText: 'กิน' })).toHaveCount(0);
 
   // 6b. Column sort — clear filter first, then exercise Thai column header
-  await page.goto('/vocab');
+  await page.goto('/language/th/vocab');
   // Capture the default-order first body row Thai value (created_at DESC)
   const defaultFirstThai = (
     await page.locator('tbody tr').first().locator('td').first().textContent()
@@ -88,18 +90,18 @@ test('full flow: signup → verify → login → import → filter → settings 
   expect(defaultFirstThai).toBeTruthy();
 
   // First click → ascending. Lowest Unicode Thai char in the fixture is "ก" (กิน).
-  await page.getByRole('columnheader', { name: /Target/ }).click();
+  await page.getByRole('columnheader', { name: /Thai/ }).click();
   await expect(page).toHaveURL(/sort=thai/);
   await expect(page).toHaveURL(/order=asc/);
   await expect(page.locator('tbody tr').first().locator('td').first()).toContainText('กิน');
 
   // Second click → descending. Highest Thai char in the fixture is "ห" (หิว).
-  await page.getByRole('columnheader', { name: /Target/ }).click();
+  await page.getByRole('columnheader', { name: /Thai/ }).click();
   await expect(page).toHaveURL(/order=desc/);
   await expect(page.locator('tbody tr').first().locator('td').first()).toContainText('หิว');
 
   // Third click → back to default (no sort/order in URL)
-  await page.getByRole('columnheader', { name: /Target/ }).click();
+  await page.getByRole('columnheader', { name: /Thai/ }).click();
   await expect(page).not.toHaveURL(/sort=/);
   await expect(page.locator('tbody tr').first().locator('td').first()).toContainText(
     defaultFirstThai!,

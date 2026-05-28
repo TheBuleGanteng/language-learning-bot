@@ -250,3 +250,83 @@ matches both.
 - Sorting by Lessons / Tags uses `MIN(name)` of joined rows, so an item
   tagged `[food, classifier]` sorts as if it were just `classifier`.
   Acceptable for v1; document in a header tooltip if it confuses anyone.
+
+## Lesson pages + URL restructure (post-vocab-UI)
+
+### Changes
+
+- URL restructure: `/vocab/...` → `/language/[lang]/vocab/...` with
+  middleware-driven redirects from legacy paths and a "wrong language"
+  guard that bounces to the user's actual target language with a
+  `?notice=wrong-lang` toast hint.
+- New top nav (Vocab / Lessons / Settings) in the (app) layout, derived
+  from the user's `target_language` field on `users`.
+- Pluggable storage abstraction (`src/lib/storage`): local FS in dev,
+  GCS in prod, selected via `STORAGE_DRIVER` env. Local driver streams
+  files through `/api/files/[...path]` with auth + path-traversal
+  rejection; GCS driver returns v4 signed URLs with 15-minute TTL.
+- New schema tables `lesson_files` (PDFs + audio) and `lesson_links`
+  (generic URLs + YouTube embeds with auto-detect + oEmbed title).
+- Lesson detail page with five accordion sections (Notes / Audio /
+  Useful Links / Practice / Vocabulary). PDF render via `<iframe>`,
+  audio via `react-h5-audio-player`, YouTube via the privacy-preserving
+  `youtube-nocookie.com` embed. Uploads via `react-dropzone`.
+- Lessons index page with sortable Name / Topic / Date / Vocab columns
+  and a New Lesson dialog.
+- Practice stub pages for Flashcards and AI Chat (coming-soon copy).
+- Settings: target and native language selectors. v1 unlocks Thai only
+  as target; native is fully selectable.
+- Dynamic UI labels: "Target"/"English" are now rendered from
+  `users.target_language` / `users.native_language` (e.g. "Thai") in
+  the vocab table headers, vocab form labels, and the lesson detail
+  vocabulary section header.
+- Language code migration: `users.target_language` / `native_language`
+  now use 2-letter ISO codes (`th`, `en`) instead of the old
+  `'thai'` / `'english'` literals. A data migration converts existing
+  rows; `normalizeLanguageCode()` defensively coerces stale values.
+
+### Issues hit
+
+- **Next 16's `proxy.ts` + `output: 'standalone'` build trace bug**.
+  After moving from `middleware.ts` to `proxy.ts` (the new Next 16
+  convention; middleware is deprecated), the first `pnpm build` failed
+  in "Collecting build traces" with `ENOENT proxy.js.nft.json`. The
+  fix was simply to clean `.next/` and rebuild — the prior aborted
+  build had left a stale tracing state. Worth noting because the error
+  message points at a Next.js internal file and looks like a
+  framework bug; recovery is `rm -rf .next && pnpm build`.
+- **Auth.js v5 + argon2 in middleware**. When briefly experimenting
+  with `middleware.ts` (Edge runtime by default in Next 16), the build
+  failed because `@node-rs/argon2` can't load in the Edge runtime.
+  Renaming the file to `proxy.ts` (Node runtime by default in Next 16)
+  fixed it. The proxy file does not accept a `runtime` config option,
+  so the file name is the only switch.
+- **Stashing target language in the JWT**. The proxy needs the user's
+  target-language code to redirect legacy `/vocab` paths, but a DB
+  lookup per request is too expensive. Solution: refresh
+  `targetLanguage` + `nativeLanguage` into the JWT on every `jwt`
+  callback alongside the existing session-invalidation check. The
+  proxy reads the codes from `req.auth.user.targetLanguage`.
+- **Schema language-field migration**. The original `users.target_language`
+  default was `'thai'`. The new spec uses 2-letter ISO codes (`'th'`).
+  Drizzle's `db:generate` only emitted the `ALTER COLUMN ... SET
+  DEFAULT 'th'` statement; we hand-appended `UPDATE` statements to
+  migration `0002_empty_steel_serpent.sql` to convert any pre-existing
+  rows (`'thai'` → `'th'`, etc.).
+- **VocabTable refactor**. The original vocab page held filter state in
+  the URL. The lesson-detail vocab section needed the same table but
+  scoped to one lesson and with no sidebar filters. We split out
+  `<VocabTable lessonId showSearch showPageSize />` for the embedded
+  case (filter state held in component state instead of URL) and kept
+  the original URL-state-driven page intact.
+
+### Known follow-ups
+
+- Mobile-responsive card layout for vocab table (still horizontal-
+  scroll on phone).
+- Other languages besides Thai unlocked in the Settings target dropdown.
+- File upload for in-lesson video (currently YouTube links only).
+- Editing existing useful links (currently only add + delete).
+- Drag-to-reorder for useful links (position column exists; no UI).
+- E2E spec for PDF upload + delete is not yet added; the storage
+  round-trip is covered by the local-storage unit test instead.
