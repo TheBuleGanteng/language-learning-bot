@@ -448,3 +448,111 @@ matches both.
   render it visually is not yet added — empty editors look blank
   rather than showing the placeholder. Cosmetic; revisit when other
   Tiptap polish lands.
+
+## Vocab image generation
+
+### Changes
+
+- DB: 7 new columns on `vocab_items` (`image_storage_key`,
+  `image_status` with CHECK in `'none'`/`'generating'`/`'completed'`/
+  `'refused'`/`'failed'`, `image_prompt`, `image_prompt_override`,
+  `image_provider`, `image_model`, `image_generated_at`). New
+  `image_generation_log` table for cost history (`vocab_item_id` is
+  `ON DELETE SET NULL` so historical cost rows survive vocab
+  deletion). `user_settings` gains `image_provider` (default google),
+  `image_model` (default imagen-4-fast),
+  `image_spend_reminder_usd` ($25), `image_spend_hard_stop_usd` ($100),
+  and the composite `image_spend_last_reminder_at` (`"YYYY-MM:amount"`).
+- Pluggable image-gen provider abstraction
+  (`src/lib/image-gen/{types,catalog,google,openai,prompt,index}.ts`)
+  with Google Imagen 4 (fast/standard/ultra) and OpenAI GPT-Image
+  (1-mini, 1.5-low/standard/high). Catalog maps each ID to estimated
+  USD per image and the actual API model + quality tier.
+- Standard prompt template enforces no-text-in-image / cartoon style;
+  user overrides wrap with the same no-text rule.
+- Storage gains `putPublic()`: keys under `public/...`, served via
+  long-lived cacheable URLs. Local: same on-disk layout, route skips
+  the owner-auth check + emits `Cache-Control: public, max-age=31536000,
+  immutable` for public paths. GCS: `file.makePublic()` + direct
+  `storage.googleapis.com` URL.
+- Cost tracking: monthly SUM aggregation excluding `status='failed'`,
+  `enforceHardStop()` throws `HardStopExceededError` before billing
+  calls, `checkAndRecordReminderBand()` stamps the new band with a
+  composite `"YYYY-MM:amount"` so a fresh month auto-resets without
+  a cron. New `GET /api/settings/image-spend` returns the snapshot.
+- Settings page: "LLM provider" renamed to "Chat Model"; new "Image
+  Model" card (provider/model dropdowns, per-image cost, missing-key
+  warning) and "Image generation budget" card (reminder + hard stop
+  inputs with cross-field validation, auto-save on blur, MTD status
+  footer with "N images possible at current model price").
+- Vocab list: "Generate Images" button → selection mode (per-row
+  checkboxes, sticky action bar, "Select all visible", new "Image
+  status" filter chips All/Has/No/Failed). Bulk cost-preview modal
+  shows estimate, MTD projection, next-reminder warning, and an
+  "affordable items only" path if the request would exceed hard stop.
+- In-process bulk executor: marks rows `'generating'`, fires a
+  2-worker loop that calls the user's chosen image provider, uploads
+  via `storage().putPublic('public/users/.../{uuid}.png')`, logs each
+  call. Stale `'generating'` rows (>5 min) get swept back to
+  `'none'` on next request — survives Next.js dev-server restart
+  without leaving orphaned spinners.
+- Polling: client GETs `/api/vocab/generation-status` every 5s while
+  a batch is in flight and refreshes table rows; DELETE cancels
+  future-queued items.
+- Single-item flow: `POST /api/vocab/[id]/image/generate` (used for
+  both first-time + regenerate), `DELETE /api/vocab/[id]/image`
+  (image only — vocab row preserved), `PATCH /api/vocab/[id]/image-
+  prompt-override`. Vocab edit page gets a new Image card with
+  thumbnail, Generate/Regenerate/Delete + an Advanced custom-prompt
+  textarea.
+- Thumbnails: leftmost Image column (~40×40, lazy-loaded) in the
+  main vocab list and the lesson-scoped VocabTable. Click →
+  `<ImagePreviewDialog>` showing the image at up to 70vh with target
+  + native text and a "View vocab item" link. Tag/lesson pills
+  `stopPropagation` so they don't fight the image preview.
+
+### Issues hit
+
+- **`ImageProviderId` lived in both `catalog.ts` and `types.ts`**.
+  Initial draft declared it in `catalog.ts` alongside the catalog
+  helpers; re-exported through `index.ts` failed `tsc --noEmit`
+  because the re-export couldn't see the same symbol in two
+  declaration files. Resolution: moved the type alias to `types.ts`
+  (the canonical source) and kept `catalog.ts` exporting only
+  runtime values.
+- **In-process batch state needs cleanup on restart**. The `BATCHES`
+  Map lives in module scope; if the Next.js dev server hot-reloads,
+  rows get stuck on `imageStatus='generating'`. Fixed by having
+  `resetStaleGenerating()` run at the top of every status GET and
+  the bulk-POST handler — items older than 5 minutes revert to
+  `'none'`.
+- **Composite-month reminder format**. Wrote `image_spend_last_
+  reminder_at` as `text` with the format `"YYYY-MM:amount"`. On
+  read, if the YYYY-MM prefix doesn't match the current UTC month,
+  the band is treated as 0 — so a fresh month auto-resets all
+  reminders without needing a separate cron.
+- **GCS `file.makePublic()` requires fine-grained ACLs**. If the
+  bucket has uniform-bucket-level access enabled, `makePublic()`
+  throws. Documented the IAM-prefix-grant alternative in README.
+- **`vocabItemId` in `image_generation_log` is nullable**. Chose
+  `ON DELETE SET NULL` so a user who deletes a vocab item later
+  still has accurate monthly-cost data. Trade-off: the log row
+  can't always be joined back to a specific vocab row.
+
+### Known follow-ups
+
+- Bulk generation is in-process; no resilience across server restart.
+  A real job queue (BullMQ + Redis) is the next step if bulk runs
+  span restarts.
+- Cost tracking is image-gen only; chat token cost tracking deferred.
+- Anthropic has no image-gen offering — only the Chat Model setting
+  shows it.
+- No retry-with-backoff on transient provider failures.
+- The image prompt is English; users learning languages with non-
+  English native text should be aware that `native_text` drives
+  image gen and should be a language the image model understands
+  well.
+- Unit test for `getMonthToDateImageSpend` and reminder-band logic
+  deferred — exercises the live `db` singleton, would require either
+  vitest-mock of the db module or a dedicated test database. The
+  image-prompt template is covered.
