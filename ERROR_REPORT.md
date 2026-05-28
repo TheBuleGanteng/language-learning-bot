@@ -637,3 +637,50 @@ authored backend `imageStatus=none` clause was intentionally
 permissive (folding in `'generating'`) but became wrong once the
 front-end switched to `'all'` during batches; tightening it was the
 correct follow-up.
+
+## Batch completion notification
+
+### Existing architecture (Section 1 diagnosis)
+
+- The bulk-image executor (`src/lib/image-gen/executor.ts`) stores per-
+  batch state in a module-scope `BATCHES = new Map<batchId, BatchState>`.
+  State holds `userId`, `total`, `completed`, `failed`, `refused`,
+  `cancelled`, and a few extras. After all workers finish, a 60-second
+  `setTimeout` removes the entry from the Map.
+- The status endpoint `GET /api/vocab/generation-status` reads from
+  `getBatchStatusForUser(userId)` — which loops the Map and returns the
+  one still in flight (or `null` if done).
+- Polling lives **only on the vocab page** (`src/app/(app)/language/[lang]/
+  vocab/page.tsx`). It hits the status endpoint every 5s while a batch
+  is in flight, then stops.
+
+### Implications for cross-page notification
+
+1. **In-process state alone can't tell us about completed-while-away
+   batches.** The 60-second post-finish retention is the only window
+   the client has to "see" completion; if the user is on `/settings`
+   when the last image lands, by the time they return to the vocab
+   page the Map entry is gone and the notification is lost.
+2. **No record of dismissal.** Re-querying for an in-process completed
+   batch from any page would naively re-show the popup on every
+   reload until the 60s window expires.
+3. **No persistence across server restart.** If the Next.js process
+   restarts mid-batch, the BATCHES Map is empty on the next request
+   and there's nothing to notify on.
+
+### Fix path
+
+Add an `image_generation_batches` table that the executor writes to as
+items finish. The new `GET /api/vocab/active-batch` reads from this
+table:
+
+- If the most-recent batch is unfinished → return active counts.
+- If it's finished but `notification_dismissed_at IS NULL` → return as
+  `pendingNotification`, so the client can show the popup.
+- If finished AND acknowledged → return `{ active: false }`.
+
+A new `POST /api/vocab/active-batch/dismiss` stamps the row, ending the
+notification's pending state. The existing in-process executor + 60s
+retention stays untouched — it's still the fastest path for the vocab
+page's thumbnail polling. The DB row is the source of truth for
+"happened across pages / sessions / restarts."
