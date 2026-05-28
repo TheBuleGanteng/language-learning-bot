@@ -5,17 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PlayCircle } from 'lucide-react';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
+import { ConfirmDeleteDialog } from './confirm-delete-dialog';
 
 interface Props {
   lessonId: string;
@@ -38,7 +29,7 @@ export function LinksSection({ lessonId, onCountChange }: Props) {
   const [title, setTitle] = useState('');
   const [notes, setNotes] = useState('');
   const [busy, setBusy] = useState(false);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [pending, setPending] = useState<LinkRow | null>(null);
   const [expandedYt, setExpandedYt] = useState<Set<string>>(new Set());
 
   const load = useCallback(async () => {
@@ -82,17 +73,15 @@ export function LinksSection({ lessonId, onCountChange }: Props) {
   }
 
   async function doDelete() {
-    if (!deleteId) return;
-    const res = await fetch(`/api/lessons/${lessonId}/links/${deleteId}`, {
+    if (!pending) return;
+    const res = await fetch(`/api/lessons/${lessonId}/links/${pending.id}`, {
       method: 'DELETE',
     });
-    if (res.ok) {
-      toast.success('Deleted');
-      load();
-    } else {
-      toast.error('Delete failed');
+    if (!res.ok) {
+      const d = (await res.json().catch(() => ({}))) as { error?: string };
+      throw new Error(d.error ?? 'Delete failed. Please try again.');
     }
-    setDeleteId(null);
+    await load();
   }
 
   function toggleYt(id: string) {
@@ -181,7 +170,7 @@ export function LinksSection({ lessonId, onCountChange }: Props) {
                           size="xs"
                           variant="ghost"
                           className="text-red-600 hover:bg-red-50 hover:text-red-700"
-                          onClick={() => setDeleteId(l.id)}
+                          onClick={() => setPending(l)}
                         >
                           Delete
                         </Button>
@@ -221,7 +210,7 @@ export function LinksSection({ lessonId, onCountChange }: Props) {
                       size="xs"
                       variant="ghost"
                       className="text-red-600 hover:bg-red-50 hover:text-red-700"
-                      onClick={() => setDeleteId(l.id)}
+                      onClick={() => setPending(l)}
                     >
                       Delete
                     </Button>
@@ -247,7 +236,7 @@ export function LinksSection({ lessonId, onCountChange }: Props) {
                     size="xs"
                     variant="ghost"
                     className="text-red-600 hover:bg-red-50 hover:text-red-700"
-                    onClick={() => setDeleteId(l.id)}
+                    onClick={() => setPending(l)}
                   >
                     Delete
                   </Button>
@@ -258,20 +247,22 @@ export function LinksSection({ lessonId, onCountChange }: Props) {
         </ul>
       )}
 
-      <AlertDialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete this link?</AlertDialogTitle>
-            <AlertDialogDescription>
-              The link will be removed from this lesson.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={doDelete}>Delete</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDeleteDialog
+        open={!!pending}
+        onOpenChange={(o) => !o && setPending(null)}
+        title="Delete this link?"
+        description={
+          pending ? (
+            <>
+              This will permanently delete the link &ldquo;{pending.title}&rdquo;. This
+              cannot be undone.
+            </>
+          ) : (
+            ''
+          )
+        }
+        onConfirm={doDelete}
+      />
     </div>
   );
 }

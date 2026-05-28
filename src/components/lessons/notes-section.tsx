@@ -2,18 +2,8 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import { FileUploader } from './file-uploader';
-import { toast } from 'sonner';
+import { ConfirmDeleteDialog } from './confirm-delete-dialog';
 
 interface Props {
   lessonId: string;
@@ -46,7 +36,7 @@ function formatDate(iso: string): string {
 
 export function NotesSection({ lessonId, onCountChange }: Props) {
   const [files, setFiles] = useState<FileRow[]>([]);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [pending, setPending] = useState<FileRow | null>(null);
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/lessons/${lessonId}/files`);
@@ -62,17 +52,15 @@ export function NotesSection({ lessonId, onCountChange }: Props) {
   }, [load]);
 
   async function doDelete() {
-    if (!deleteId) return;
-    const res = await fetch(`/api/lessons/${lessonId}/files/${deleteId}`, {
+    if (!pending) return;
+    const res = await fetch(`/api/lessons/${lessonId}/files/${pending.id}`, {
       method: 'DELETE',
     });
-    if (res.ok) {
-      toast.success('Deleted');
-      load();
-    } else {
-      toast.error('Delete failed');
+    if (!res.ok) {
+      const d = (await res.json().catch(() => ({}))) as { error?: string };
+      throw new Error(d.error ?? 'Delete failed. Please try again.');
     }
-    setDeleteId(null);
+    await load();
   }
 
   return (
@@ -110,7 +98,7 @@ export function NotesSection({ lessonId, onCountChange }: Props) {
                     size="xs"
                     variant="ghost"
                     className="text-red-600 hover:bg-red-50 hover:text-red-700"
-                    onClick={() => setDeleteId(f.id)}
+                    onClick={() => setPending(f)}
                   >
                     Delete
                   </Button>
@@ -126,20 +114,22 @@ export function NotesSection({ lessonId, onCountChange }: Props) {
         </ul>
       )}
 
-      <AlertDialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete this PDF?</AlertDialogTitle>
-            <AlertDialogDescription>
-              The file will be removed from storage and can&apos;t be recovered.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={doDelete}>Delete</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDeleteDialog
+        open={!!pending}
+        onOpenChange={(o) => !o && setPending(null)}
+        title="Delete this PDF?"
+        description={
+          pending ? (
+            <>
+              This will permanently delete &ldquo;{pending.filename}&rdquo;. This cannot
+              be undone.
+            </>
+          ) : (
+            ''
+          )
+        }
+        onConfirm={doDelete}
+      />
     </div>
   );
 }
