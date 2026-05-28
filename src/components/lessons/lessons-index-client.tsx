@@ -2,7 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronDown, ChevronsUpDown, ChevronUp } from 'lucide-react';
+import {
+  ChevronDown,
+  ChevronRight,
+  ChevronsUpDown,
+  ChevronUp,
+} from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -13,6 +18,7 @@ import {
 } from '@/components/ui/table';
 import { NewLessonButton } from './new-lesson-dialog';
 import { lessonPath } from '@/lib/routes';
+import { stripHtml } from '@/lib/strip-html';
 
 interface LessonRow {
   id: string;
@@ -119,24 +125,36 @@ export function LessonsIndexClient({ lang }: Props) {
             {rows.map((r) => (
               <TableRow
                 key={r.id}
-                className="cursor-pointer"
+                className="cursor-pointer hover:bg-muted/50 active:bg-muted/70 transition-colors"
                 onClick={() => router.push(lessonPath(lang, r.id))}
               >
-                <TableCell className="font-medium whitespace-normal break-words align-top">
-                  {r.name}
+                <TableCell className="whitespace-normal break-words align-top">
+                  <span className="font-medium text-blue-700 dark:text-blue-400 hover:underline">
+                    {r.name}
+                  </span>
                 </TableCell>
                 <TableCell className="whitespace-normal break-words align-top text-muted-foreground">
-                  {r.topic ?? '—'}
+                  {r.topic ? (
+                    <span className="line-clamp-2">{stripHtml(r.topic)}</span>
+                  ) : (
+                    '—'
+                  )}
                 </TableCell>
                 <TableCell className="align-top">{formatDate(r.date)}</TableCell>
                 <TableCell className="align-top text-right tabular-nums">
                   {r.vocabCount}
                 </TableCell>
+                <TableCell className="w-8 align-top">
+                  <ChevronRight className="h-4 w-4 text-muted-foreground/40" />
+                </TableCell>
               </TableRow>
             ))}
             {rows.length === 0 && !loading && (
               <TableRow>
-                <TableCell colSpan={COLS.length} className="text-center py-8 text-muted-foreground">
+                <TableCell
+                  colSpan={COLS.length + 1}
+                  className="text-center py-8 text-muted-foreground"
+                >
                   No lessons yet. Create your first lesson.
                 </TableCell>
               </TableRow>

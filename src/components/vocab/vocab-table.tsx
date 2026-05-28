@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/select';
 import { colorForLesson, colorForTag } from '@/lib/colors';
 import { cn } from '@/lib/utils';
-import { vocabPath } from '@/lib/routes';
+import { vocabPath, lessonPath } from '@/lib/routes';
 import { languageName } from '@/lib/languages';
 import {
   Table,
@@ -267,13 +267,23 @@ export function VocabTable({
                     {i.lessons.map((l) => {
                       const c = colorForLesson(l.name);
                       return (
-                        <Badge
+                        <Link
                           key={l.id}
-                          variant="outline"
-                          className={cn('border-transparent', c.bg, c.text)}
+                          href={lessonPath(lang, l.id)}
+                          onClick={(e) => e.stopPropagation()}
+                          className="inline-block"
                         >
-                          {l.name}
-                        </Badge>
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              'border-transparent cursor-pointer hover:underline transition-opacity hover:opacity-80',
+                              c.bg,
+                              c.text,
+                            )}
+                          >
+                            {l.name}
+                          </Badge>
+                        </Link>
                       );
                     })}
                   </div>
