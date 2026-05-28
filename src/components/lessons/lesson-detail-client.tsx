@@ -19,6 +19,8 @@ import { InlineEdit } from '@/components/inline-edit';
 import { InlineDateEdit } from '@/components/inline-date-edit';
 import { RichTextEditModal } from '@/components/rich-text-edit-modal';
 import { VocabTable } from '@/components/vocab/vocab-table';
+import { ExtractionFlow } from '@/components/extraction/extraction-flow';
+import { Camera } from 'lucide-react';
 import { languageName } from '@/lib/languages';
 import { flashcardsPath, chatPath } from '@/lib/routes';
 
@@ -61,6 +63,7 @@ export function LessonDetailClient({ lang, lesson, initialVocabCount }: Props) {
   const [notesCount, setNotesCount] = useState(0);
   const [audioCount, setAudioCount] = useState(0);
   const [linksCount, setLinksCount] = useState(0);
+  const [showExtraction, setShowExtraction] = useState(false);
   const [me, setMe] = useState<{ targetLanguage: string; nativeLanguage: string } | null>(
     null,
   );
@@ -192,15 +195,35 @@ export function LessonDetailClient({ lang, lesson, initialVocabCount }: Props) {
             </span>
           </AccordionTrigger>
           <AccordionContent>
-            <VocabTable
-              lessonId={lesson.id}
-              defaultPageSize="all"
-              showSearch
-              showPageSize
-            />
+            <div className="space-y-3">
+              <div className="flex justify-end">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setShowExtraction(true)}
+                  className="gap-1.5"
+                >
+                  <Camera className="h-3.5 w-3.5" />
+                  Add vocab from photo
+                </Button>
+              </div>
+              <VocabTable
+                lessonId={lesson.id}
+                defaultPageSize="all"
+                showSearch
+                showPageSize
+              />
+            </div>
           </AccordionContent>
         </AccordionItem>
       </Accordion>
+
+      <ExtractionFlow
+        open={showExtraction}
+        onOpenChange={setShowExtraction}
+        defaultLessonId={lesson.id}
+        onSaved={() => router.refresh()}
+      />
     </div>
   );
 }

@@ -18,6 +18,8 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { BulkImageDialog } from '@/components/vocab/bulk-image-dialog';
 import { ImagePreviewDialog } from '@/components/vocab/image-preview-dialog';
+import { ExtractionFlow } from '@/components/extraction/extraction-flow';
+import { Camera } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -134,6 +136,7 @@ function VocabInner() {
   // Bumping this state forces the fetch effect to re-run even when none of
   // the other deps changed. Used by the bulk-batch polling loop.
   const [refetchCounter, setRefetchCounter] = useState(0);
+  const [showExtraction, setShowExtraction] = useState(false);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const selectedLessons = useMemo(() => new Set(search.getAll('lesson')), [search]);
@@ -497,6 +500,17 @@ function VocabInner() {
               Generate Images
             </Button>
           )}
+          {!selectionMode && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setShowExtraction(true)}
+              className="gap-1.5"
+            >
+              <Camera className="h-3.5 w-3.5" />
+              Add vocab from photo
+            </Button>
+          )}
         </div>
 
         <div className="space-y-2 border rounded-md p-3">
@@ -827,6 +841,12 @@ function VocabInner() {
         imageUrl={previewItem?.imageUrl ?? null}
         targetText={previewItem?.targetText ?? ''}
         nativeText={previewItem?.nativeText ?? ''}
+      />
+
+      <ExtractionFlow
+        open={showExtraction}
+        onOpenChange={setShowExtraction}
+        onSaved={refreshItems}
       />
     </div>
   );
