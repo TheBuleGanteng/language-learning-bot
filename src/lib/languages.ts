@@ -54,3 +54,16 @@ export function languageNativeName(code: string | null | undefined): string {
   const normalized = normalizeLanguageCode(code);
   return LANGUAGES.find((l) => l.code === normalized)?.nativeName ?? code;
 }
+
+/**
+ * `"Thai - TH"` — for dropdown items and other picker-style affordances
+ * where the user is selecting between languages. In flowing prose or
+ * content-descriptive headers, use {@link languageName} instead.
+ */
+export function languageDisplayLabel(code: string | null | undefined): string {
+  if (!code) return '';
+  const normalized = normalizeLanguageCode(code);
+  const lang = LANGUAGES.find((l) => l.code === normalized);
+  if (!lang) return String(code).toUpperCase();
+  return `${lang.name} - ${normalized.toUpperCase()}`;
+}

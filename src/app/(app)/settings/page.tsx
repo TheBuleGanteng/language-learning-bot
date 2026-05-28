@@ -20,7 +20,12 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { MODELS, PROVIDERS, type Provider } from '@/lib/models';
-import { LANGUAGES, UNLOCKED_TARGET_LANGUAGES, type LanguageCode } from '@/lib/languages';
+import {
+  LANGUAGES,
+  UNLOCKED_TARGET_LANGUAGES,
+  languageDisplayLabel,
+  type LanguageCode,
+} from '@/lib/languages';
 import { useRouter } from 'next/navigation';
 
 interface KeyInfo {
@@ -185,7 +190,7 @@ export default function SettingsPage() {
                     const unlocked = UNLOCKED_TARGET_LANGUAGES.includes(l.code);
                     return (
                       <SelectItem key={l.code} value={l.code} disabled={!unlocked}>
-                        {l.name}
+                        {languageDisplayLabel(l.code)}
                         {!unlocked && ' (coming soon)'}
                       </SelectItem>
                     );
@@ -205,7 +210,7 @@ export default function SettingsPage() {
                 <SelectContent>
                   {LANGUAGES.map((l) => (
                     <SelectItem key={l.code} value={l.code}>
-                      {l.name}
+                      {languageDisplayLabel(l.code)}
                     </SelectItem>
                   ))}
                 </SelectContent>
