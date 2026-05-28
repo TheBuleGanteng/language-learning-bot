@@ -5,6 +5,7 @@ import { db } from '@/db';
 import { vocabItems, vocabTags, vocabLessons, lessons, tags } from '@/db/schema';
 import { auth } from '@/lib/auth';
 import { findOrCreateLesson, findOrCreateTags } from '@/lib/vocab';
+import { storage } from '@/lib/storage';
 
 async function getUserId() {
   const session = await auth();
@@ -34,7 +35,16 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
     .innerJoin(tags, eq(tags.id, vocabTags.tagId))
     .where(eq(vocabTags.vocabItemId, id));
 
-  return NextResponse.json({ ...item, lessons: itemLessons, tags: itemTags });
+  const imageUrl = item.imageStorageKey
+    ? await storage().getUrl(item.imageStorageKey)
+    : null;
+
+  return NextResponse.json({
+    ...item,
+    lessons: itemLessons,
+    tags: itemTags,
+    imageUrl,
+  });
 }
 
 const patchSchema = z.object({

@@ -4,6 +4,8 @@ import { db } from '@/db';
 import { vocabItems, vocabLessons, vocabTags, lessons, tags } from '@/db/schema';
 import { auth } from '@/lib/auth';
 import { VocabForm } from '@/components/vocab/vocab-form';
+import { VocabImageControls } from '@/components/vocab/vocab-image-controls';
+import { storage } from '@/lib/storage';
 
 export default async function EditVocabPage({
   params,
@@ -33,8 +35,18 @@ export default async function EditVocabPage({
     .innerJoin(tags, eq(tags.id, vocabTags.tagId))
     .where(eq(vocabTags.vocabItemId, id));
 
+  const imageUrl = item.imageStorageKey
+    ? await storage().getUrl(item.imageStorageKey)
+    : null;
+  const imageStatus = item.imageStatus as
+    | 'none'
+    | 'generating'
+    | 'completed'
+    | 'refused'
+    | 'failed';
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <h1 className="text-xl font-semibold">Edit vocab</h1>
       <VocabForm
         mode="edit"
@@ -50,6 +62,12 @@ export default async function EditVocabPage({
           lessonName: itemLessons[0]?.name ?? '',
           tagNames: itemTags.map((t) => t.name).join(', '),
         }}
+      />
+      <VocabImageControls
+        vocabId={item.id}
+        initialImageUrl={imageUrl}
+        initialStatus={imageStatus}
+        initialOverride={item.imagePromptOverride}
       />
     </div>
   );
