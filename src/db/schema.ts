@@ -215,6 +215,61 @@ export const vocabLessons = pgTable(
 );
 
 // =============================================================================
+// lesson_files (PDFs + audio attached to a lesson)
+// =============================================================================
+
+export const lessonFiles = pgTable(
+  'lesson_files',
+  {
+    id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    lessonId: uuid('lesson_id')
+      .notNull()
+      .references(() => lessons.id, { onDelete: 'cascade' }),
+    kind: text('kind').notNull(),
+    storageKey: text('storage_key').notNull(),
+    filename: text('filename').notNull(),
+    contentType: text('content_type').notNull(),
+    sizeBytes: integer('size_bytes').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('lesson_files_lesson_kind_idx').on(t.lessonId, t.kind),
+    check('lesson_files_kind_check', sql`${t.kind} IN ('pdf', 'audio')`),
+  ],
+);
+
+// =============================================================================
+// lesson_links (useful links — generic URLs + YouTube embeds)
+// =============================================================================
+
+export const lessonLinks = pgTable(
+  'lesson_links',
+  {
+    id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    lessonId: uuid('lesson_id')
+      .notNull()
+      .references(() => lessons.id, { onDelete: 'cascade' }),
+    url: text('url').notNull(),
+    title: text('title').notNull(),
+    notes: text('notes'),
+    kind: text('kind').notNull().default('generic'),
+    youtubeVideoId: text('youtube_video_id'),
+    position: integer('position').notNull().default(0),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('lesson_links_lesson_idx').on(t.lessonId),
+    check('lesson_links_kind_check', sql`${t.kind} IN ('generic', 'youtube')`),
+  ],
+);
+
+// =============================================================================
 // item_performance (placeholder for FSRS — schema only, not written to in v1)
 // =============================================================================
 
@@ -259,3 +314,7 @@ export type Tag = typeof tags.$inferSelect;
 export type NewTag = typeof tags.$inferInsert;
 export type VocabItem = typeof vocabItems.$inferSelect;
 export type NewVocabItem = typeof vocabItems.$inferInsert;
+export type LessonFile = typeof lessonFiles.$inferSelect;
+export type NewLessonFile = typeof lessonFiles.$inferInsert;
+export type LessonLink = typeof lessonLinks.$inferSelect;
+export type NewLessonLink = typeof lessonLinks.$inferInsert;
