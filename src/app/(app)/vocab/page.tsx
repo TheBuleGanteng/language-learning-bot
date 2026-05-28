@@ -364,8 +364,8 @@ function VocabInner() {
           </div>
         </div>
 
-        <div className="border rounded-md overflow-x-auto">
-          <Table>
+        <div className="w-full max-w-full border rounded-md overflow-x-auto">
+          <Table className="w-full">
             <TableHeader>
               <TableRow className="bg-muted border-b-2">
                 {SORT_COLS.map((c) => (
@@ -384,18 +384,18 @@ function VocabInner() {
             <TableBody>
               {items.map((i) => (
                 <TableRow key={i.id}>
-                  <TableCell className="font-medium">
+                  <TableCell className="font-medium whitespace-normal break-words align-top">
                     <Link href={`/vocab/${i.id}`} className="hover:underline">
                       {i.targetText}
                     </Link>
                     {i.transliteration && (
-                      <span className="block text-xs text-muted-foreground">
+                      <span className="block text-xs text-muted-foreground break-words">
                         {i.transliteration}
                       </span>
                     )}
                   </TableCell>
-                  <TableCell>{i.nativeText}</TableCell>
-                  <TableCell>
+                  <TableCell className="whitespace-normal break-words align-top">{i.nativeText}</TableCell>
+                  <TableCell className="align-top">
                     <div className="flex flex-wrap gap-1">
                       {i.lessons.map((l) => {
                         const c = colorForLesson(l.name);
@@ -411,7 +411,7 @@ function VocabInner() {
                       })}
                     </div>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="align-top">
                     <div className="flex flex-wrap gap-1">
                       {i.tags.map((t) => {
                         const c = colorForTag(t.name);
@@ -427,7 +427,7 @@ function VocabInner() {
                       })}
                     </div>
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-right align-top">
                     <div className="inline-flex items-center gap-1">
                       <Button
                         asChild

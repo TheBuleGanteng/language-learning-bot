@@ -94,7 +94,7 @@ export function FilterAccordion({
     <Accordion
       value={openValue}
       onValueChange={(v) => persistOpen(v as string[])}
-      className="border rounded-md px-3"
+      className="border rounded-md overflow-hidden"
     >
       <AccordionItem value={slug}>
         <AccordionTrigger>
