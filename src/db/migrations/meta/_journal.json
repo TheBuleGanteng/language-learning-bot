@@ -29,6 +29,13 @@
       "when": 1779930695176,
       "tag": "0003_aromatic_kitty_pryde",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1779954896911,
+      "tag": "0004_lush_namor",
+      "breakpoints": true
     }
   ]
 }

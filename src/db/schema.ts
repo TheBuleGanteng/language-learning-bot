@@ -6,6 +6,7 @@ import {
   integer,
   real,
   date,
+  numeric,
   primaryKey,
   uniqueIndex,
   index,
@@ -115,6 +116,18 @@ export const userSettings = pgTable('user_settings', {
   anthropicApiKeyEncrypted: text('anthropic_api_key_encrypted'),
   openaiApiKeyEncrypted: text('openai_api_key_encrypted'),
   geminiApiKeyEncrypted: text('gemini_api_key_encrypted'),
+  imageProvider: text('image_provider').notNull().default('google'),
+  imageModel: text('image_model').notNull().default('imagen-4-fast'),
+  imageSpendReminderUsd: numeric('image_spend_reminder_usd', { precision: 8, scale: 2 })
+    .notNull()
+    .default('25'),
+  imageSpendHardStopUsd: numeric('image_spend_hard_stop_usd', { precision: 8, scale: 2 })
+    .notNull()
+    .default('100'),
+  // Format: "{YYYY-MM}:{amount}". Null until the first reminder fires this
+  // month. On read, if the YYYY-MM prefix doesn't match the current month,
+  // treat the band as 0 — no separate "reset at month boundary" job needed.
+  imageSpendLastReminderAt: text('image_spend_last_reminder_at'),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -174,10 +187,23 @@ export const vocabItems = pgTable(
     exampleTarget: text('example_target'),
     exampleNative: text('example_native'),
     notes: text('notes'),
+    imageStorageKey: text('image_storage_key'),
+    imageGeneratedAt: timestamp('image_generated_at', { withTimezone: true }),
+    imageStatus: text('image_status').notNull().default('none'),
+    imagePrompt: text('image_prompt'),
+    imagePromptOverride: text('image_prompt_override'),
+    imageProvider: text('image_provider'),
+    imageModel: text('image_model'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [index('vocab_items_user_created_idx').on(t.userId, t.createdAt.desc())],
+  (t) => [
+    index('vocab_items_user_created_idx').on(t.userId, t.createdAt.desc()),
+    check(
+      'vocab_items_image_status_check',
+      sql`${t.imageStatus} IN ('none', 'generating', 'completed', 'refused', 'failed')`,
+    ),
+  ],
 );
 
 // =============================================================================
@@ -270,6 +296,37 @@ export const lessonLinks = pgTable(
 );
 
 // =============================================================================
+// image_generation_log (cost tracking)
+// =============================================================================
+
+export const imageGenerationLog = pgTable(
+  'image_generation_log',
+  {
+    id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    // Nullable: vocab item may be deleted later but we keep the historical cost row.
+    vocabItemId: uuid('vocab_item_id').references(() => vocabItems.id, {
+      onDelete: 'set null',
+    }),
+    provider: text('provider').notNull(),
+    model: text('model').notNull(),
+    estimatedCostUsd: numeric('estimated_cost_usd', { precision: 10, scale: 6 }).notNull(),
+    status: text('status').notNull(),
+    errorMessage: text('error_message'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('img_gen_log_user_month_idx').on(t.userId, t.createdAt),
+    check(
+      'image_generation_log_status_check',
+      sql`${t.status} IN ('success', 'failed', 'refused')`,
+    ),
+  ],
+);
+
+// =============================================================================
 // item_performance (placeholder for FSRS — schema only, not written to in v1)
 // =============================================================================
 
@@ -318,3 +375,5 @@ export type LessonFile = typeof lessonFiles.$inferSelect;
 export type NewLessonFile = typeof lessonFiles.$inferInsert;
 export type LessonLink = typeof lessonLinks.$inferSelect;
 export type NewLessonLink = typeof lessonLinks.$inferInsert;
+export type ImageGenerationLog = typeof imageGenerationLog.$inferSelect;
+export type NewImageGenerationLog = typeof imageGenerationLog.$inferInsert;
