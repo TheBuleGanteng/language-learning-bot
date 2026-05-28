@@ -1,0 +1,2 @@
+ALTER TABLE "user_settings" ADD COLUMN "extraction_provider" text DEFAULT 'anthropic' NOT NULL;--> statement-breakpoint
+ALTER TABLE "user_settings" ADD COLUMN "extraction_model" text DEFAULT 'claude-opus-4-7' NOT NULL;

@@ -119,6 +119,8 @@ export const userSettings = pgTable('user_settings', {
   geminiApiKeyEncrypted: text('gemini_api_key_encrypted'),
   imageProvider: text('image_provider').notNull().default('google'),
   imageModel: text('image_model').notNull().default('imagen-4-fast'),
+  extractionProvider: text('extraction_provider').notNull().default('anthropic'),
+  extractionModel: text('extraction_model').notNull().default('claude-opus-4-7'),
   imageSpendReminderUsd: numeric('image_spend_reminder_usd', { precision: 8, scale: 2 })
     .notNull()
     .default('25'),

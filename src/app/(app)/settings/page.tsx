@@ -33,6 +33,12 @@ import {
   imageModelCost,
   type ImageProviderId,
 } from '@/lib/image-gen';
+import {
+  EXTRACTION_MODELS,
+  EXTRACTION_PROVIDERS,
+  defaultExtractionModel,
+  type ExtractionProvider,
+} from '@/lib/extraction/catalog';
 import { useRouter } from 'next/navigation';
 import { useFieldAutoSave, SaveStatus } from '@/components/save-status';
 
@@ -48,6 +54,8 @@ interface SettingsState {
   nativeLanguage: LanguageCode;
   imageProvider: ImageProviderId;
   imageModel: string;
+  extractionProvider: ExtractionProvider;
+  extractionModel: string;
   imageSpendReminderUsd: number;
   imageSpendHardStopUsd: number;
   keys: Record<Provider, KeyInfo | null>;
@@ -81,6 +89,18 @@ const IMAGE_PROVIDER_KEY: Record<ImageProviderId, Provider> = {
   openai: 'openai',
 };
 
+const EXTRACTION_PROVIDER_LABELS: Record<ExtractionProvider, string> = {
+  anthropic: 'Anthropic',
+  openai: 'OpenAI',
+  google: 'Google',
+};
+
+const EXTRACTION_PROVIDER_KEY: Record<ExtractionProvider, Provider> = {
+  anthropic: 'anthropic',
+  openai: 'openai',
+  google: 'google',
+};
+
 export default function SettingsPage() {
   const router = useRouter();
   const [state, setState] = useState<SettingsState | null>(null);
@@ -93,6 +113,8 @@ export default function SettingsPage() {
   const modelSave = useFieldAutoSave();
   const imageProviderSave = useFieldAutoSave();
   const imageModelSave = useFieldAutoSave();
+  const extractionProviderSave = useFieldAutoSave();
+  const extractionModelSave = useFieldAutoSave();
   const reminderSave = useFieldAutoSave();
   const hardStopSave = useFieldAutoSave();
 
@@ -252,6 +274,23 @@ export default function SettingsPage() {
     void imageModelSave.run(async () => {
       await patchOrThrow({ imageModel: modelId });
       await loadSpend();
+    });
+  }
+
+  function onExtractionProviderChange(p: ExtractionProvider) {
+    if (!state || p === state.extractionProvider) return;
+    const newModel = defaultExtractionModel(p);
+    setState({ ...state, extractionProvider: p, extractionModel: newModel });
+    void extractionProviderSave.run(async () => {
+      await patchOrThrow({ extractionProvider: p, extractionModel: newModel });
+    });
+  }
+
+  function onExtractionModelChange(modelId: string) {
+    if (!state || modelId === state.extractionModel) return;
+    setState({ ...state, extractionModel: modelId });
+    void extractionModelSave.run(async () => {
+      await patchOrThrow({ extractionModel: modelId });
     });
   }
 
@@ -475,6 +514,71 @@ export default function SettingsPage() {
               You haven&apos;t entered an API key for{' '}
               {IMAGE_PROVIDER_LABELS[state.imageProvider]}. Add one below to use this
               model.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Photo Extraction Model</CardTitle>
+          <CardDescription>
+            Choose which vision-capable model extracts vocabulary from photos you
+            upload.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Label>Provider</Label>
+                <SaveStatus status={extractionProviderSave.status} />
+              </div>
+              <Select
+                value={state.extractionProvider}
+                onValueChange={(v) =>
+                  v && onExtractionProviderChange(v as ExtractionProvider)
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {EXTRACTION_PROVIDERS.map((p) => (
+                    <SelectItem key={p} value={p}>
+                      {EXTRACTION_PROVIDER_LABELS[p]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Label>Model</Label>
+                <SaveStatus status={extractionModelSave.status} />
+              </div>
+              <Select
+                value={state.extractionModel}
+                onValueChange={(v) => v && onExtractionModelChange(v)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {EXTRACTION_MODELS[state.extractionProvider].map((m) => (
+                    <SelectItem key={m.id} value={m.id}>
+                      {m.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          {!state.keys[EXTRACTION_PROVIDER_KEY[state.extractionProvider]] && (
+            <p className="text-xs text-amber-700">
+              You haven&apos;t entered an API key for{' '}
+              {EXTRACTION_PROVIDER_LABELS[state.extractionProvider]}. Add one below
+              to use this model.
             </p>
           )}
         </CardContent>

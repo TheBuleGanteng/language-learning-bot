@@ -20,6 +20,13 @@ import {
   isValidImageModel,
   type ImageProviderId,
 } from '@/lib/image-gen';
+import {
+  EXTRACTION_PROVIDERS,
+  defaultExtractionModel,
+  isExtractionProvider,
+  isValidExtractionModel,
+  type ExtractionProvider,
+} from '@/lib/extraction/catalog';
 
 const LANGUAGE_CODES = LANGUAGES.map((l) => l.code) as [string, ...string[]];
 
@@ -81,6 +88,8 @@ export async function GET(req: Request) {
     nativeLanguage: normalizeLanguageCode(u?.nativeLanguage),
     imageProvider: s.imageProvider,
     imageModel: s.imageModel,
+    extractionProvider: s.extractionProvider,
+    extractionModel: s.extractionModel,
     imageSpendReminderUsd: Number(s.imageSpendReminderUsd ?? 25),
     imageSpendHardStopUsd: Number(s.imageSpendHardStopUsd ?? 100),
     keys: {
@@ -96,6 +105,10 @@ const patchSchema = z.object({
   llmModel: z.string().min(1).max(100).optional(),
   imageProvider: z.enum(IMAGE_PROVIDERS as readonly [ImageProviderId, ...ImageProviderId[]]).optional(),
   imageModel: z.string().min(1).max(100).optional(),
+  extractionProvider: z
+    .enum(EXTRACTION_PROVIDERS as readonly [ExtractionProvider, ...ExtractionProvider[]])
+    .optional(),
+  extractionModel: z.string().min(1).max(100).optional(),
   imageSpendReminderUsd: z.number().min(1).max(99999).optional(),
   imageSpendHardStopUsd: z.number().min(1).max(99999).optional(),
   targetLanguage: z.enum(LANGUAGE_CODES).optional(),
@@ -167,6 +180,28 @@ export async function PATCH(req: Request) {
       );
     }
     updates.imageModel = parsed.data.imageModel;
+  }
+
+  if (parsed.data.extractionProvider) {
+    const p = parsed.data.extractionProvider;
+    updates.extractionProvider = p;
+    if (!parsed.data.extractionModel) {
+      updates.extractionModel = defaultExtractionModel(p);
+    }
+  }
+
+  if (parsed.data.extractionModel) {
+    const ep =
+      parsed.data.extractionProvider ?? (await getCurrentExtractionProvider(userId));
+    if (!isValidExtractionModel(ep, parsed.data.extractionModel)) {
+      return NextResponse.json(
+        {
+          error: `Extraction model ${parsed.data.extractionModel} is not valid for provider ${ep}`,
+        },
+        { status: 400 },
+      );
+    }
+    updates.extractionModel = parsed.data.extractionModel;
   }
 
   if (parsed.data.imageSpendReminderUsd !== undefined) {
@@ -241,4 +276,14 @@ async function getCurrentImageProvider(userId: string): Promise<ImageProviderId>
     .limit(1);
   if (row && isImageProvider(row.p)) return row.p;
   return 'google';
+}
+
+async function getCurrentExtractionProvider(userId: string): Promise<ExtractionProvider> {
+  const [row] = await db
+    .select({ p: userSettings.extractionProvider })
+    .from(userSettings)
+    .where(eq(userSettings.userId, userId))
+    .limit(1);
+  if (row && isExtractionProvider(row.p)) return row.p;
+  return 'anthropic';
 }
