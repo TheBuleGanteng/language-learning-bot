@@ -8,7 +8,7 @@ import { VocabForm } from '@/components/vocab/vocab-form';
 export default async function EditVocabPage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ id: string; lang: string }>;
 }) {
   const { id } = await params;
   const session = await auth();

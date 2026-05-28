@@ -1,37 +1,32 @@
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import { eq } from 'drizzle-orm';
 import { auth, signOut } from '@/lib/auth';
+import { db } from '@/db';
+import { users } from '@/db/schema';
 import { Button } from '@/components/ui/button';
+import { AppNav } from '@/components/app-nav';
+import { normalizeLanguageCode } from '@/lib/languages';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
   if (!session?.user?.email) {
     redirect('/login');
   }
+  const userId = (session.user as { id?: string }).id;
+  let lang = 'th';
+  if (userId) {
+    const [row] = await db
+      .select({ target: users.targetLanguage })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+    if (row) lang = normalizeLanguageCode(row.target);
+  }
   return (
     <div className="min-h-svh flex flex-col">
       <header className="border-b bg-background">
         <div className="container mx-auto flex items-center justify-between px-4 py-3">
-          <nav className="flex items-center gap-6">
-            <Link href="/vocab" className="font-semibold">
-              LangBot
-            </Link>
-            <Link href="/vocab" className="text-sm text-muted-foreground hover:text-foreground">
-              Vocab
-            </Link>
-            <Link
-              href="/vocab/import"
-              className="text-sm text-muted-foreground hover:text-foreground"
-            >
-              Import
-            </Link>
-            <Link
-              href="/settings"
-              className="text-sm text-muted-foreground hover:text-foreground"
-            >
-              Settings
-            </Link>
-          </nav>
+          <AppNav lang={lang} />
           <div className="flex items-center gap-3">
             <span className="text-sm text-muted-foreground hidden sm:inline">
               {session.user.email}

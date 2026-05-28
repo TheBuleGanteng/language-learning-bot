@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams, useParams } from 'next/navigation';
 import { ChevronDown, ChevronsUpDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,6 +17,8 @@ import {
 import { FilterAccordion } from '@/components/vocab/filter-accordion';
 import { colorForLesson, colorForTag } from '@/lib/colors';
 import { cn } from '@/lib/utils';
+import { vocabPath } from '@/lib/routes';
+import { languageName } from '@/lib/languages';
 import {
   Table,
   TableBody,
@@ -39,13 +41,6 @@ import { toast } from 'sonner';
 
 type SortCol = 'thai' | 'english' | 'lessons' | 'tags';
 type SortOrder = 'asc' | 'desc';
-
-const SORT_COLS: { id: SortCol; label: string }[] = [
-  { id: 'thai', label: 'Target' },
-  { id: 'english', label: 'English' },
-  { id: 'lessons', label: 'Lessons' },
-  { id: 'tags', label: 'Tags' },
-];
 
 const PAGE_SIZE_OPTIONS = ['25', '50', '100', 'all'] as const;
 type PageSizeOption = (typeof PAGE_SIZE_OPTIONS)[number];
@@ -79,15 +74,20 @@ interface ListResponse {
   total: number;
   hasMore: boolean;
 }
+interface MeResponse {
+  targetLanguage: string;
+  nativeLanguage: string;
+}
 
 function VocabInner() {
   const router = useRouter();
   const search = useSearchParams();
+  const params = useParams<{ lang: string }>();
+  const lang = params.lang;
 
+  const [me, setMe] = useState<MeResponse | null>(null);
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
-  // `items` is the cumulative list — "Load more" appends to it. `total`
-  // and `hasMore` come from the most recent fetch.
   const [items, setItems] = useState<VocabItem[]>([]);
   const [total, setTotal] = useState(0);
   const [hasMore, setHasMore] = useState(false);
@@ -100,13 +100,23 @@ function VocabInner() {
   const mode: 'and' | 'or' = search.get('mode') === 'or' ? 'or' : 'and';
   const searchTerm = search.get('search') ?? '';
   const sortParam = search.get('sort');
-  const sortCol: SortCol | null = (SORT_COLS.find((c) => c.id === sortParam)?.id ?? null);
+  const sortCol: SortCol | null = ((['thai', 'english', 'lessons', 'tags'] as const).find(
+    (c) => c === sortParam,
+  ) ?? null) as SortCol | null;
   const sortOrder: SortOrder = search.get('order') === 'desc' ? 'desc' : 'asc';
   const pageSize: PageSizeOption = parsePageSizeOpt(search.get('pageSize'));
   const [searchInput, setSearchInput] = useState(searchTerm);
 
-  // Build a stable key that represents "everything that should reset the
-  // accumulated list when changed" (filters, sort, search, pageSize).
+  const targetLabel = languageName(me?.targetLanguage ?? lang);
+  const nativeLabel = languageName(me?.nativeLanguage ?? 'en');
+
+  const SORT_COLS: { id: SortCol; label: string }[] = [
+    { id: 'thai', label: targetLabel || 'Target' },
+    { id: 'english', label: nativeLabel || 'English' },
+    { id: 'lessons', label: 'Lessons' },
+    { id: 'tags', label: 'Tags' },
+  ];
+
   const filterKey = useMemo(
     () =>
       [
@@ -126,27 +136,34 @@ function VocabInner() {
   }, [searchTerm]);
 
   useEffect(() => {
+    if (search.get('notice') === 'wrong-lang') {
+      toast.error("You're not studying that language yet. Set it up in Settings.");
+      const next = new URLSearchParams(search.toString());
+      next.delete('notice');
+      router.replace(`${vocabPath(lang)}${next.size ? `?${next}` : ''}`);
+    }
+    // run on first paint only — subsequent edits are user-driven
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
     (async () => {
-      const [lr, tr] = await Promise.all([
+      const [lr, tr, mr] = await Promise.all([
         fetch('/api/lessons').then((r) => r.json()),
         fetch('/api/tags').then((r) => r.json()),
+        fetch('/api/me').then((r) => r.json()),
       ]);
       setLessons(lr.lessons ?? []);
       setTags(tr.tags ?? []);
+      setMe(mr ?? null);
     })();
   }, []);
 
-  // Reset the cumulative list when anything that affects results changes.
-  // This effect runs first; the load effect below picks up loadedPages=1.
   useEffect(() => {
     setItems([]);
     setLoadedPages(1);
   }, [filterKey]);
 
-  // Fetch the current "loaded so far" worth of items in one request. We use
-  // page=1 + a synthetic pageSize equal to loadedPages * pageSize so a fresh
-  // reload (or filter change) gets the full accumulated slice in one shot.
-  // For pageSize='all' there's only ever one fetch.
   useEffect(() => {
     setLoading(true);
     const qs = new URLSearchParams();
@@ -170,7 +187,6 @@ function VocabInner() {
       .then((d: ListResponse) => {
         setTotal(d.total);
         setHasMore(d.hasMore);
-        // page 1 (or any "all") replaces; later pages append.
         if (loadedPages === 1 || pageSize === 'all') {
           setItems(d.items);
         } else {
@@ -183,7 +199,7 @@ function VocabInner() {
   function updateParams(mut: (p: URLSearchParams) => void) {
     const p = new URLSearchParams(search.toString());
     mut(p);
-    router.push(`/vocab?${p.toString()}`);
+    router.push(`${vocabPath(lang)}?${p.toString()}`);
   }
 
   function setSelectedLessons(next: Set<string>) {
@@ -202,7 +218,7 @@ function VocabInner() {
     updateParams((p) => p.set('mode', m));
   }
   function clearFilters() {
-    router.push('/vocab');
+    router.push(vocabPath(lang));
   }
   function setPageSize(ps: PageSizeOption) {
     updateParams((p) => {
@@ -221,10 +237,6 @@ function VocabInner() {
     });
   }
 
-  /**
-   * Click a sortable column header. Cycles: None → asc → desc → None.
-   * Clicking a different column resets the cycle to asc on that column.
-   */
   function cycleSort(col: SortCol) {
     updateParams((p) => {
       const cur = p.get('sort');
@@ -270,10 +282,10 @@ function VocabInner() {
       <aside className="space-y-4">
         <div className="flex gap-2">
           <Button asChild size="sm">
-            <Link href="/vocab/new">Add vocab</Link>
+            <Link href={vocabPath(lang, '/new')}>Add vocab</Link>
           </Button>
           <Button asChild size="sm" variant="outline">
-            <Link href="/vocab/import">Import CSV</Link>
+            <Link href={vocabPath(lang, '/import')}>Import CSV</Link>
           </Button>
         </div>
 
@@ -327,7 +339,7 @@ function VocabInner() {
       <section className="space-y-4">
         <form onSubmit={submitSearch} className="flex gap-2">
           <Input
-            placeholder="Search target or English text…"
+            placeholder={`Search ${targetLabel || 'target'} or ${nativeLabel || 'native'} text…`}
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
           />
@@ -385,7 +397,7 @@ function VocabInner() {
               {items.map((i) => (
                 <TableRow key={i.id}>
                   <TableCell className="font-medium whitespace-normal break-words align-top">
-                    <Link href={`/vocab/${i.id}`} className="hover:underline">
+                    <Link href={vocabPath(lang, `/${i.id}`)} className="hover:underline">
                       {i.targetText}
                     </Link>
                     {i.transliteration && (
@@ -435,7 +447,7 @@ function VocabInner() {
                         variant="outline"
                         className="border-blue-300 text-blue-700 hover:bg-blue-50 hover:text-blue-800"
                       >
-                        <Link href={`/vocab/${i.id}`}>Edit</Link>
+                        <Link href={vocabPath(lang, `/${i.id}`)}>Edit</Link>
                       </Button>
                       <Button
                         size="xs"
@@ -460,8 +472,6 @@ function VocabInner() {
           </Table>
         </div>
 
-        {/* Cumulative "Load more" — appears only when pageSize is not 'all'
-            and the API reports more items available */}
         {pageSize !== 'all' && (
           <div className="flex items-center justify-center text-sm">
             {hasMore ? (

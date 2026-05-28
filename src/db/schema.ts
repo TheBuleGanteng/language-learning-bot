@@ -22,8 +22,8 @@ export const users = pgTable('users', {
   email: text('email').notNull().unique(),
   passwordHash: text('password_hash').notNull(),
   emailVerifiedAt: timestamp('email_verified_at', { withTimezone: true }),
-  targetLanguage: text('target_language').notNull().default('thai'),
-  nativeLanguage: text('native_language').notNull().default('english'),
+  targetLanguage: text('target_language').notNull().default('th'),
+  nativeLanguage: text('native_language').notNull().default('en'),
   // Bumped on password reset / "sign out everywhere". JWTs whose `iat` is
   // earlier than this timestamp are rejected in the auth callback. This is
   // how we invalidate sessions under a stateless JWT strategy.

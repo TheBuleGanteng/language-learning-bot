@@ -1,11 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
+import { vocabPath } from '@/lib/routes';
+import { languageName } from '@/lib/languages';
 
 export interface VocabFormValue {
   id?: string;
@@ -39,19 +41,28 @@ interface Props {
 
 export function VocabForm({ initial, mode }: Props) {
   const router = useRouter();
+  const params = useParams<{ lang?: string }>();
+  const lang = params.lang ?? 'th';
   const [v, setV] = useState<VocabFormValue>({ ...EMPTY, ...initial });
   const [busy, setBusy] = useState(false);
   const [lessonSuggestions, setLessonSuggestions] = useState<string[]>([]);
   const [tagSuggestions, setTagSuggestions] = useState<string[]>([]);
+  const [me, setMe] = useState<{ targetLanguage: string; nativeLanguage: string } | null>(
+    null,
+  );
+  const targetLabel = languageName(me?.targetLanguage ?? lang) || 'Target';
+  const nativeLabel = languageName(me?.nativeLanguage ?? 'en') || 'Native';
 
   useEffect(() => {
     (async () => {
-      const [lr, tr] = await Promise.all([
+      const [lr, tr, mr] = await Promise.all([
         fetch('/api/lessons').then((r) => r.json()),
         fetch('/api/tags').then((r) => r.json()),
+        fetch('/api/me').then((r) => (r.ok ? r.json() : null)),
       ]);
       setLessonSuggestions((lr.lessons ?? []).map((l: { name: string }) => l.name));
       setTagSuggestions((tr.tags ?? []).map((t: { name: string }) => t.name));
+      setMe(mr ?? null);
     })();
   }, []);
 
@@ -90,7 +101,7 @@ export function VocabForm({ initial, mode }: Props) {
         return;
       }
       toast.success(mode === 'new' ? 'Vocab added' : 'Vocab updated');
-      router.push('/vocab');
+      router.push(vocabPath(lang));
       router.refresh();
     } finally {
       setBusy(false);
@@ -101,7 +112,7 @@ export function VocabForm({ initial, mode }: Props) {
     <form onSubmit={onSubmit} className="space-y-4 max-w-2xl">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-1.5">
-          <Label htmlFor="targetText">Target (Thai)</Label>
+          <Label htmlFor="targetText">{targetLabel}</Label>
           <Input
             id="targetText"
             required
@@ -110,7 +121,7 @@ export function VocabForm({ initial, mode }: Props) {
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="nativeText">English</Label>
+          <Label htmlFor="nativeText">{nativeLabel}</Label>
           <Input
             id="nativeText"
             required
@@ -161,7 +172,7 @@ export function VocabForm({ initial, mode }: Props) {
           </datalist>
         </div>
         <div className="space-y-1.5 md:col-span-2">
-          <Label htmlFor="exampleTarget">Example sentence (target)</Label>
+          <Label htmlFor="exampleTarget">Example sentence ({targetLabel})</Label>
           <Input
             id="exampleTarget"
             value={v.exampleTarget}
@@ -169,7 +180,7 @@ export function VocabForm({ initial, mode }: Props) {
           />
         </div>
         <div className="space-y-1.5 md:col-span-2">
-          <Label htmlFor="exampleNative">Example sentence (English)</Label>
+          <Label htmlFor="exampleNative">Example sentence ({nativeLabel})</Label>
           <Input
             id="exampleNative"
             value={v.exampleNative}
@@ -189,7 +200,7 @@ export function VocabForm({ initial, mode }: Props) {
         <Button type="submit" disabled={busy}>
           {busy ? 'Saving…' : mode === 'new' ? 'Add vocab' : 'Save changes'}
         </Button>
-        <Button type="button" variant="outline" onClick={() => router.push('/vocab')}>
+        <Button type="button" variant="outline" onClick={() => router.push(vocabPath(lang))}>
           Cancel
         </Button>
       </div>
