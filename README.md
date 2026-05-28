@@ -284,6 +284,18 @@ we use Google Cloud Storage with v4 signed URLs (15-minute TTL).
      - /home/matt/secrets/language-learning-bot/gcs-sa.json:/app/secrets/gcs-sa.json:ro
    ```
 
+7. **Public image objects.** Vocab images are uploaded under the `public/`
+   prefix and served via long-lived, cacheable URLs. By default the GCS
+   driver calls `file.makePublic()` on each object, which requires
+   **fine-grained ACLs** (the default for new buckets). If you have enabled
+   **uniform bucket-level access**, `makePublic()` will fail; either disable
+   uniform access, or grant `allUsers:objectViewer` on the `public/` prefix
+   via IAM:
+   ```
+   gsutil iam ch allUsers:objectViewer gs://kebayoran-language-learning-bot/public
+   ```
+   (Pricing as of May 2026 — verify on provider sites before deployment.)
+
 ### 5. Build and start
 
 ```bash

@@ -11,17 +11,21 @@ export async function GET(
   _req: Request,
   ctx: { params: Promise<{ path: string[] }> },
 ) {
-  const session = await auth();
-  const userId = (session?.user as { id?: string } | undefined)?.id;
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
   const { path } = await ctx.params;
   // URL segments are decoded by Next.js
   const key = path.join('/');
 
-  // Ownership check: key MUST live under users/{userId}/...
-  if (!key.startsWith(`users/${userId}/`)) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  // Public objects (vocab images) skip the owner-auth check — the unguessable
+  // path itself is the access control. Path traversal still rejected below.
+  const isPublic = path[0] === 'public';
+
+  if (!isPublic) {
+    const session = await auth();
+    const userId = (session?.user as { id?: string } | undefined)?.id;
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!key.startsWith(`users/${userId}/`)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
   }
 
   const provider = storage();
@@ -48,13 +52,21 @@ export async function GET(
               ? 'audio/wav'
               : ext === 'ogg'
                 ? 'audio/ogg'
-                : 'application/octet-stream';
+                : ext === 'png'
+                  ? 'image/png'
+                  : ext === 'jpg' || ext === 'jpeg'
+                    ? 'image/jpeg'
+                    : ext === 'webp'
+                      ? 'image/webp'
+                      : 'application/octet-stream';
     return new NextResponse(new Uint8Array(buf), {
       headers: {
         'Content-Type': contentType,
         'Content-Length': String(stat.size),
         'Content-Disposition': 'inline',
-        'Cache-Control': 'private, max-age=0, must-revalidate',
+        'Cache-Control': isPublic
+          ? 'public, max-age=31536000, immutable'
+          : 'private, max-age=0, must-revalidate',
       },
     });
   } catch (err) {

@@ -59,4 +59,19 @@ describe('LocalStorageProvider', () => {
   it('exists() reports false for unknown keys', async () => {
     expect(await provider.exists('users/u1/nope.pdf')).toBe(false);
   });
+
+  it('putPublic accepts keys under public/ and produces a public URL', async () => {
+    const key = 'public/users/u1/vocab/v1/abc.png';
+    const buf = Buffer.from([0x89, 0x50, 0x4e, 0x47]);
+    const meta = await provider.putPublic(key, buf, 'image/png');
+    expect(meta.key).toBe(key);
+    expect(meta.url).toBe('/api/files/public/users/u1/vocab/v1/abc.png');
+    expect(await provider.exists(key)).toBe(true);
+  });
+
+  it('putPublic rejects keys outside public/', async () => {
+    await expect(
+      provider.putPublic('users/u1/private.png', Buffer.from('x'), 'image/png'),
+    ).rejects.toThrow(/public\//);
+  });
 });

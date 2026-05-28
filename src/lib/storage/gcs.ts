@@ -36,6 +36,30 @@ export class GcsStorageProvider implements StorageProvider {
     };
   }
 
+  async putPublic(key: string, data: Buffer, contentType: string): Promise<FileMetadata> {
+    if (!key.startsWith('public/')) {
+      throw new Error('putPublic key must start with "public/"');
+    }
+    const file = this.bucket().file(key);
+    await file.save(data, {
+      contentType,
+      resumable: false,
+      metadata: { cacheControl: 'public, max-age=31536000' },
+    });
+    // Requires fine-grained ACLs (the GCS default). If the bucket has
+    // uniform-bucket-level access enabled, this throws — see README for
+    // the IAM-based alternative.
+    await file.makePublic();
+    const [meta] = await file.getMetadata();
+    return {
+      key,
+      url: `https://storage.googleapis.com/${this.bucketName}/${encodeURI(key)}`,
+      size: typeof meta.size === 'number' ? meta.size : Number(meta.size ?? data.length),
+      contentType,
+      uploadedAt: meta.updated ? new Date(meta.updated) : new Date(),
+    };
+  }
+
   async delete(key: string): Promise<void> {
     const file = this.bucket().file(key);
     await file.delete({ ignoreNotFound: true });

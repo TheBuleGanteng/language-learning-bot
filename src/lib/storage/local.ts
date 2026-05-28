@@ -39,6 +39,15 @@ export class LocalStorageProvider implements StorageProvider {
     };
   }
 
+  async putPublic(key: string, data: Buffer, contentType: string): Promise<FileMetadata> {
+    if (!key.startsWith('public/')) {
+      throw new Error('putPublic key must start with "public/"');
+    }
+    // Same on-disk layout — the public/* prefix is the marker that the
+    // file route should skip the owner-auth check.
+    return this.put(key, data, contentType);
+  }
+
   async delete(key: string): Promise<void> {
     const abs = this.resolveKey(key);
     await fs.unlink(abs).catch((err) => {
