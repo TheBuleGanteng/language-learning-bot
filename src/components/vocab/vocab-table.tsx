@@ -3,7 +3,15 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { ChevronDown, ChevronsUpDown, ChevronUp } from 'lucide-react';
+import {
+  AlertTriangle,
+  ChevronDown,
+  ChevronsUpDown,
+  ChevronUp,
+  ImageOff,
+  Loader2,
+} from 'lucide-react';
+import { ImagePreviewDialog } from './image-preview-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -51,6 +59,9 @@ interface VocabItem {
   transliteration: string | null;
   lessons: { id: string; name: string }[];
   tags: { id: string; name: string }[];
+  imageStorageKey: string | null;
+  imageStatus: 'none' | 'generating' | 'completed' | 'refused' | 'failed';
+  imageUrl: string | null;
 }
 
 interface Props {
@@ -82,6 +93,7 @@ export function VocabTable({
   const [loadedPages, setLoadedPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [previewItem, setPreviewItem] = useState<VocabItem | null>(null);
   const [searchInput, setSearchInput] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [pageSize, setPageSize] = useState<PageSizeOption>(defaultPageSize);
@@ -233,6 +245,7 @@ export function VocabTable({
         <Table className="w-full">
           <TableHeader>
             <TableRow className="bg-muted border-b-2">
+              <TableHead className="w-14 font-semibold">Image</TableHead>
               {SORT_COLS.map((c) => (
                 <TableHead
                   key={c.id}
@@ -249,6 +262,12 @@ export function VocabTable({
           <TableBody>
             {items.map((i) => (
               <TableRow key={i.id}>
+                <TableCell className="align-top">
+                  <VocabThumb
+                    item={i}
+                    onClick={() => i.imageUrl && setPreviewItem(i)}
+                  />
+                </TableCell>
                 <TableCell className="font-medium whitespace-normal break-words align-top">
                   <Link href={vocabPath(lang, `/${i.id}`)} className="hover:underline">
                     {i.targetText}
@@ -328,7 +347,7 @@ export function VocabTable({
             ))}
             {items.length === 0 && !loading && (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                   No vocab items.
                 </TableCell>
               </TableRow>
@@ -365,6 +384,57 @@ export function VocabTable({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ImagePreviewDialog
+        open={!!previewItem}
+        onOpenChange={(o) => !o && setPreviewItem(null)}
+        lang={lang}
+        vocabId={previewItem?.id ?? ''}
+        imageUrl={previewItem?.imageUrl ?? null}
+        targetText={previewItem?.targetText ?? ''}
+        nativeText={previewItem?.nativeText ?? ''}
+      />
     </div>
   );
+}
+
+function VocabThumb({
+  item,
+  onClick,
+}: {
+  item: VocabItem;
+  onClick?: () => void;
+}) {
+  if (item.imageStatus === 'generating') {
+    return <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />;
+  }
+  if (item.imageStatus === 'refused' || item.imageStatus === 'failed') {
+    return (
+      <AlertTriangle
+        className="h-4 w-4 text-amber-600/60"
+        aria-label="Generation failed/refused"
+      />
+    );
+  }
+  if (item.imageUrl) {
+    return (
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onClick?.();
+        }}
+        aria-label="View image"
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={item.imageUrl}
+          alt=""
+          loading="lazy"
+          className="w-10 h-10 rounded-md object-cover border hover:ring-2 hover:ring-primary/50 transition-shadow"
+        />
+      </button>
+    );
+  }
+  return <ImageOff className="h-4 w-4 text-muted-foreground/40" />;
 }

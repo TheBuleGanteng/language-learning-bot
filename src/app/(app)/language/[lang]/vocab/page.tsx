@@ -17,6 +17,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { BulkImageDialog } from '@/components/vocab/bulk-image-dialog';
+import { ImagePreviewDialog } from '@/components/vocab/image-preview-dialog';
 import {
   Select,
   SelectContent,
@@ -125,6 +126,7 @@ function VocabInner() {
   const [imageStatusFilter, setImageStatusFilter] = useState<ImageStatusFilter>('all');
   const [showBulkDialog, setShowBulkDialog] = useState(false);
   const [batch, setBatch] = useState<BatchSnapshot | null>(null);
+  const [previewItem, setPreviewItem] = useState<VocabItem | null>(null);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const selectedLessons = useMemo(() => new Set(search.getAll('lesson')), [search]);
@@ -631,7 +633,10 @@ function VocabInner() {
                     </TableCell>
                   )}
                   <TableCell className="align-top">
-                    <ThumbCell item={i} lang={lang} />
+                    <ThumbCell
+                      item={i}
+                      onClick={() => i.imageUrl && setPreviewItem(i)}
+                    />
                   </TableCell>
                   <TableCell className="font-medium whitespace-normal break-words align-top">
                     <Link href={vocabPath(lang, `/${i.id}`)} className="hover:underline">
@@ -759,11 +764,26 @@ function VocabInner() {
         vocabIds={Array.from(selectedIds)}
         onConfirm={confirmBulkGenerate}
       />
+
+      <ImagePreviewDialog
+        open={!!previewItem}
+        onOpenChange={(o) => !o && setPreviewItem(null)}
+        lang={lang}
+        vocabId={previewItem?.id ?? ''}
+        imageUrl={previewItem?.imageUrl ?? null}
+        targetText={previewItem?.targetText ?? ''}
+        nativeText={previewItem?.nativeText ?? ''}
+      />
     </div>
   );
 }
 
-function ThumbCell({ item }: { item: VocabItem; lang: string }) {
+interface ThumbCellProps {
+  item: VocabItem;
+  onClick?: () => void;
+}
+
+function ThumbCell({ item, onClick }: ThumbCellProps) {
   if (item.imageStatus === 'generating') {
     return <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />;
   }
@@ -777,13 +797,23 @@ function ThumbCell({ item }: { item: VocabItem; lang: string }) {
   }
   if (item.imageUrl) {
     return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={item.imageUrl}
-        alt=""
-        loading="lazy"
-        className="w-10 h-10 rounded-md object-cover border"
-      />
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onClick?.();
+        }}
+        className="cursor-pointer"
+        aria-label="View image"
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={item.imageUrl}
+          alt=""
+          loading="lazy"
+          className="w-10 h-10 rounded-md object-cover border hover:ring-2 hover:ring-primary/50 transition-shadow"
+        />
+      </button>
     );
   }
   return <ImageOff className="h-4 w-4 text-muted-foreground/40" />;
