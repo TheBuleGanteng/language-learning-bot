@@ -70,7 +70,8 @@ export function NotesSection({ lessonId, onCountChange }: Props) {
         kind="pdf"
         accept={{ 'application/pdf': ['.pdf'] }}
         maxBytes={20 * 1024 * 1024}
-        hint="Drag a PDF here, or use Choose file. Max 20MB."
+        hint="Drop PDF here or click to upload"
+        sizeHint="Max 20MB"
         onUploaded={load}
       />
       {files.length === 0 ? (

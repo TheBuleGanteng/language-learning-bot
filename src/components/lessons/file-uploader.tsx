@@ -2,7 +2,6 @@
 
 import { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Button } from '@/components/ui/button';
 import { Upload } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -12,11 +11,27 @@ interface Props {
   kind: 'pdf' | 'audio';
   accept: Record<string, string[]>;
   maxBytes: number;
+  /** Default-state instruction text, e.g. "Drop PDF here or click to upload". */
   hint: string;
+  /** Right-aligned muted detail, e.g. "Max 20MB" or "Max 50MB · MP3, M4A". */
+  sizeHint?: string;
   onUploaded: () => void;
 }
 
-export function FileUploader({ lessonId, kind, accept, maxBytes, hint, onUploaded }: Props) {
+/**
+ * Compact single-row drop zone. The whole bar is clickable / droppable.
+ * During an upload, the instruction text becomes the filename plus an
+ * indeterminate progress bar; the bar height does not change.
+ */
+export function FileUploader({
+  lessonId,
+  kind,
+  accept,
+  maxBytes,
+  hint,
+  sizeHint,
+  onUploaded,
+}: Props) {
   const [uploading, setUploading] = useState<string | null>(null);
 
   const onDrop = useCallback(
@@ -50,31 +65,43 @@ export function FileUploader({ lessonId, kind, accept, maxBytes, hint, onUploade
     [lessonId, kind, maxBytes, onUploaded],
   );
 
-  const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept,
     multiple: false,
     maxSize: maxBytes,
-    noClick: true,
-    noKeyboard: true,
+    disabled: !!uploading,
   });
 
   return (
     <div
       {...getRootProps()}
       className={cn(
-        'border-2 border-dashed rounded-md p-6 text-center text-sm transition-colors',
-        isDragActive ? 'border-primary bg-primary/5' : 'border-muted-foreground/25',
+        'flex items-center justify-between gap-3 px-4 py-3 rounded-md border-2 border-dashed cursor-pointer transition-colors text-sm',
+        uploading
+          ? 'border-muted-foreground/30 cursor-progress'
+          : isDragActive
+            ? 'border-primary bg-primary/5'
+            : 'border-muted-foreground/30 hover:border-muted-foreground/60 hover:bg-muted/30',
       )}
     >
       <input {...getInputProps()} />
-      <Upload className="mx-auto h-6 w-6 text-muted-foreground mb-2" />
-      <p className="text-muted-foreground">{hint}</p>
-      <div className="mt-3">
-        <Button type="button" size="sm" variant="outline" onClick={open} disabled={!!uploading}>
-          {uploading ? `Uploading ${uploading}…` : 'Choose file'}
-        </Button>
+      <div className="flex items-center gap-3 min-w-0 flex-1">
+        <Upload className="h-5 w-5 text-muted-foreground shrink-0" />
+        {uploading ? (
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <span className="truncate">Uploading &ldquo;{uploading}&rdquo;…</span>
+            <span className="flex-1 max-w-[160px] h-1.5 rounded-full bg-muted overflow-hidden">
+              <span className="block h-full w-1/2 bg-primary animate-pulse" />
+            </span>
+          </div>
+        ) : (
+          <span>{isDragActive ? 'Drop to upload' : hint}</span>
+        )}
       </div>
+      {sizeHint && !uploading && (
+        <span className="text-xs text-muted-foreground shrink-0">{sizeHint}</span>
+      )}
     </div>
   );
 }

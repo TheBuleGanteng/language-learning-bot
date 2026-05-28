@@ -79,7 +79,8 @@ export function AudioSection({ lessonId, onCountChange }: Props) {
           'audio/ogg': ['.ogg'],
         }}
         maxBytes={50 * 1024 * 1024}
-        hint="Drag an MP3/M4A/WAV/OGG here. Max 50MB."
+        hint="Drop audio file here or click to upload"
+        sizeHint="Max 50MB · MP3, M4A, WAV, OGG"
         onUploaded={load}
       />
       {files.length === 0 ? (
