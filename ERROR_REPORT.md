@@ -604,3 +604,36 @@ filters already use. Use a dedicated `setRefetchCounter(n+1)` signal
 (in the fetch effect's deps) so imperative refresh callers — the
 polling loop, post-mutation handlers — can force a real re-fetch even
 when none of the other params changed.
+
+### Changes
+
+- Image-status filter moves from `useState` to a URL search param
+  (`?imageStatus=has|none|failed`, omitted = `all`). The setter writes
+  via `updateParams()` so a click → `router.push` → search-params
+  re-read → `filterKey` recomputes → fetch effect re-runs.
+- Added `imageStatusFilter` to `filterKey`'s dep list and to the fetch
+  effect's explicit dep list (belt-and-suspenders); fetch effect now
+  also appends `imageStatus` to the request querystring.
+- Backend `/api/vocab` `imageStatus=none` is now strict (`image_status
+  = 'none'`); `'generating'` is no longer folded in.
+- New `refetchCounter` state: bumped by `refreshItems()` (called from
+  the bulk-batch polling loop) so each tick triggers a real re-fetch.
+  Previously the helper set `loadedPages = 1` + `items = []`, but
+  React bails out of the no-op `setLoadedPages(1)` when it's already
+  1, leaving the polling loop refreshing without ever fetching.
+- `confirmBulkGenerate()` switches the filter to `'all'` immediately
+  after a successful submit so items don't vanish from the No-image
+  view as they transition through `'generating'` → `'completed'`.
+- `enterSelectionMode()` calls the new URL-writing
+  `setImageStatusFilter('none')`, so the auto-narrow on entering
+  selection mode is now a real filter change — same code path as the
+  lesson/theme filter chips.
+
+### Issues hit
+
+None during this pass — the bugs and the fix path were both
+identified up front during Section 1's diagnosis. The previously-
+authored backend `imageStatus=none` clause was intentionally
+permissive (folding in `'generating'`) but became wrong once the
+front-end switched to `'all'` during batches; tightening it was the
+correct follow-up.
