@@ -33,6 +33,13 @@ export async function GET(req: Request) {
   const pageSize = parsePageSize(url.searchParams.get('pageSize'));
   const search = (url.searchParams.get('search') ?? '').trim();
   const lessonIds = url.searchParams.getAll('lesson').filter((s) => UUID_RE.test(s));
+  // `lessonId` (singular) is a convenience scoping param used by the lesson
+  // detail page's vocab table — we merge it into the lessonIds list and force
+  // mode=and so additional client filters compose properly.
+  const scopedLessonId = url.searchParams.get('lessonId');
+  if (scopedLessonId && UUID_RE.test(scopedLessonId) && !lessonIds.includes(scopedLessonId)) {
+    lessonIds.push(scopedLessonId);
+  }
   const tagIds = url.searchParams.getAll('tag').filter((s) => UUID_RE.test(s));
   const mode = url.searchParams.get('mode') === 'or' ? 'or' : 'and';
   const orderByExpr = buildOrderBy(
