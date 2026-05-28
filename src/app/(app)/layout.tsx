@@ -5,6 +5,7 @@ import { db } from '@/db';
 import { users } from '@/db/schema';
 import { AppNav } from '@/components/app-nav';
 import { UserMenu } from '@/components/user-menu';
+import { BatchWatcher } from '@/components/batch-watcher';
 import { normalizeLanguageCode } from '@/lib/languages';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -31,6 +32,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </div>
       </header>
       <main className="flex-1 container mx-auto px-4 py-6">{children}</main>
+      <BatchWatcher userLang={lang} />
     </div>
   );
 }
