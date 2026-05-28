@@ -448,6 +448,9 @@ function VocabInner() {
     }
     const data = (await res.json()) as { batchId: string; total: number };
     toast.success(`Started generating ${data.total} image${data.total === 1 ? '' : 's'}.`);
+    // Signal the global BatchWatcher to poll immediately rather than
+    // wait up to 15s for its next idle tick.
+    window.dispatchEvent(new CustomEvent('batch-started'));
     setBatch({
       total: data.total,
       completed: 0,

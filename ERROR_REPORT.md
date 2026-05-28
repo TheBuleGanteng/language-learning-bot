@@ -735,3 +735,21 @@ provider call.
 - No browser Notifications API integration (out of scope per spec).
 - No completion sound (out of scope).
 - No batch-history view ("show me my past batches") (out of scope).
+
+### Follow-up fix (post-initial-build)
+
+Discovered via testing: the watcher's polling loop terminated on the
+first idle response. Because the `(app)` layout is persistent (doesn't
+unmount on internal navigation), the watcher stopped polling
+permanently on first login and only revived on full page reload.
+User-visible symptom: the bulk-completion popup only appeared after a
+manual reload.
+
+Fix: idle polls continue at a slow cadence (15s) instead of stopping,
+active polls stay at 5s, network errors back off to 10s. A custom
+`batch-started` window event dispatched from the bulk-submit handler
+gives the watcher an immediate signal when a new batch begins,
+avoiding up to 15s of detection lag. Refactored the polling so
+`poll`/`schedule` are stable `useCallback`s with a `pollRef` mirror —
+the timeout callback always invokes the latest closure without
+restarting the loop on every render.

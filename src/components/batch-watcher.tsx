@@ -26,8 +26,9 @@ interface ActiveBatchResponse {
   pendingNotification?: PendingNotification;
 }
 
-const POLL_INTERVAL_MS = 5000;
-const BACKOFF_INTERVAL_MS = 10_000;
+const POLL_ACTIVE_MS = 5_000; // batch is running
+const POLL_IDLE_MS = 15_000; // nothing happening, but watch for new batches
+const POLL_BACKOFF_MS = 10_000; // network/server error
 
 interface Props {
   /** User's target language — drives the "View failed items" URL. */
@@ -39,18 +40,77 @@ interface Props {
  * popup can fire on whatever page the user is currently viewing — not
  * just the page that kicked off the batch.
  *
- * Polling stops when there's no active batch and no pending dialog.
- * It restarts on the next mount (page reload, navigation).
+ * Polling never stops once the watcher is mounted:
+ *  - active batch  → poll every 5s
+ *  - pending popup → idle; polling resumes when the user dismisses
+ *  - idle (nothing in flight, no pending) → poll every 15s so a batch
+ *    started in another tab is picked up reasonably quickly
+ *  - network/server error → 10s backoff
+ *
+ * The bulk-submit handler also dispatches a `batch-started` window
+ * event so the next poll fires immediately rather than after the 15s
+ * idle delay.
  */
 export function BatchWatcher({ userLang }: Props) {
   const router = useRouter();
   const [pending, setPending] = useState<PendingNotification | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cancelledRef = useRef(false);
 
-  const dismiss = useCallback(async () => {
+  // Forward declaration so `schedule` and `poll` can reference each other.
+  const pollRef = useRef<() => Promise<void>>(async () => {});
+
+  const schedule = useCallback((delayMs: number) => {
+    if (cancelledRef.current) return;
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutRef.current = setTimeout(() => {
+      void pollRef.current();
+    }, delayMs);
+  }, []);
+
+  const poll = useCallback(async () => {
+    if (cancelledRef.current) return;
+    try {
+      const res = await fetch('/api/vocab/active-batch');
+      if (!res.ok) {
+        schedule(POLL_BACKOFF_MS);
+        return;
+      }
+      const data = (await res.json()) as ActiveBatchResponse;
+
+      if (data.pendingNotification) {
+        // Pop the dialog and stop polling. Polling resumes when the user
+        // dismisses (see `dismiss` below) or when a new batch is started
+        // (see the 'batch-started' event handler below).
+        setPending(data.pendingNotification);
+        return;
+      }
+
+      if (data.active) {
+        // Batch in progress — poll quickly so we catch completion soon.
+        schedule(POLL_ACTIVE_MS);
+        return;
+      }
+
+      // Idle — no batch, no pending. Keep polling slowly so a batch
+      // started in another tab (or via API) is picked up reasonably
+      // quickly without forcing a page reload.
+      schedule(POLL_IDLE_MS);
+    } catch {
+      schedule(POLL_BACKOFF_MS);
+    }
+  }, [schedule]);
+
+  // Keep pollRef pointing at the latest closure so `schedule`'s setTimeout
+  // callback always invokes the current version.
+  useEffect(() => {
+    pollRef.current = poll;
+  }, [poll]);
+
+  const dismiss = useCallback(() => {
     setPending((prev) => {
       if (!prev) return null;
-      // Fire-and-forget — best-effort. If the POST fails the next poll
+      // Best-effort fire-and-forget — if the POST fails the next poll
       // will resurface the same notification.
       void fetch('/api/vocab/active-batch/dismiss', {
         method: 'POST',
@@ -59,57 +119,35 @@ export function BatchWatcher({ userLang }: Props) {
       });
       return null;
     });
-  }, []);
+    // Restart the polling loop so the next batch is caught.
+    schedule(0);
+  }, [schedule]);
 
+  // Listen for in-app event signaling a batch just kicked off. Cancel
+  // any pending delay and poll immediately.
+  useEffect(() => {
+    function onBatchStarted() {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      void poll();
+    }
+    window.addEventListener('batch-started', onBatchStarted);
+    return () => window.removeEventListener('batch-started', onBatchStarted);
+  }, [poll]);
+
+  // Initial mount: start polling. Cleanup cancels in-flight schedule.
   useEffect(() => {
     cancelledRef.current = false;
-    let timeoutId: ReturnType<typeof setTimeout> | null = null;
-    let stopRequested = false;
-
-    async function poll() {
-      if (cancelledRef.current || stopRequested) return;
-      let nextDelay = POLL_INTERVAL_MS;
-      let keepPolling = true;
-      try {
-        const res = await fetch('/api/vocab/active-batch');
-        if (!res.ok) {
-          nextDelay = BACKOFF_INTERVAL_MS;
-        } else {
-          const data = (await res.json()) as ActiveBatchResponse;
-          if (data.pendingNotification) {
-            setPending(data.pendingNotification);
-            // Once the popup is on screen we stop polling. Polling
-            // resumes on the next mount (re-render / route change).
-            keepPolling = false;
-          } else if (!data.active) {
-            // Nothing active, nothing pending — idle until next mount.
-            keepPolling = false;
-          }
-        }
-      } catch {
-        nextDelay = BACKOFF_INTERVAL_MS;
-      }
-      if (keepPolling && !cancelledRef.current && !stopRequested) {
-        timeoutId = setTimeout(poll, nextDelay);
-      }
-    }
-
-    // Always poll once on mount so a newly-kicked-off batch on another
-    // tab / a finished-while-away notification is picked up.
-    poll();
-
+    void poll();
     return () => {
       cancelledRef.current = true;
-      stopRequested = true;
-      if (timeoutId) clearTimeout(timeoutId);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
-  }, []);
+  }, [poll]);
 
   function viewFailedItems() {
     if (!pending) return;
-    const lang = userLang;
-    void dismiss();
-    router.push(`${vocabPath(lang)}?imageStatus=failed`);
+    dismiss();
+    router.push(`${vocabPath(userLang)}?imageStatus=failed`);
   }
 
   if (!pending) return null;
@@ -118,7 +156,7 @@ export function BatchWatcher({ userLang }: Props) {
   const title = pending.stopped ? 'Batch stopped' : 'Image generation complete';
 
   return (
-    <Dialog open onOpenChange={(open) => { if (!open) void dismiss(); }}>
+    <Dialog open onOpenChange={(open) => { if (!open) dismiss(); }}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
@@ -149,7 +187,7 @@ export function BatchWatcher({ userLang }: Props) {
               View failed items
             </Button>
           )}
-          <Button onClick={() => void dismiss()}>OK</Button>
+          <Button onClick={dismiss}>OK</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
