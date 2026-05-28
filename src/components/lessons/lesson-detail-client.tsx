@@ -17,6 +17,7 @@ import { AudioSection } from './audio-section';
 import { LinksSection } from './links-section';
 import { InlineEdit } from '@/components/inline-edit';
 import { InlineDateEdit } from '@/components/inline-date-edit';
+import { RichTextEditModal } from '@/components/rich-text-edit-modal';
 import { VocabTable } from '@/components/vocab/vocab-table';
 import { languageName } from '@/lib/languages';
 import { flashcardsPath, chatPath } from '@/lib/routes';
@@ -86,17 +87,15 @@ export function LessonDetailClient({ lang, lesson, initialVocabCount }: Props) {
           }}
           className="text-2xl font-bold"
         />
-        <InlineEdit
-          value={lesson.topic}
-          ariaLabel="Topic"
-          placeholder="No topic — click to add"
-          multiline
-          onSave={async (next) => {
-            const trimmed = next.trim();
-            await patchLesson(lesson.id, { topic: trimmed || null });
+        <RichTextEditModal
+          value={lesson.topic ?? ''}
+          emptyPlaceholder="No topic — click to add"
+          title="Edit lesson topic"
+          onSave={async (newHtml) => {
+            await patchLesson(lesson.id, { topic: newHtml || null });
             router.refresh();
           }}
-          className="italic text-muted-foreground"
+          className="text-muted-foreground"
         />
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
           <InlineDateEdit

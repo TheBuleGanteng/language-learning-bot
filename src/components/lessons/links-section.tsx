@@ -7,6 +7,9 @@ import { Label } from '@/components/ui/label';
 import { PlayCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { ConfirmDeleteDialog } from './confirm-delete-dialog';
+import { RichTextEditor } from '@/components/rich-text-editor';
+import { RenderedHtml } from '@/components/rendered-html';
+import { stripHtml } from '@/lib/strip-html';
 
 interface Props {
   lessonId: string;
@@ -49,13 +52,16 @@ export function LinksSection({ lessonId, onCountChange }: Props) {
     if (!url.trim()) return;
     setBusy(true);
     try {
+      // Notes is HTML from the rich text editor — send as-is if it has any
+      // visible content, otherwise omit so the API stores null.
+      const notesHtml = stripHtml(notes).trim() ? notes : undefined;
       const res = await fetch(`/api/lessons/${lessonId}/links`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
           url: url.trim(),
           title: title.trim() || undefined,
-          notes: notes.trim() || undefined,
+          notes: notesHtml,
         }),
       });
       if (!res.ok) {
@@ -122,11 +128,7 @@ export function LinksSection({ lessonId, onCountChange }: Props) {
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="link-notes">Notes (optional)</Label>
-          <Input
-            id="link-notes"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-          />
+          <RichTextEditor value={notes} onChange={setNotes} />
         </div>
         <Button type="submit" size="sm" disabled={busy || !url.trim()}>
           {busy ? 'Adding…' : 'Add link'}
@@ -155,7 +157,10 @@ export function LinksSection({ lessonId, onCountChange }: Props) {
                       <div>
                         <p className="text-sm font-medium">{l.title}</p>
                         {l.notes && (
-                          <p className="text-xs text-muted-foreground mt-1">{l.notes}</p>
+                          <RenderedHtml
+                            html={l.notes}
+                            className="text-xs text-muted-foreground mt-1"
+                          />
                         )}
                       </div>
                       <div className="flex items-center gap-1">
@@ -203,7 +208,10 @@ export function LinksSection({ lessonId, onCountChange }: Props) {
                       </button>
                       <p className="text-xs text-muted-foreground truncate">{l.url}</p>
                       {l.notes && (
-                        <p className="text-xs text-muted-foreground mt-1">{l.notes}</p>
+                        <RenderedHtml
+                          html={l.notes}
+                          className="text-xs text-muted-foreground mt-1"
+                        />
                       )}
                     </div>
                     <Button
@@ -229,7 +237,10 @@ export function LinksSection({ lessonId, onCountChange }: Props) {
                     </a>
                     <p className="text-xs text-muted-foreground truncate">{l.url}</p>
                     {l.notes && (
-                      <p className="text-xs text-muted-foreground mt-1">{l.notes}</p>
+                      <RenderedHtml
+                        html={l.notes}
+                        className="text-xs text-muted-foreground mt-1"
+                      />
                     )}
                   </div>
                   <Button
