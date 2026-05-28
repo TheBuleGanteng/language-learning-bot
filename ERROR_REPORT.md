@@ -556,3 +556,51 @@ matches both.
   deferred — exercises the live `db` singleton, would require either
   vitest-mock of the db module or a dedicated test database. The
   image-prompt template is covered.
+
+## Vocab page filter fix
+
+### Root cause
+
+Image-status filter buttons (All / Has image / No image / Failed-refused)
+appeared to do something — the chip highlight switched — but no network
+request fired and the table didn't change.
+
+Reading the existing client component reveals the asymmetry between
+filter mechanisms:
+
+- **Lesson + Theme filters** live in URL search params via
+  `useSearchParams`. The derived `selectedLessons` / `selectedTags`
+  Sets are computed from `search.getAll(...)` and feed into a
+  `filterKey` memo. The fetch effect depends on `filterKey` (plus
+  `selectedLessons`, `selectedTags`, etc.), and the fetch URL is
+  built with `qs.append('lesson', id)` / `qs.append('tag', id)`. So
+  clicking a checkbox → URL changes → `useSearchParams` re-runs →
+  derived Sets change → `filterKey` recomputes → fetch effect re-runs
+  → new data arrives.
+- **Image-status filter** was wired through a plain
+  `useState<ImageStatusFilter>` (line 126 of vocab/page.tsx). The
+  state was read by the filter-chip UI for the active highlight, but:
+  1. `imageStatusFilter` was **not in `filterKey`'s dependency list**;
+  2. the fetch effect did **not depend on it** and did **not add
+     `imageStatus` to the query string**.
+
+  So state changed → React re-rendered → the active chip moved → but
+  the fetch effect's dep array hadn't observed any change, so it
+  didn't fire.
+
+Secondary bug, surfacing during batch generation: the `refreshItems()`
+helper used by the `/api/vocab/generation-status` polling does only
+`setLoadedPages(1)` + `setItems([])`. When `loadedPages` was already
+1 — the default state after a fresh `enterSelectionMode` /
+`confirmBulkGenerate` cycle — React bails out of the no-op setState,
+the fetch effect's `loadedPages` dep doesn't change, and no fetch
+fires. The poll thinks it's refreshing but the UI freezes on a stale
+snapshot.
+
+### Fix path
+
+Align image-status with the same URL-params-driven pattern the other
+filters already use. Use a dedicated `setRefetchCounter(n+1)` signal
+(in the fetch effect's deps) so imperative refresh callers — the
+polling loop, post-mutation handlers — can force a real re-fetch even
+when none of the other params changed.
