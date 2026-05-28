@@ -753,3 +753,91 @@ avoiding up to 15s of detection lag. Refactored the polling so
 `poll`/`schedule` are stable `useCallback`s with a `pollRef` mirror —
 the timeout callback always invokes the latest closure without
 restarting the loop on every render.
+
+## Photo vocab extraction
+
+### Changes
+
+- New "Photo Extraction Model" settings card (Anthropic Opus 4.7
+  default, plus OpenAI GPT-5 / Google Gemini 2.5 options). Mirrors the
+  existing Chat Model / Image Model auto-save UX with the same
+  missing-API-key warning.
+- `user_settings` gains `extraction_provider` (`'anthropic'`) and
+  `extraction_model` (`'claude-opus-4-7'`) columns.
+- Vision-based extractor abstraction (`src/lib/extraction/`):
+  `types.ts`, shared `prompt.ts`, three providers
+  (`anthropic.ts` / `openai.ts` / `google.ts`), a `makeExtractor()`
+  factory, and a shared `parseExtractionResponse()` with Zod
+  validation and markdown-code-fence stripping.
+- `POST /api/vocab/extract-from-photos`: multipart/form-data, ≤10
+  images × ≤10MB. Reads the user's selected provider/model +
+  decrypted API key, returns the extracted rows. Pure extraction —
+  saves nothing.
+- `<PhotoUploader>`: multi-image drop + click, per-photo Crop dialog
+  powered by `react-image-crop` (free-form rectangular). The crop
+  dialog always renders the ORIGINAL image so the user can recover a
+  wider region than a previous crop; the applied blob is freshly
+  drawn from the original via canvas at JPEG q=0.92.
+- `<ExtractedVocabReview>`: preview table with per-row checkboxes,
+  inline edit on Thai / English (Enter commits, Escape cancels,
+  edited cells render in muted italic), per-row tag + lesson
+  MultiSelectChips, low-confidence rows flagged with an amber
+  triangle. Bulk-apply panel UNIONs picked tags/lessons into every
+  checked row (additive — existing per-row picks survive).
+  "+ Add row manually" inserts a blank row at the bottom; "Unselect
+  from here down" handles the common "LLM picked up exercise text
+  after the vocab list ended" case.
+- `POST /api/vocab/save-extracted`: dedup by `(target_text,
+  native_text)`. Existing matches get the new lessons + tags merged
+  in (existing text fields preserved); new pairs insert as fresh
+  vocab. Wrapped in a transaction with a per-row error list in the
+  summary response. Ownership of every supplied `tagId` / `lessonId`
+  validated in bulk before mutating.
+- Entry points: "Add vocab from photo" button on the main vocab page
+  sidebar toolbar (no defaultLessonId) and above the lesson detail
+  page's embedded vocab table (defaultLessonId = current lesson).
+  A shared `<ExtractionFlow>` owns the two-phase modal: upload →
+  review.
+- Mobile gate: viewports ≤767px see a "use a larger screen"
+  placeholder instead of the upload UI. The review table is
+  desktop-only; trying to translate the per-row pill editors and
+  inline-edit cells to a phone wasn't worth a v1.
+
+### Issues hit
+
+- **OpenAI Chat Completions multimodal content type**. The provider
+  expects `image_url` parts shaped as
+  `{ type: 'image_url', image_url: { url: 'data:...' } }`, not the
+  simpler `{ image_url: '...' }`. Got the typing right via
+  `OpenAI.Chat.ChatCompletionContentPart[]` from the SDK so future
+  shifts will surface at compile time.
+- **Anthropic vision media-type whitelist**. The `media_type` field
+  on a base64 image source is a string-literal union
+  (`'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp'`), not
+  any string. Added an `isSupportedMediaType()` guard with a JPEG
+  fallback for anything outside the whitelist.
+- **`useRef` initializer with `URL.createObjectURL`** failed the
+  `react-hooks/refs` rule ("cannot access ref value during render").
+  Replaced with `useState(() => URL.createObjectURL(...))` — same
+  one-shot initialization semantics, but readable from JSX and
+  ESLint-clean.
+- **Composite-PK dedup lookup**. PostgreSQL doesn't have a tidy
+  `WHERE (target,native) IN ((a,b),(c,d))` over composite keys, so
+  the save endpoint pulls candidates by `target_text IN (...)` and
+  filters in JS on the `${target}\n${native}` join. Fine for the
+  expected batch sizes (≤500 rows per save).
+
+### Known follow-ups
+
+- Cost tracking isn't included; will fold in once the unified LLM
+  cost tracker lands.
+- Source photos aren't persisted, so re-extracting with a different
+  model means re-uploading. Deliberate (per the out-of-scope list)
+  but worth noting.
+- Mobile preview table would require a card-based redesign; gated
+  for now.
+- Only additive bulk-tag mode; clearing tags requires per-row
+  editing.
+- The `MultiSelectChips` filter input doesn't yet support "create
+  new tag" / "create new lesson" inline — the user has to leave the
+  flow to create those. Acceptable for v1.
