@@ -352,6 +352,10 @@ function VocabInner() {
   function enterSelectionMode() {
     setSelectionMode(true);
     setSelectedIds(new Set());
+    // Narrow to "No image" so users see only items that need generating.
+    // setImageStatusFilter writes to the URL, which triggers a real
+    // re-fetch via the same code path the lesson/theme filters use — no
+    // separate selection-mode fetch.
     if (imageStatusFilter === 'all') setImageStatusFilter('none');
   }
 
