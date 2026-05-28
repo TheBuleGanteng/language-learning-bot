@@ -94,3 +94,4 @@ notion-export.csv
 # Local file storage (lesson PDFs / audio uploaded in dev)
 /storage/*
 !/storage/.gitkeep
+IMAGE_GEN_INSTRUCTIONS.md
