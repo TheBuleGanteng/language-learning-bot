@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   Accordion,
   AccordionContent,
@@ -14,7 +15,8 @@ import { GraduationCap, MessagesSquare } from 'lucide-react';
 import { NotesSection } from './notes-section';
 import { AudioSection } from './audio-section';
 import { LinksSection } from './links-section';
-import { LessonEditDialog } from './lesson-edit-dialog';
+import { InlineEdit } from '@/components/inline-edit';
+import { InlineDateEdit } from '@/components/inline-date-edit';
 import { VocabTable } from '@/components/vocab/vocab-table';
 import { languageName } from '@/lib/languages';
 import { flashcardsPath, chatPath } from '@/lib/routes';
@@ -33,21 +35,28 @@ interface Props {
   initialVocabCount: number;
 }
 
-function formatDate(d: string | null): string {
-  if (!d) return '';
-  try {
-    return new Date(`${d}T00:00:00`).toLocaleDateString(undefined, {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-  } catch {
-    return d;
+async function patchLesson(lessonId: string, body: Record<string, unknown>) {
+  const res = await fetch(`/api/lessons/${lessonId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const d = (await res.json().catch(() => ({}))) as { error?: string };
+    throw new Error(d.error ?? 'Save failed');
   }
 }
 
+/** YYYY-MM-DD in local time, no UTC drift. */
+function toLocalDateString(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 export function LessonDetailClient({ lang, lesson, initialVocabCount }: Props) {
-  const [editing, setEditing] = useState(false);
+  const router = useRouter();
   const [notesCount, setNotesCount] = useState(0);
   const [audioCount, setAudioCount] = useState(0);
   const [linksCount, setLinksCount] = useState(0);
@@ -65,21 +74,43 @@ export function LessonDetailClient({ lang, lesson, initialVocabCount }: Props) {
 
   return (
     <div className="space-y-6">
-      <header className="flex items-start justify-between gap-4 flex-wrap">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-bold">{lesson.name}</h1>
-          {lesson.topic && (
-            <p className="text-muted-foreground italic">{lesson.topic}</p>
-          )}
-          <p className="text-xs text-muted-foreground">
-            {lesson.date ? formatDate(lesson.date) : 'No date'}
-            <span className="mx-2">·</span>
-            {initialVocabCount} vocab items
-          </p>
+      <header className="space-y-2">
+        <InlineEdit
+          value={lesson.name}
+          ariaLabel="Lesson name"
+          onSave={async (next) => {
+            const trimmed = next.trim();
+            if (!trimmed) throw new Error('Name is required');
+            await patchLesson(lesson.id, { name: trimmed });
+            router.refresh();
+          }}
+          className="text-2xl font-bold"
+        />
+        <InlineEdit
+          value={lesson.topic}
+          ariaLabel="Topic"
+          placeholder="No topic — click to add"
+          multiline
+          onSave={async (next) => {
+            const trimmed = next.trim();
+            await patchLesson(lesson.id, { topic: trimmed || null });
+            router.refresh();
+          }}
+          className="italic text-muted-foreground"
+        />
+        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+          <InlineDateEdit
+            value={lesson.date ? new Date(`${lesson.date}T00:00:00`) : null}
+            onSave={async (next) => {
+              await patchLesson(lesson.id, {
+                date: next ? toLocalDateString(next) : null,
+              });
+              router.refresh();
+            }}
+          />
+          <span>·</span>
+          <span>{initialVocabCount} vocab items</span>
         </div>
-        <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
-          Edit lesson details
-        </Button>
       </header>
 
       <Accordion
@@ -171,13 +202,6 @@ export function LessonDetailClient({ lang, lesson, initialVocabCount }: Props) {
           </AccordionContent>
         </AccordionItem>
       </Accordion>
-
-      <LessonEditDialog
-        lessonId={lesson.id}
-        initial={{ name: lesson.name, topic: lesson.topic, date: lesson.date }}
-        open={editing}
-        onOpenChange={setEditing}
-      />
     </div>
   );
 }
