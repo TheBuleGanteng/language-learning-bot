@@ -894,3 +894,24 @@ The vocab edit form was inconsistent with the rest of the app: it treated lesson
 and tags as single-value fields despite the M:N data model. Also the lesson
 dropdown had a UI bug preventing it from opening at all. Fixed both by aligning
 to the picker pattern used elsewhere (photo extraction).
+
+## Picker dismissal fix (click-away + Escape)
+
+### Findings
+`src/components/multi-select-chips.tsx` is a hand-rolled popover: a `useState(false)`
+toggled by the trigger button, with the dropdown rendered as an `absolute`-positioned
+`<div>` inside a `relative` wrapper (Option B in the spec). It is NOT shadcn/Radix
+`<Popover>`, so click-outside and Escape dismissal were never wired in — the dropdown
+only closed via the "Done" button, selecting "+ Create new", or navigating away.
+
+### Fix
+Chose the manual-listener approach (spec Option (b)) over refactoring to shadcn
+`<Popover>`. Reason: the component anchors its dropdown full-width to its own trigger
+via inline absolute positioning and is shared by three call sites (vocab-form
+LessonPicker/TagPicker, the extraction bulk pickers, and RowPills). Moving to a
+portaled Radix Popover would change DOM structure, width anchoring, and stacking —
+regression risk across all three for a "tiny remediation." Added a `useEffect`
+(active only while open) that attaches `mousedown` and `keydown` listeners on
+`document`, closing the popover on a click outside the wrapper ref or on Escape.
+Selecting an option still keeps the popover open (clicks inside the wrapper are
+ignored), matching the spec's expected behavior.

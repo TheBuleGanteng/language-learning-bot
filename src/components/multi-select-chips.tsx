@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Check, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -40,6 +40,26 @@ export function MultiSelectChips({
 }: MultiSelectChipsProps) {
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState('');
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Standard popover dismissal: close on click outside the wrapper or on Escape.
+  // Clicks inside (trigger + option list) are ignored, so selecting an option
+  // keeps the popover open — the user often adds several in a row.
+  useEffect(() => {
+    if (!open) return;
+    function onMouseDown(e: MouseEvent) {
+      if (!containerRef.current?.contains(e.target as Node)) setOpen(false);
+    }
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') setOpen(false);
+    }
+    document.addEventListener('mousedown', onMouseDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', onMouseDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [open]);
 
   const selectedOptions = useMemo(
     () => options.filter((o) => selectedIds.includes(o.id)),
@@ -57,7 +77,7 @@ export function MultiSelectChips({
   }
 
   return (
-    <div className="relative">
+    <div className="relative" ref={containerRef}>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
