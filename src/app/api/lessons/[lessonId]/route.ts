@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import { db } from '@/db';
-import { lessons, vocabLessons } from '@/db/schema';
+import { lessons, vocabItems, vocabLessons } from '@/db/schema';
 import { auth } from '@/lib/auth';
+import { storage } from '@/lib/storage';
+import { planLessonDeletion, toSummary } from '@/lib/lesson-deletion';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -105,12 +107,36 @@ export async function DELETE(
   if (!UUID_RE.test(lessonId)) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
-  const result = await db
-    .delete(lessons)
-    .where(and(eq(lessons.id, lessonId), eq(lessons.userId, userId)))
-    .returning({ id: lessons.id });
-  if (result.length === 0) {
-    return NextResponse.json({ error: 'Not found' }, { status: 404 });
-  }
-  return NextResponse.json({ ok: true });
+
+  const plan = await planLessonDeletion(userId, lessonId);
+  if (!plan) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+
+  // DB is the source of truth. Delete vocab-only items first (cascades vocab_tags,
+  // vocab_lessons, item_performance; image_generation_log.vocab_item_id is set null),
+  // then the lesson row (cascades lesson_files, lesson_links, and the remaining
+  // vocab_lessons join rows — removing this lesson's association from shared vocab).
+  await db.transaction(async (tx) => {
+    if (plan.vocabDeletedIds.length > 0) {
+      await tx.delete(vocabItems).where(inArray(vocabItems.id, plan.vocabDeletedIds));
+    }
+    await tx
+      .delete(lessons)
+      .where(and(eq(lessons.id, lessonId), eq(lessons.userId, userId)));
+  });
+
+  // After commit: best-effort storage cleanup. Orphaned files are recoverable
+  // via a later cleanup script, so a storage failure must not fail the request.
+  const store = storage();
+  const keys = [...plan.fileStorageKeys, ...plan.imageStorageKeys];
+  await Promise.all(
+    keys.map(async (key) => {
+      try {
+        await store.delete(key);
+      } catch (err) {
+        console.error(`Failed to delete storage key during lesson delete: ${key}`, err);
+      }
+    }),
+  );
+
+  return NextResponse.json(toSummary(plan));
 }

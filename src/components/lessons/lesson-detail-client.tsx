@@ -20,9 +20,10 @@ import { InlineDateEdit } from '@/components/inline-date-edit';
 import { RichTextEditModal } from '@/components/rich-text-edit-modal';
 import { VocabTable } from '@/components/vocab/vocab-table';
 import { ExtractionFlow } from '@/components/extraction/extraction-flow';
-import { Camera } from 'lucide-react';
+import { DeleteLessonDialog } from '@/components/delete-lesson-dialog';
+import { Camera, Trash2 } from 'lucide-react';
 import { languageName } from '@/lib/languages';
-import { flashcardsPath, chatPath } from '@/lib/routes';
+import { flashcardsPath, chatPath, lessonsPath } from '@/lib/routes';
 
 interface LessonShape {
   id: string;
@@ -64,6 +65,7 @@ export function LessonDetailClient({ lang, lesson, initialVocabCount }: Props) {
   const [audioCount, setAudioCount] = useState(0);
   const [linksCount, setLinksCount] = useState(0);
   const [showExtraction, setShowExtraction] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const [me, setMe] = useState<{ targetLanguage: string; nativeLanguage: string } | null>(
     null,
   );
@@ -112,6 +114,17 @@ export function LessonDetailClient({ lang, lesson, initialVocabCount }: Props) {
           />
           <span>·</span>
           <span>{initialVocabCount} vocab items</span>
+        </div>
+        <div className="flex justify-end">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setDeleteOpen(true)}
+            className="gap-1.5 text-red-600 hover:text-red-700 hover:bg-red-50"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            Delete lesson
+          </Button>
         </div>
       </header>
 
@@ -223,6 +236,14 @@ export function LessonDetailClient({ lang, lesson, initialVocabCount }: Props) {
         onOpenChange={setShowExtraction}
         defaultLessonId={lesson.id}
         onSaved={() => router.refresh()}
+      />
+
+      <DeleteLessonDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        lessonId={lesson.id}
+        lessonName={lesson.name}
+        onDeleted={() => router.push(lessonsPath(lang))}
       />
     </div>
   );

@@ -7,6 +7,7 @@ import {
   ChevronRight,
   ChevronsUpDown,
   ChevronUp,
+  Trash2,
 } from 'lucide-react';
 import {
   Table,
@@ -18,6 +19,7 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { NewLessonDialog } from '@/components/new-lesson-dialog';
+import { DeleteLessonDialog } from '@/components/delete-lesson-dialog';
 import { lessonPath } from '@/lib/routes';
 import { stripHtml } from '@/lib/strip-html';
 
@@ -64,6 +66,7 @@ export function LessonsIndexClient({ lang }: Props) {
   const [sortCol, setSortCol] = useState<SortCol | null>(null);
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
   const [newLessonOpen, setNewLessonOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -115,6 +118,19 @@ export function LessonsIndexClient({ lang }: Props) {
         lang={lang}
       />
 
+      {deleteTarget && (
+        <DeleteLessonDialog
+          open={!!deleteTarget}
+          onOpenChange={(o) => { if (!o) setDeleteTarget(null); }}
+          lessonId={deleteTarget.id}
+          lessonName={deleteTarget.name}
+          onDeleted={() => {
+            setRows((prev) => prev.filter((r) => r.id !== deleteTarget.id));
+            setDeleteTarget(null);
+          }}
+        />
+      )}
+
       <div className="border rounded-md overflow-x-auto">
         <Table>
           <TableHeader>
@@ -157,12 +173,25 @@ export function LessonsIndexClient({ lang }: Props) {
                 <TableCell className="w-8 align-top">
                   <ChevronRight className="h-4 w-4 text-muted-foreground/40" />
                 </TableCell>
+                <TableCell className="w-8 align-top">
+                  <button
+                    type="button"
+                    aria-label="Delete lesson"
+                    className="text-muted-foreground/40 hover:text-red-600 cursor-pointer"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setDeleteTarget({ id: r.id, name: r.name });
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </TableCell>
               </TableRow>
             ))}
             {rows.length === 0 && !loading && (
               <TableRow>
                 <TableCell
-                  colSpan={COLS.length + 1}
+                  colSpan={COLS.length + 2}
                   className="text-center py-8 text-muted-foreground"
                 >
                   No lessons yet. Create your first lesson.
