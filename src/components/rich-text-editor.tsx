@@ -33,7 +33,10 @@ export function RichTextEditor({ value, onChange, placeholder, className }: Prop
     extensions: [
       // StarterKit ships with paragraph, bold, italic, history, lists, etc.
       // Heading is disabled because the document is body-text only.
-      StarterKit.configure({ heading: false }),
+      // Link/Underline are disabled here because we register our own
+      // custom-configured versions below (e.g. openOnClick: false for Link);
+      // leaving StarterKit's bundled copies on triggers a duplicate-extension warning.
+      StarterKit.configure({ heading: false, link: false, underline: false }),
       Underline,
       LinkExt.configure({
         openOnClick: false,
