@@ -10,7 +10,7 @@ import {
   tags,
 } from '@/db/schema';
 import { auth } from '@/lib/auth';
-import { findOrCreateLesson, findOrCreateTags, buildOrderBy } from '@/lib/vocab';
+import { buildOrderBy } from '@/lib/vocab';
 import { storage } from '@/lib/storage';
 
 const DEFAULT_PAGE_SIZE = 100;
@@ -178,13 +178,14 @@ export async function GET(req: Request) {
 const createSchema = z.object({
   targetText: z.string().min(1).max(500),
   nativeText: z.string().min(1).max(500),
-  transliteration: z.string().max(500).optional(),
-  pos: z.string().max(50).optional(),
-  exampleTarget: z.string().max(1000).optional(),
-  exampleNative: z.string().max(1000).optional(),
-  notes: z.string().max(2000).optional(),
-  lessonName: z.string().max(200).optional(),
-  tagNames: z.array(z.string().max(50)).max(20).optional(),
+  transliteration: z.string().max(500).nullable().optional(),
+  pos: z.string().max(50).nullable().optional(),
+  exampleTarget: z.string().max(1000).nullable().optional(),
+  exampleNative: z.string().max(1000).nullable().optional(),
+  notes: z.string().max(2000).nullable().optional(),
+  // Association sets. [] or absent → no associations.
+  lessonIds: z.array(z.string().uuid()).max(100).optional(),
+  tagIds: z.array(z.string().uuid()).max(50).optional(),
 });
 
 export async function POST(req: Request) {
@@ -222,19 +223,28 @@ export async function POST(req: Request) {
       })
       .returning({ id: vocabItems.id });
 
-    if (d.lessonName?.trim()) {
-      const lessonId = await findOrCreateLesson(tx, userId, d.lessonName);
-      await tx
-        .insert(vocabLessons)
-        .values({ vocabItemId: inserted.id, lessonId })
-        .onConflictDoNothing();
+    if (d.lessonIds && d.lessonIds.length > 0) {
+      // Only associate lessons the user owns — guards against cross-user IDs.
+      const owned = await tx
+        .select({ id: lessons.id })
+        .from(lessons)
+        .where(and(eq(lessons.userId, userId), inArray(lessons.id, d.lessonIds)));
+      if (owned.length > 0) {
+        await tx
+          .insert(vocabLessons)
+          .values(owned.map((l) => ({ vocabItemId: inserted.id, lessonId: l.id })))
+          .onConflictDoNothing();
+      }
     }
-    if (d.tagNames && d.tagNames.length > 0) {
-      const tagIds = await findOrCreateTags(tx, userId, d.tagNames);
-      if (tagIds.length) {
+    if (d.tagIds && d.tagIds.length > 0) {
+      const owned = await tx
+        .select({ id: tags.id })
+        .from(tags)
+        .where(and(eq(tags.userId, userId), inArray(tags.id, d.tagIds)));
+      if (owned.length > 0) {
         await tx
           .insert(vocabTags)
-          .values(tagIds.map((tagId) => ({ vocabItemId: inserted.id, tagId })))
+          .values(owned.map((t) => ({ vocabItemId: inserted.id, tagId: t.id })))
           .onConflictDoNothing();
       }
     }
