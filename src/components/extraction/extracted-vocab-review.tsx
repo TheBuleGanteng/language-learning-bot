@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useParams } from 'next/navigation';
 import { AlertTriangle, Check, Plus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,6 +19,7 @@ import {
 import { colorForLesson, colorForTag } from '@/lib/colors';
 import { cn } from '@/lib/utils';
 import type { ExtractedRow } from '@/lib/extraction';
+import { NewLessonDialog } from '@/components/new-lesson-dialog';
 import { toast } from 'sonner';
 
 interface NameId {
@@ -75,6 +77,9 @@ export function ExtractedVocabReview({
   );
   const [draft, setDraft] = useState('');
   const [saving, setSaving] = useState(false);
+  const [newLessonOpen, setNewLessonOpen] = useState(false);
+  const params = useParams<{ lang: string }>();
+  const lang = params.lang;
 
   useEffect(() => {
     Promise.all([
@@ -251,6 +256,8 @@ export function ExtractedVocabReview({
               onChange={setBulkLessonIds}
               swatch={colorForLesson}
               placeholder="No lessons"
+              onCreateNew={() => setNewLessonOpen(true)}
+              createNewLabel="+ Create new lesson"
             />
           </div>
         </div>
@@ -378,6 +385,23 @@ export function ExtractedVocabReview({
           </Button>
         </div>
       </div>
+
+      <NewLessonDialog
+        open={newLessonOpen}
+        onOpenChange={setNewLessonOpen}
+        lang={lang}
+        mode="callback"
+        onCreated={(lesson) => {
+          // Add to the picker's local option list and pre-select it. The picker
+          // stays open so the user can also pick existing lessons.
+          setAllLessons((prev) =>
+            prev.some((l) => l.id === lesson.id) ? prev : [...prev, lesson],
+          );
+          setBulkLessonIds((prev) =>
+            prev.includes(lesson.id) ? prev : [...prev, lesson.id],
+          );
+        }}
+      />
     </div>
   );
 }
@@ -468,6 +492,9 @@ interface MultiSelectChipsProps {
   onChange: (ids: string[]) => void;
   swatch: (name: string) => { bg: string; text: string };
   placeholder: string;
+  /** When set, renders an action at the top of the dropdown (e.g. "+ Create new lesson"). */
+  onCreateNew?: () => void;
+  createNewLabel?: string;
 }
 function MultiSelectChips({
   options,
@@ -475,6 +502,8 @@ function MultiSelectChips({
   onChange,
   swatch,
   placeholder,
+  onCreateNew,
+  createNewLabel,
 }: MultiSelectChipsProps) {
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState('');
@@ -528,6 +557,21 @@ function MultiSelectChips({
             placeholder="Filter…"
             className="h-8 text-sm border-0 border-b rounded-none focus-visible:ring-0"
           />
+          {onCreateNew && (
+            <div className="border-b p-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setOpen(false);
+                  onCreateNew();
+                }}
+                className="w-full flex items-center gap-2 rounded px-2 py-1 text-sm text-left font-medium text-blue-700 hover:bg-muted dark:text-blue-400"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                {createNewLabel ?? 'Create new'}
+              </button>
+            </div>
+          )}
           <ul className="p-1 space-y-0.5">
             {filtered.map((o) => {
               const isSel = selectedIds.includes(o.id);

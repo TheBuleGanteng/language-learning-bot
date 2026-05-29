@@ -58,9 +58,9 @@ export async function GET(req: Request) {
 
 const createSchema = z.object({
   name: z.string().min(1).max(200),
-  topic: z.string().max(2000).optional(),
-  date: z.string().optional(),
-  lessonNumber: z.number().int().optional(),
+  topic: z.string().max(2000).nullable().optional(),
+  date: z.string().nullable().optional(),
+  lessonNumber: z.number().int().nullable().optional(),
 });
 
 export async function POST(req: Request) {
@@ -105,8 +105,8 @@ export async function POST(req: Request) {
       date: d.date ?? null,
       lessonNumber: d.lessonNumber ?? null,
     })
-    .returning({ id: lessons.id });
-  return NextResponse.json({ id: created.id }, { status: 201 });
+    .returning({ id: lessons.id, name: lessons.name });
+  return NextResponse.json({ id: created.id, name: created.name }, { status: 201 });
 }
 
 // Re-export for future use — sort by createdAt as a fallback isn't currently exposed,

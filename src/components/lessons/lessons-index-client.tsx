@@ -16,7 +16,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { NewLessonButton } from './new-lesson-dialog';
+import { Button } from '@/components/ui/button';
+import { NewLessonDialog } from '@/components/new-lesson-dialog';
 import { lessonPath } from '@/lib/routes';
 import { stripHtml } from '@/lib/strip-html';
 
@@ -62,6 +63,7 @@ export function LessonsIndexClient({ lang }: Props) {
   const [loading, setLoading] = useState(true);
   const [sortCol, setSortCol] = useState<SortCol | null>(null);
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+  const [newLessonOpen, setNewLessonOpen] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -102,8 +104,16 @@ export function LessonsIndexClient({ lang }: Props) {
     <div className="space-y-4">
       <header className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Lessons</h1>
-        <NewLessonButton />
+        <Button size="sm" onClick={() => setNewLessonOpen(true)}>
+          New Lesson
+        </Button>
       </header>
+
+      <NewLessonDialog
+        open={newLessonOpen}
+        onOpenChange={setNewLessonOpen}
+        lang={lang}
+      />
 
       <div className="border rounded-md overflow-x-auto">
         <Table>

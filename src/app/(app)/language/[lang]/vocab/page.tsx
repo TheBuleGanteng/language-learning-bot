@@ -19,7 +19,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { BulkImageDialog } from '@/components/vocab/bulk-image-dialog';
 import { ImagePreviewDialog } from '@/components/vocab/image-preview-dialog';
 import { ExtractionFlow } from '@/components/extraction/extraction-flow';
-import { Camera } from 'lucide-react';
+import { NewLessonDialog } from '@/components/new-lesson-dialog';
+import { Camera, Plus } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -137,6 +138,7 @@ function VocabInner() {
   // the other deps changed. Used by the bulk-batch polling loop.
   const [refetchCounter, setRefetchCounter] = useState(0);
   const [showExtraction, setShowExtraction] = useState(false);
+  const [newLessonOpen, setNewLessonOpen] = useState(false);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const selectedLessons = useMemo(() => new Set(search.getAll('lesson')), [search]);
@@ -511,6 +513,17 @@ function VocabInner() {
               Add vocab from photo
             </Button>
           )}
+          {!selectionMode && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setNewLessonOpen(true)}
+              className="gap-1.5"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              New Lesson
+            </Button>
+          )}
         </div>
 
         <div className="space-y-2 border rounded-md p-3">
@@ -847,6 +860,12 @@ function VocabInner() {
         open={showExtraction}
         onOpenChange={setShowExtraction}
         onSaved={refreshItems}
+      />
+
+      <NewLessonDialog
+        open={newLessonOpen}
+        onOpenChange={setNewLessonOpen}
+        lang={lang}
       />
     </div>
   );
