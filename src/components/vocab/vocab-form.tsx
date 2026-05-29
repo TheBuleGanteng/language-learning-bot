@@ -5,12 +5,19 @@ import { useRouter, useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { LessonPicker } from '@/components/lesson-picker';
+import { TagPicker } from '@/components/tag-picker';
 import { toast } from 'sonner';
 import { vocabPath } from '@/lib/routes';
 import { languageName } from '@/lib/languages';
 
-export interface VocabFormValue {
-  id?: string;
+interface NameId {
+  id: string;
+  name: string;
+}
+
+/** Text-only fields edited via plain inputs. Lessons/tags are managed separately. */
+interface VocabTextFields {
   targetText: string;
   nativeText: string;
   transliteration: string;
@@ -18,11 +25,15 @@ export interface VocabFormValue {
   exampleTarget: string;
   exampleNative: string;
   notes: string;
-  lessonName: string;
-  tagNames: string;
 }
 
-const EMPTY: VocabFormValue = {
+export interface VocabFormInitial extends Partial<VocabTextFields> {
+  id?: string;
+  lessons?: NameId[];
+  tags?: NameId[];
+}
+
+const EMPTY: VocabTextFields = {
   targetText: '',
   nativeText: '',
   transliteration: '',
@@ -30,12 +41,10 @@ const EMPTY: VocabFormValue = {
   exampleTarget: '',
   exampleNative: '',
   notes: '',
-  lessonName: '',
-  tagNames: '',
 };
 
 interface Props {
-  initial?: Partial<VocabFormValue>;
+  initial?: VocabFormInitial;
   mode: 'new' | 'edit';
 }
 
@@ -43,10 +52,23 @@ export function VocabForm({ initial, mode }: Props) {
   const router = useRouter();
   const params = useParams<{ lang?: string }>();
   const lang = params.lang ?? 'th';
-  const [v, setV] = useState<VocabFormValue>({ ...EMPTY, ...initial });
+  const [v, setV] = useState<VocabTextFields>({
+    ...EMPTY,
+    targetText: initial?.targetText ?? '',
+    nativeText: initial?.nativeText ?? '',
+    transliteration: initial?.transliteration ?? '',
+    pos: initial?.pos ?? '',
+    exampleTarget: initial?.exampleTarget ?? '',
+    exampleNative: initial?.exampleNative ?? '',
+    notes: initial?.notes ?? '',
+  });
+  const [selectedLessonIds, setSelectedLessonIds] = useState<string[]>(
+    () => (initial?.lessons ?? []).map((l) => l.id),
+  );
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>(
+    () => (initial?.tags ?? []).map((t) => t.id),
+  );
   const [busy, setBusy] = useState(false);
-  const [lessonSuggestions, setLessonSuggestions] = useState<string[]>([]);
-  const [tagSuggestions, setTagSuggestions] = useState<string[]>([]);
   const [me, setMe] = useState<{ targetLanguage: string; nativeLanguage: string } | null>(
     null,
   );
@@ -54,19 +76,12 @@ export function VocabForm({ initial, mode }: Props) {
   const nativeLabel = languageName(me?.nativeLanguage ?? 'en') || 'Native';
 
   useEffect(() => {
-    (async () => {
-      const [lr, tr, mr] = await Promise.all([
-        fetch('/api/lessons').then((r) => r.json()),
-        fetch('/api/tags').then((r) => r.json()),
-        fetch('/api/me').then((r) => (r.ok ? r.json() : null)),
-      ]);
-      setLessonSuggestions((lr.lessons ?? []).map((l: { name: string }) => l.name));
-      setTagSuggestions((tr.tags ?? []).map((t: { name: string }) => t.name));
-      setMe(mr ?? null);
-    })();
+    fetch('/api/me')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((mr) => setMe(mr ?? null));
   }, []);
 
-  function on<K extends keyof VocabFormValue>(k: K, val: VocabFormValue[K]) {
+  function on<K extends keyof VocabTextFields>(k: K, val: VocabTextFields[K]) {
     setV({ ...v, [k]: val });
   }
 
@@ -82,11 +97,8 @@ export function VocabForm({ initial, mode }: Props) {
         exampleTarget: v.exampleTarget.trim() || null,
         exampleNative: v.exampleNative.trim() || null,
         notes: v.notes.trim() || null,
-        lessonName: v.lessonName.trim() || (mode === 'edit' ? '' : undefined),
-        tagNames: v.tagNames
-          .split(',')
-          .map((s) => s.trim())
-          .filter(Boolean),
+        lessonIds: selectedLessonIds,
+        tagIds: selectedTagIds,
       };
       const url = mode === 'new' ? '/api/vocab' : `/api/vocab/${initial?.id}`;
       const method = mode === 'new' ? 'POST' : 'PATCH';
@@ -142,34 +154,16 @@ export function VocabForm({ initial, mode }: Props) {
           <Input id="pos" value={v.pos} onChange={(e) => on('pos', e.target.value)} />
         </div>
         <div className="space-y-1.5 md:col-span-2">
-          <Label htmlFor="lessonName">Lesson (existing or new)</Label>
-          <Input
-            id="lessonName"
-            list="lesson-suggestions"
-            value={v.lessonName}
-            onChange={(e) => on('lessonName', e.target.value)}
-            placeholder="e.g. Lesson 3"
+          <Label>Lessons</Label>
+          <LessonPicker
+            selectedLessonIds={selectedLessonIds}
+            onChange={setSelectedLessonIds}
+            lang={lang}
           />
-          <datalist id="lesson-suggestions">
-            {lessonSuggestions.map((n) => (
-              <option key={n} value={n} />
-            ))}
-          </datalist>
         </div>
         <div className="space-y-1.5 md:col-span-2">
-          <Label htmlFor="tagNames">Tags (comma-separated)</Label>
-          <Input
-            id="tagNames"
-            list="tag-suggestions"
-            value={v.tagNames}
-            onChange={(e) => on('tagNames', e.target.value)}
-            placeholder="e.g. food, greetings"
-          />
-          <datalist id="tag-suggestions">
-            {tagSuggestions.map((n) => (
-              <option key={n} value={n} />
-            ))}
-          </datalist>
+          <Label>Tags</Label>
+          <TagPicker selectedTagIds={selectedTagIds} onChange={setSelectedTagIds} />
         </div>
         <div className="space-y-1.5 md:col-span-2">
           <Label htmlFor="exampleTarget">Example sentence ({targetLabel})</Label>

@@ -1,10 +1,9 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import { db } from '@/db';
 import { vocabItems, vocabTags, vocabLessons, lessons, tags } from '@/db/schema';
 import { auth } from '@/lib/auth';
-import { findOrCreateLesson, findOrCreateTags } from '@/lib/vocab';
 import { storage } from '@/lib/storage';
 
 async function getUserId() {
@@ -55,8 +54,10 @@ const patchSchema = z.object({
   exampleTarget: z.string().max(1000).nullable().optional(),
   exampleNative: z.string().max(1000).nullable().optional(),
   notes: z.string().max(2000).nullable().optional(),
-  lessonName: z.string().max(200).nullable().optional(),
-  tagNames: z.array(z.string().max(50)).max(20).optional(),
+  // Full-replacement sets. Present → associations replaced with exactly these
+  // IDs ([] clears all). Absent → associations left unchanged.
+  lessonIds: z.array(z.string().uuid()).max(100).optional(),
+  tagIds: z.array(z.string().uuid()).max(50).optional(),
 });
 
 export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }> }) {
@@ -99,23 +100,36 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
       await tx.update(vocabItems).set(updates).where(eq(vocabItems.id, id));
     }
 
-    if (d.lessonName !== undefined) {
-      // Replace lessons (v1: 0 or 1 per item)
+    if (d.lessonIds !== undefined) {
+      // Full replacement of this item's lesson associations.
       await tx.delete(vocabLessons).where(eq(vocabLessons.vocabItemId, id));
-      if (d.lessonName && d.lessonName.trim()) {
-        const lessonId = await findOrCreateLesson(tx, userId, d.lessonName);
-        await tx.insert(vocabLessons).values({ vocabItemId: id, lessonId });
+      if (d.lessonIds.length > 0) {
+        // Only associate lessons the user owns — guards against cross-user IDs.
+        const owned = await tx
+          .select({ id: lessons.id })
+          .from(lessons)
+          .where(and(eq(lessons.userId, userId), inArray(lessons.id, d.lessonIds)));
+        if (owned.length > 0) {
+          await tx
+            .insert(vocabLessons)
+            .values(owned.map((l) => ({ vocabItemId: id, lessonId: l.id })))
+            .onConflictDoNothing();
+        }
       }
     }
 
-    if (d.tagNames !== undefined) {
+    if (d.tagIds !== undefined) {
       await tx.delete(vocabTags).where(eq(vocabTags.vocabItemId, id));
-      if (d.tagNames.length > 0) {
-        const tagIds = await findOrCreateTags(tx, userId, d.tagNames);
-        if (tagIds.length) {
+      if (d.tagIds.length > 0) {
+        const owned = await tx
+          .select({ id: tags.id })
+          .from(tags)
+          .where(and(eq(tags.userId, userId), inArray(tags.id, d.tagIds)));
+        if (owned.length > 0) {
           await tx
             .insert(vocabTags)
-            .values(tagIds.map((tagId) => ({ vocabItemId: id, tagId })));
+            .values(owned.map((t) => ({ vocabItemId: id, tagId: t.id })))
+            .onConflictDoNothing();
         }
       }
     }

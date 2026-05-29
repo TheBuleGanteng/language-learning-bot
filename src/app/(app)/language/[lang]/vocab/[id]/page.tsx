@@ -25,12 +25,12 @@ export default async function EditVocabPage({
   if (!item) notFound();
 
   const itemLessons = await db
-    .select({ name: lessons.name })
+    .select({ id: lessons.id, name: lessons.name })
     .from(vocabLessons)
     .innerJoin(lessons, eq(lessons.id, vocabLessons.lessonId))
     .where(eq(vocabLessons.vocabItemId, id));
   const itemTags = await db
-    .select({ name: tags.name })
+    .select({ id: tags.id, name: tags.name })
     .from(vocabTags)
     .innerJoin(tags, eq(tags.id, vocabTags.tagId))
     .where(eq(vocabTags.vocabItemId, id));
@@ -59,8 +59,8 @@ export default async function EditVocabPage({
           exampleTarget: item.exampleTarget ?? '',
           exampleNative: item.exampleNative ?? '',
           notes: item.notes ?? '',
-          lessonName: itemLessons[0]?.name ?? '',
-          tagNames: itemTags.map((t) => t.name).join(', '),
+          lessons: itemLessons,
+          tags: itemTags,
         }}
       />
       <VocabImageControls
