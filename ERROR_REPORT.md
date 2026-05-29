@@ -865,3 +865,32 @@ restarting the loop on every render.
 The user's workflow expects deletion to be possible from anywhere a lesson
 is presented. The cascade behavior keeps shared vocab safe — vocab items
 that appear in multiple lessons survive deletion of one parent lesson.
+
+## Vocab form pickers fix
+
+### Section 1 findings (existing picker code)
+The bulk lesson/tag pickers were NOT yet extracted — they lived as a local
+`MultiSelectChips` component (plus a `RowPills` wrapper) inside
+`src/components/extraction/extracted-vocab-review.tsx` (not the
+`src/components/extracted-vocab-review.tsx` path the spec guessed). It's a
+custom popover (no cmdk/downshift dependency): a pill trigger, a filter
+`<Input>`, a checkbox-style list, and (added in the prior pass) an optional
+"+ Create new …" action at the top. Extracted it to
+`src/components/multi-select-chips.tsx` and built `LessonPicker` / `TagPicker`
+on top; `extracted-vocab-review.tsx` now imports the shared component.
+
+### Changes
+- Extracted LessonPicker and TagPicker into shared reusable components
+- Vocab edit form: replaced broken single-lesson dropdown with LessonPicker (multi-select with pills)
+- Vocab edit form: replaced comma-separated tags input with TagPicker (multi-select with pills)
+- Vocab add form: same picker treatment
+- PATCH /api/vocab/[id] and POST /api/vocab now accept lessonIds: string[] and tagIds: string[]
+- Lesson/tag association is full-replacement semantic: provided array replaces existing set
+- Added POST /api/tags (find-or-create) for the "+ Create new tag" flow
+- Association inserts are owner-validated (only the user's own lesson/tag IDs are attached)
+
+### Why
+The vocab edit form was inconsistent with the rest of the app: it treated lessons
+and tags as single-value fields despite the M:N data model. Also the lesson
+dropdown had a UI bug preventing it from opening at all. Fixed both by aligning
+to the picker pattern used elsewhere (photo extraction).
