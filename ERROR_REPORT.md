@@ -841,3 +841,27 @@ restarting the loop on every render.
 - The `MultiSelectChips` filter input doesn't yet support "create
   new tag" / "create new lesson" inline — the user has to leave the
   flow to create those. Acceptable for v1.
+  (Update: the lessons picker now supports "+ Create new lesson"
+  inline — see the section below. Tag creation is still out-of-flow.)
+
+## Post-test fixes + new-lesson-from-vocab-page + lesson deletion
+
+### Changes
+- Added loading.tsx skeleton at /language/[lang]/lessons/[lessonId] for smooth navigation
+- Added loading.tsx skeleton at /language/[lang]/lessons (lessons index)
+- New lesson modal Save button shows "Creating…" state during request
+- Disabled StarterKit's bundled Link/Underline extensions (already imported separately)
+- Refactored New Lesson dialog into reusable <NewLessonDialog> component with rich-text topic editor
+- Added standalone "New Lesson" button on vocab page toolbar
+- Added "+ Create new lesson" option in the bulk-lesson picker of the photo extraction preview
+- Added DELETE /api/lessons/[id] with cascading file/image deletion
+- Added GET /api/lessons/[id]/deletion-preview for confirmation dialog counts
+- Trash icon on each lessons-index row (always visible, muted → red on hover)
+- "Delete lesson" button on lesson detail page near edit area
+- Confirmation dialog shows itemized counts (vocab deleted vs. reassigned, files, links, images)
+- "Deleting…" button state during cascade
+
+### Why
+The user's workflow expects deletion to be possible from anywhere a lesson
+is presented. The cascade behavior keeps shared vocab safe — vocab items
+that appear in multiple lessons survive deletion of one parent lesson.
