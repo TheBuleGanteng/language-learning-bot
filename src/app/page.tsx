@@ -2,11 +2,15 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
+import { normalizeLanguageCode } from '@/lib/languages';
 
 export default async function Home() {
   const session = await auth();
   if (session?.user?.email) {
-    redirect('/vocab');
+    const target = normalizeLanguageCode(
+      (session.user as { targetLanguage?: string }).targetLanguage ?? 'th',
+    );
+    redirect(`/language/${target}/vocab`);
   }
   return (
     <main className="flex-1 flex flex-col items-center justify-center p-8 text-center gap-6">

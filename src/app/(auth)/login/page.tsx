@@ -38,7 +38,7 @@ function LoginInner() {
         setError('Invalid credentials or email not verified.');
         return;
       }
-      router.push('/vocab');
+      router.push('/');
       router.refresh();
     } finally {
       setBusy(false);
