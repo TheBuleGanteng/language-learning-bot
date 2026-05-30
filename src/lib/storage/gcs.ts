@@ -46,10 +46,11 @@ export class GcsStorageProvider implements StorageProvider {
       resumable: false,
       metadata: { cacheControl: 'public, max-age=31536000' },
     });
-    // Requires fine-grained ACLs (the GCS default). If the bucket has
-    // uniform-bucket-level access enabled, this throws — see README for
-    // the IAM-based alternative.
-    await file.makePublic();
+    // The production bucket uses uniform bucket-level access with bucket-wide
+    // public read granted via IAM, so no per-object ACL call is needed (and
+    // file.makePublic() would throw on a uniform-access bucket). The direct
+    // storage.googleapis.com URL below resolves because the whole bucket is
+    // publicly readable.
     const [meta] = await file.getMetadata();
     return {
       key,
