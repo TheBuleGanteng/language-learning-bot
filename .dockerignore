@@ -1,0 +1,41 @@
+# Keep the build context small and never bake secrets or local state into the
+# image. The service-account JSON and .env files are mounted at runtime by
+# docker-compose, never copied in.
+
+.git
+.gitignore
+node_modules
+.next
+out
+
+# Secrets and local env — NEVER in the image
+secrets/
+.env
+.env.*
+!.env.example
+
+# Local runtime state
+storage/
+test-results/
+playwright-report/
+
+# Tests and tooling not needed for the production build
+tests/
+**/__tests__/
+**/*.test.ts
+**/*.test.tsx
+playwright.config.ts
+vitest.config.ts
+
+# Editor / OS cruft
+.vscode/
+.idea/
+*.log
+
+# Large local artifacts
+notion-export.csv
+tsconfig.tsbuildinfo
+
+# Docs (operator-facing, not needed at runtime)
+*.md
+!README.md
