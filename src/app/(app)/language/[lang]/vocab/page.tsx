@@ -149,6 +149,8 @@ function VocabInner() {
   const selectedTags = useMemo(() => new Set(search.getAll('tag')), [search]);
   const selectedCreatedBy = useMemo(() => new Set(search.getAll('createdBy')), [search]);
   const mode: 'and' | 'or' = search.get('mode') === 'or' ? 'or' : 'and';
+  // Deck-builder mode (§7a): entered from the Flashcards "Create new deck" button.
+  const deckBuilderMode = search.get('mode') === 'deck-builder';
   const imageStatusFilter = parseImageStatusFilter(search.get('imageStatus'));
   const searchTerm = search.get('search') ?? '';
   const sortParam = search.get('sort');
@@ -178,6 +180,26 @@ function VocabInner() {
     }
     return [...m.entries()].map(([id, name]) => ({ id, name }));
   }, [items]);
+
+  // Source detection for deck creation (§8a): a single tag (and no lessons)
+  // makes a tag-sourced deck; a single lesson (and no tags) a lesson-sourced
+  // one; any other combination is a manual deck.
+  const activeTag = useMemo(() => {
+    if (selectedTags.size === 1 && selectedLessons.size === 0) {
+      const id = [...selectedTags][0];
+      const t = tags.find((x) => x.id === id);
+      return t ? { id: t.id, name: t.name } : null;
+    }
+    return null;
+  }, [selectedTags, selectedLessons, tags]);
+  const activeLesson = useMemo(() => {
+    if (selectedLessons.size === 1 && selectedTags.size === 0) {
+      const id = [...selectedLessons][0];
+      const l = lessons.find((x) => x.id === id);
+      return l ? { id: l.id, name: l.name } : null;
+    }
+    return null;
+  }, [selectedLessons, selectedTags, lessons]);
 
   const filterKey = useMemo(
     () =>
@@ -665,6 +687,12 @@ function VocabInner() {
           </div>
         </div>
 
+        {deckBuilderMode && (
+          <div className="rounded-md border border-primary/40 bg-primary/5 px-3 py-2 text-sm">
+            Deck builder mode — select vocab items, then click &quot;Create deck&quot;.
+          </div>
+        )}
+
         <BulkSelectBar
           allIds={selectableIds}
           selectedIds={Array.from(selectedIds)}
@@ -676,6 +704,10 @@ function VocabInner() {
           userRole={me?.role ?? 'regular'}
           userId={me?.id ?? ''}
           userDisplayName={me?.displayName ?? null}
+          lang={lang}
+          activeTag={activeTag}
+          activeLesson={activeLesson}
+          deckBuilderMode={deckBuilderMode}
           onGenerateConfirm={confirmBulkGenerate}
           onShareDone={refreshItems}
         />

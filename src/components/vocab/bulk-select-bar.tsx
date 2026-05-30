@@ -14,6 +14,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { BulkImageDialog } from '@/components/vocab/bulk-image-dialog';
+import { AddToDeckDialog } from '@/components/vocab/add-to-deck-dialog';
 import { DisplayNameGate } from '@/components/display-name-gate';
 import { canShare, type UserRole } from '@/lib/roles';
 import { withBase } from '@/lib/base-path';
@@ -39,6 +40,13 @@ interface BulkSelectBarProps {
   userId: string;
   /** The current user's display name; gates the share action (§2b). */
   userDisplayName: string | null;
+  /** Target language code — drives deck creation labels + navigation (§7/§8). */
+  lang: string;
+  /** Single active tag/lesson filter, used to detect a refreshable deck source. */
+  activeTag?: { id: string; name: string } | null;
+  activeLesson?: { id: string; name: string } | null;
+  /** Vocab page deck-builder mode (§7): show a single "Create deck" action. */
+  deckBuilderMode?: boolean;
   /**
    * When provided, the bar delegates the Generate Images confirmation to the
    * parent (so a page with its own batch progress/polling can drive it).
@@ -58,11 +66,16 @@ export function BulkSelectBar({
   showShareUnshare = true,
   userRole,
   userDisplayName,
+  lang,
+  activeTag = null,
+  activeLesson = null,
+  deckBuilderMode = false,
   onGenerateConfirm,
   onShareDone,
 }: BulkSelectBarProps) {
   const [genOpen, setGenOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+  const [deckOpen, setDeckOpen] = useState(false);
   const [shareVisibility, setShareVisibility] = useState<'shared' | 'private'>('shared');
   const [shareBusy, setShareBusy] = useState(false);
 
@@ -163,17 +176,29 @@ export function BulkSelectBar({
 
       {hasSelection && (
         <div className="ml-auto flex items-center gap-2 flex-wrap">
-          {showGenerateImages && (
-            <Button size="xs" onClick={() => setGenOpen(true)}>
-              Generate Images
+          {deckBuilderMode ? (
+            <Button size="xs" onClick={() => setDeckOpen(true)}>
+              Create deck
             </Button>
-          )}
-          {showShareButton && (
-            <DisplayNameGate userDisplayName={userDisplayName}>
-              <Button size="xs" variant="outline" onClick={() => setShareOpen(true)}>
-                Share / Unshare
+          ) : (
+            <>
+              {showGenerateImages && (
+                <Button size="xs" onClick={() => setGenOpen(true)}>
+                  Generate Images
+                </Button>
+              )}
+              {showShareButton && (
+                <DisplayNameGate userDisplayName={userDisplayName}>
+                  <Button size="xs" variant="outline" onClick={() => setShareOpen(true)}>
+                    Share / Unshare
+                  </Button>
+                </DisplayNameGate>
+              )}
+              {/* All users can create decks — no role check (§8a). */}
+              <Button size="xs" variant="outline" onClick={() => setDeckOpen(true)}>
+                Add to deck
               </Button>
-            </DisplayNameGate>
+            </>
           )}
         </div>
       )}
@@ -184,6 +209,17 @@ export function BulkSelectBar({
         selectedCount={selectedCount}
         vocabIds={selectedIds}
         onConfirm={handleGenerateConfirm}
+      />
+
+      <AddToDeckDialog
+        open={deckOpen}
+        onOpenChange={setDeckOpen}
+        lang={lang}
+        vocabIds={selectedIds}
+        activeTag={activeTag}
+        activeLesson={activeLesson}
+        forceManual={deckBuilderMode}
+        onDone={onClearSelection}
       />
 
       <AlertDialog open={shareOpen} onOpenChange={(o) => !shareBusy && setShareOpen(o)}>

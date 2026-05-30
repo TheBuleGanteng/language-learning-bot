@@ -12,6 +12,7 @@ import {
   boolean,
   primaryKey,
   uniqueIndex,
+  unique,
   index,
   check,
 } from 'drizzle-orm/pg-core';
@@ -420,6 +421,110 @@ export const itemPerformance = pgTable(
 );
 
 // =============================================================================
+// flashcards — decks, deck items, per-card FSRS state, study sessions (Feature B)
+// =============================================================================
+
+export const deckSourceEnum = pgEnum('deck_source', ['tag', 'lesson', 'manual']);
+export const cardDirectionEnum = pgEnum('card_direction', ['forward', 'reverse', 'both']);
+// One row of card_reviews is a single studied face; 'both' decks expand into
+// one forward + one reverse review per vocab item.
+export const cardDirectionSideEnum = pgEnum('card_direction_side', ['forward', 'reverse']);
+
+export const decks = pgTable(
+  'decks',
+  {
+    id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    name: varchar('name', { length: 100 }).notNull(),
+    source: deckSourceEnum('source').notNull(),
+    // For tag/lesson sources: the source ID. Null for manual decks.
+    sourceId: uuid('source_id'),
+    // forward = native→target, reverse = target→native, both = interleaved.
+    direction: cardDirectionEnum('direction').notNull().default('forward'),
+    lastStudiedAt: timestamp('last_studied_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('decks_user_last_studied_idx').on(t.userId, t.lastStudiedAt)],
+);
+
+// Static snapshot of the vocab in a deck.
+export const deckItems = pgTable(
+  'deck_items',
+  {
+    id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+    deckId: uuid('deck_id')
+      .notNull()
+      .references(() => decks.id, { onDelete: 'cascade' }),
+    vocabItemId: uuid('vocab_item_id')
+      .notNull()
+      .references(() => vocabItems.id, { onDelete: 'cascade' }),
+    addedAt: timestamp('added_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [unique('deck_items_deck_vocab_unique').on(t.deckId, t.vocabItemId)],
+);
+
+// Per-deck FSRS state — one row per deck+vocabItem+direction.
+export const cardReviews = pgTable(
+  'card_reviews',
+  {
+    id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+    deckId: uuid('deck_id')
+      .notNull()
+      .references(() => decks.id, { onDelete: 'cascade' }),
+    vocabItemId: uuid('vocab_item_id')
+      .notNull()
+      .references(() => vocabItems.id, { onDelete: 'cascade' }),
+    // 'forward' = native→target, 'reverse' = target→native.
+    direction: cardDirectionSideEnum('direction').notNull(),
+    // FSRS state fields (ts-fsrs Card shape).
+    stability: real('stability'),
+    difficulty: real('difficulty'),
+    elapsedDays: integer('elapsed_days').notNull().default(0),
+    scheduledDays: integer('scheduled_days').notNull().default(0),
+    reps: integer('reps').notNull().default(0),
+    lapses: integer('lapses').notNull().default(0),
+    // FSRS card state: 'New', 'Learning', 'Review', 'Relearning'.
+    state: varchar('state', { length: 20 }).notNull().default('New'),
+    dueAt: timestamp('due_at', { withTimezone: true }).notNull().defaultNow(),
+    lastReviewedAt: timestamp('last_reviewed_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique('card_reviews_deck_vocab_direction_unique').on(
+      t.deckId,
+      t.vocabItemId,
+      t.direction,
+    ),
+    index('card_reviews_deck_due_idx').on(t.deckId, t.dueAt),
+  ],
+);
+
+// One row per completed study session — powers the deck list stats.
+export const studySessions = pgTable(
+  'study_sessions',
+  {
+    id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+    deckId: uuid('deck_id')
+      .notNull()
+      .references(() => decks.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    againCount: integer('again_count').notNull().default(0),
+    hardCount: integer('hard_count').notNull().default(0),
+    goodCount: integer('good_count').notNull().default(0),
+    easyCount: integer('easy_count').notNull().default(0),
+    cardsReviewed: integer('cards_reviewed').notNull().default(0),
+    completedAt: timestamp('completed_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('study_sessions_deck_idx').on(t.deckId, t.completedAt)],
+);
+
+// =============================================================================
 // types
 // =============================================================================
 
@@ -441,3 +546,11 @@ export type ImageGenerationLog = typeof imageGenerationLog.$inferSelect;
 export type NewImageGenerationLog = typeof imageGenerationLog.$inferInsert;
 export type ImageGenerationBatch = typeof imageGenerationBatches.$inferSelect;
 export type NewImageGenerationBatch = typeof imageGenerationBatches.$inferInsert;
+export type Deck = typeof decks.$inferSelect;
+export type NewDeck = typeof decks.$inferInsert;
+export type DeckItem = typeof deckItems.$inferSelect;
+export type NewDeckItem = typeof deckItems.$inferInsert;
+export type CardReview = typeof cardReviews.$inferSelect;
+export type NewCardReview = typeof cardReviews.$inferInsert;
+export type StudySession = typeof studySessions.$inferSelect;
+export type NewStudySession = typeof studySessions.$inferInsert;

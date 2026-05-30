@@ -283,6 +283,7 @@ export function VocabTable({
           userRole={me.role}
           userId={me.id}
           userDisplayName={me.displayName}
+          lang={lang}
         />
       )}
 

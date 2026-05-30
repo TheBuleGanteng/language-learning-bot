@@ -64,6 +64,13 @@
       "when": 1780135739508,
       "tag": "0008_stormy_micromax",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1780146481903,
+      "tag": "0009_striped_venus",
+      "breakpoints": true
     }
   ]
 }
