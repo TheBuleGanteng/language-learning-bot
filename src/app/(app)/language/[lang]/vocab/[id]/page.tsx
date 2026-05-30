@@ -53,7 +53,15 @@ export default async function EditVocabPage({
 
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-semibold">Edit vocab</h1>
+      <h1 className="text-xl font-semibold">Edit entry</h1>
+      {canShare(sessionUser?.role ?? 'regular') && item.createdBy === userId && (
+        <DisplayNameGate userDisplayName={sessionUser?.displayName ?? null}>
+          <VisibilityToggle
+            vocabId={item.id}
+            initialVisibility={item.visibility as 'private' | 'shared'}
+          />
+        </DisplayNameGate>
+      )}
       <VocabForm
         mode="edit"
         initial={{
@@ -75,14 +83,6 @@ export default async function EditVocabPage({
         initialStatus={imageStatus}
         initialOverride={item.imagePromptOverride}
       />
-      {canShare(sessionUser?.role ?? 'regular') && item.createdBy === userId && (
-        <DisplayNameGate userDisplayName={sessionUser?.displayName ?? null}>
-          <VisibilityToggle
-            vocabId={item.id}
-            initialVisibility={item.visibility as 'private' | 'shared'}
-          />
-        </DisplayNameGate>
-      )}
     </div>
   );
 }

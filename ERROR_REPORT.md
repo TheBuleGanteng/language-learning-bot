@@ -1069,3 +1069,23 @@ Shipped via DEPLOY_CLAUDE.md: pushed project repo (`3f48686`), bumped the
 `vm-infrastructure` submodule pointer (`c5619bd`), rebuilt + recreated the
 `language-learning-bot` container on the VM. Verified: prod returns `HTTP/2 200`,
 app logs show a clean Next.js 16.2.6 startup with no errors.
+
+## 2026-05-30 — Bulk select refactor + visibility toggle move
+
+Replaced the photo-only "selection mode" bulk flow with a unified, always-on
+`BulkSelectBar` (`src/components/vocab/bulk-select-bar.tsx`) mounted on both the
+vocab page and the lesson detail page; moved the per-item visibility toggle to
+the top of the vocab edit panel and renamed its heading to "Edit entry". No
+schema/migration — code only.
+
+### Bug — unused eslint-disable directive failed `pnpm lint`
+**Symptom:** `pnpm lint` reported a warning: an
+`// eslint-disable-next-line react/no-unused-prop-types` comment I had added to
+`bulk-select-bar.tsx` was itself flagged as an unused directive (the rule
+reported no problem to suppress).
+**Root cause:** The `onToggleItem` prop is declared in the component's props
+interface but consumed by the parent's per-row checkboxes rather than the bar
+itself; I pre-emptively suppressed a lint rule that this project's config
+doesn't enable, so the suppression had nothing to suppress.
+**Fix:** Removed the disable directive and documented `onToggleItem` with a
+normal JSDoc comment instead. `pnpm lint` then passed clean.

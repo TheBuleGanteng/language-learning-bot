@@ -226,6 +226,7 @@ export function LessonDetailClient({ lang, lesson, initialVocabCount }: Props) {
                 defaultPageSize="all"
                 showSearch
                 showPageSize
+                enableBulkSelect
               />
             </div>
           </AccordionContent>

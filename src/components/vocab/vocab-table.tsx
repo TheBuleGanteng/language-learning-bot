@@ -12,9 +12,12 @@ import {
   Loader2,
 } from 'lucide-react';
 import { ImagePreviewDialog } from './image-preview-dialog';
+import { BulkSelectBar } from './bulk-select-bar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import type { UserRole } from '@/lib/roles';
 import {
   Select,
   SelectContent,
@@ -74,6 +77,16 @@ interface Props {
   showSearch?: boolean;
   /** Show the inline page-size picker. */
   showPageSize?: boolean;
+  /** Enable the bulk-select toolbar + per-row checkboxes (§4). */
+  enableBulkSelect?: boolean;
+}
+
+interface MeShape {
+  id: string;
+  targetLanguage: string;
+  nativeLanguage: string;
+  role: UserRole;
+  displayName: string | null;
 }
 
 export function VocabTable({
@@ -81,13 +94,13 @@ export function VocabTable({
   defaultPageSize = '100',
   showSearch = true,
   showPageSize = true,
+  enableBulkSelect = false,
 }: Props) {
   const params = useParams<{ lang?: string }>();
   const lang = params.lang ?? 'th';
 
-  const [me, setMe] = useState<{ targetLanguage: string; nativeLanguage: string } | null>(
-    null,
-  );
+  const [me, setMe] = useState<MeShape | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [items, setItems] = useState<VocabItem[]>([]);
   const [total, setTotal] = useState(0);
   const [hasMore, setHasMore] = useState(false);
@@ -125,6 +138,7 @@ export function VocabTable({
   useEffect(() => {
     setItems([]);
     setLoadedPages(1);
+    setSelectedIds(new Set());
   }, [filterKey]);
 
   useEffect(() => {
@@ -203,6 +217,21 @@ export function VocabTable({
     setDeleteId(null);
   }
 
+  // Selectable = visible items that aren't mid-generation.
+  const selectableIds = useMemo(
+    () => items.filter((i) => i.imageStatus !== 'generating').map((i) => i.id),
+    [items],
+  );
+
+  function toggleSelect(id: string, checked: boolean) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  }
+
   return (
     <div className="space-y-3">
       {(showSearch || showPageSize) && (
@@ -242,10 +271,26 @@ export function VocabTable({
         </div>
       )}
 
+      {enableBulkSelect && me && (
+        <BulkSelectBar
+          allIds={selectableIds}
+          selectedIds={Array.from(selectedIds)}
+          onSelectAll={() => setSelectedIds(new Set(selectableIds))}
+          onClearSelection={() => setSelectedIds(new Set())}
+          onToggleItem={(id) => toggleSelect(id, !selectedIds.has(id))}
+          showGenerateImages
+          showShareUnshare
+          userRole={me.role}
+          userId={me.id}
+          userDisplayName={me.displayName}
+        />
+      )}
+
       <div className="w-full max-w-full border rounded-md overflow-x-auto">
         <Table className="w-full">
           <TableHeader>
             <TableRow className="bg-muted border-b-2">
+              {enableBulkSelect && <TableHead className="w-10" />}
               <TableHead className="w-14 font-semibold">Image</TableHead>
               {SORT_COLS.map((c) => (
                 <TableHead
@@ -263,6 +308,16 @@ export function VocabTable({
           <TableBody>
             {items.map((i) => (
               <TableRow key={i.id}>
+                {enableBulkSelect && (
+                  <TableCell className="align-top">
+                    <Checkbox
+                      checked={selectedIds.has(i.id)}
+                      disabled={i.imageStatus === 'generating'}
+                      onCheckedChange={(c) => toggleSelect(i.id, c === true)}
+                      aria-label="Select row"
+                    />
+                  </TableCell>
+                )}
                 <TableCell className="align-top">
                   <VocabThumb
                     item={i}
@@ -348,7 +403,10 @@ export function VocabTable({
             ))}
             {items.length === 0 && !loading && (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                <TableCell
+                  colSpan={enableBulkSelect ? 7 : 6}
+                  className="text-center py-8 text-muted-foreground"
+                >
                   No vocab items.
                 </TableCell>
               </TableRow>

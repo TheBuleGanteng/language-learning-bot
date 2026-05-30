@@ -8,7 +8,6 @@ import {
   ChevronDown,
   ChevronsUpDown,
   ChevronUp,
-  ImageIcon,
   ImageOff,
   Loader2,
 } from 'lucide-react';
@@ -16,7 +15,6 @@ import { Button } from '@/components/ui/button';
 import { SpecialInput } from '@/components/special-input';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { BulkImageDialog } from '@/components/vocab/bulk-image-dialog';
 import { ImagePreviewDialog } from '@/components/vocab/image-preview-dialog';
 import { ExtractionFlow } from '@/components/extraction/extraction-flow';
 import { NewLessonDialog } from '@/components/new-lesson-dialog';
@@ -29,9 +27,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { FilterAccordion } from '@/components/vocab/filter-accordion';
-import { VocabBulkShareDialog } from '@/components/vocab/bulk-share-dialog';
-import { DisplayNameGate } from '@/components/display-name-gate';
-import { canShare } from '@/lib/roles';
+import { BulkSelectBar } from '@/components/vocab/bulk-select-bar';
 import { colorForLesson, colorForTag } from '@/lib/colors';
 import { cn } from '@/lib/utils';
 import { vocabPath, lessonPath } from '@/lib/routes';
@@ -139,10 +135,7 @@ function VocabInner() {
   const [loadedPages, setLoadedPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [showBulkDialog, setShowBulkDialog] = useState(false);
-  const [showShareDialog, setShowShareDialog] = useState(false);
   const [batch, setBatch] = useState<BatchSnapshot | null>(null);
   const [previewItem, setPreviewItem] = useState<VocabItem | null>(null);
   // Bumping this state forces the fetch effect to re-run even when none of
@@ -243,6 +236,9 @@ function VocabInner() {
   useEffect(() => {
     setItems([]);
     setLoadedPages(1);
+    // Selection is scoped to the current filtered view; reset it when the
+    // filters change (§3c).
+    setSelectedIds(new Set());
   }, [filterKey]);
 
   useEffect(() => {
@@ -386,21 +382,6 @@ function VocabInner() {
     });
   }
 
-  function enterSelectionMode() {
-    setSelectionMode(true);
-    setSelectedIds(new Set());
-    // Narrow to "No image" so users see only items that need generating.
-    // setImageStatusFilter writes to the URL, which triggers a real
-    // re-fetch via the same code path the lesson/theme filters use — no
-    // separate selection-mode fetch.
-    if (imageStatusFilter === 'all') setImageStatusFilter('none');
-  }
-
-  function exitSelectionMode() {
-    setSelectionMode(false);
-    setSelectedIds(new Set());
-  }
-
   function toggleSelect(id: string, checked: boolean) {
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -410,14 +391,19 @@ function VocabInner() {
     });
   }
 
-  function selectAllVisible() {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      for (const i of items) {
-        if (i.imageStatus !== 'generating') next.add(i.id);
-      }
-      return next;
-    });
+  // Selectable = currently visible items that aren't mid-generation. Drives
+  // both "Select all" and the per-row checkbox disabled state.
+  const selectableIds = useMemo(
+    () => items.filter((i) => i.imageStatus !== 'generating').map((i) => i.id),
+    [items],
+  );
+
+  function selectAll() {
+    setSelectedIds(new Set(selectableIds));
+  }
+
+  function clearSelection() {
+    setSelectedIds(new Set());
   }
 
   /**
@@ -476,12 +462,14 @@ function VocabInner() {
     if (res.status === 402) {
       const data = await res.json().catch(() => ({}));
       toast.error(data?.message ?? 'Hard stop reached.');
-      return;
+      // Throw so BulkSelectBar leaves its dialog open and preserves the
+      // selection for a retry.
+      throw new Error('hard-stop');
     }
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
       toast.error(data?.error ?? 'Bulk generate failed.');
-      return;
+      throw new Error('generate-failed');
     }
     const data = (await res.json()) as { batchId: string; total: number };
     toast.success(`Started generating ${data.total} image${data.total === 1 ? '' : 's'}.`);
@@ -498,8 +486,7 @@ function VocabInner() {
       cancelled: false,
       hardStopHit: false,
     });
-    setShowBulkDialog(false);
-    exitSelectionMode();
+    // BulkSelectBar closes its dialog and clears the selection on success.
     // Keep generating + completed items visible while the batch runs —
     // otherwise they'd vanish from the No-image view as their status
     // changes. Users can re-apply No-image after the batch finishes.
@@ -523,39 +510,24 @@ function VocabInner() {
           <Button asChild size="sm" variant="outline">
             <Link href={vocabPath(lang, '/import')}>Import CSV</Link>
           </Button>
-          {!selectionMode && (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={enterSelectionMode}
-              className="gap-1.5"
-            >
-              <ImageIcon className="h-3.5 w-3.5" />
-              Generate Images
-            </Button>
-          )}
-          {!selectionMode && (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setShowExtraction(true)}
-              className="gap-1.5"
-            >
-              <Camera className="h-3.5 w-3.5" />
-              Add vocab from photo
-            </Button>
-          )}
-          {!selectionMode && (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setNewLessonOpen(true)}
-              className="gap-1.5"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              New Lesson
-            </Button>
-          )}
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setShowExtraction(true)}
+            className="gap-1.5"
+          >
+            <Camera className="h-3.5 w-3.5" />
+            Add vocab from photo
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setNewLessonOpen(true)}
+            className="gap-1.5"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            New Lesson
+          </Button>
         </div>
 
         <div className="space-y-2 border rounded-md p-3">
@@ -651,47 +623,6 @@ function VocabInner() {
           ))}
         </div>
 
-        {selectionMode && (
-          <div className="sticky top-0 z-10 flex items-center gap-2 flex-wrap rounded-md border bg-background p-2 shadow-sm">
-            <span className="text-sm font-medium">
-              {selectedIds.size.toLocaleString()} selected
-            </span>
-            <Button size="xs" variant="outline" onClick={selectAllVisible}>
-              Select all visible
-            </Button>
-            <Button
-              size="xs"
-              variant="outline"
-              onClick={() => setSelectedIds(new Set())}
-              disabled={selectedIds.size === 0}
-            >
-              Clear selection
-            </Button>
-            <Button
-              size="xs"
-              onClick={() => setShowBulkDialog(true)}
-              disabled={selectedIds.size === 0}
-            >
-              Generate Images for {selectedIds.size.toLocaleString()}
-            </Button>
-            {me && canShare(me.role) && (
-              <DisplayNameGate userDisplayName={me.displayName}>
-                <Button
-                  size="xs"
-                  variant="outline"
-                  onClick={() => setShowShareDialog(true)}
-                  disabled={selectedIds.size === 0}
-                >
-                  Share / Unshare
-                </Button>
-              </DisplayNameGate>
-            )}
-            <Button size="xs" variant="ghost" onClick={exitSelectionMode} className="ml-auto">
-              Cancel
-            </Button>
-          </div>
-        )}
-
         {batch && batch.inFlight && (
           <div className="flex items-center gap-3 rounded-md border bg-muted/40 p-3 text-sm">
             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
@@ -734,11 +665,26 @@ function VocabInner() {
           </div>
         </div>
 
+        <BulkSelectBar
+          allIds={selectableIds}
+          selectedIds={Array.from(selectedIds)}
+          onSelectAll={selectAll}
+          onClearSelection={clearSelection}
+          onToggleItem={(id) => toggleSelect(id, !selectedIds.has(id))}
+          showGenerateImages
+          showShareUnshare
+          userRole={me?.role ?? 'regular'}
+          userId={me?.id ?? ''}
+          userDisplayName={me?.displayName ?? null}
+          onGenerateConfirm={confirmBulkGenerate}
+          onShareDone={refreshItems}
+        />
+
         <div className="w-full max-w-full border rounded-md overflow-x-auto">
           <Table className="w-full">
             <TableHeader>
               <TableRow className="bg-muted border-b-2">
-                {selectionMode && <TableHead className="w-10" />}
+                <TableHead className="w-10" />
                 <TableHead className="w-14 font-semibold">Image</TableHead>
                 {SORT_COLS.map((c) => (
                   <TableHead
@@ -756,16 +702,14 @@ function VocabInner() {
             <TableBody>
               {items.map((i) => (
                 <TableRow key={i.id}>
-                  {selectionMode && (
-                    <TableCell className="align-top">
-                      <Checkbox
-                        checked={selectedIds.has(i.id)}
-                        disabled={i.imageStatus === 'generating'}
-                        onCheckedChange={(c) => toggleSelect(i.id, c === true)}
-                        aria-label="Select row"
-                      />
-                    </TableCell>
-                  )}
+                  <TableCell className="align-top">
+                    <Checkbox
+                      checked={selectedIds.has(i.id)}
+                      disabled={i.imageStatus === 'generating'}
+                      onCheckedChange={(c) => toggleSelect(i.id, c === true)}
+                      aria-label="Select row"
+                    />
+                  </TableCell>
                   <TableCell className="align-top">
                     <ThumbCell
                       item={i}
@@ -850,7 +794,7 @@ function VocabInner() {
               {items.length === 0 && !loading && (
                 <TableRow>
                   <TableCell
-                    colSpan={SORT_COLS.length + 2 + (selectionMode ? 1 : 0)}
+                    colSpan={SORT_COLS.length + 3}
                     className="text-center py-8 text-muted-foreground"
                   >
                     No vocab items match your filters.
@@ -890,21 +834,6 @@ function VocabInner() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      <BulkImageDialog
-        open={showBulkDialog}
-        onOpenChange={setShowBulkDialog}
-        selectedCount={selectedIds.size}
-        vocabIds={Array.from(selectedIds)}
-        onConfirm={confirmBulkGenerate}
-      />
-
-      <VocabBulkShareDialog
-        open={showShareDialog}
-        onOpenChange={setShowShareDialog}
-        vocabIds={Array.from(selectedIds)}
-        onDone={() => setRefetchCounter((c) => c + 1)}
-      />
 
       <ImagePreviewDialog
         open={!!previewItem}
