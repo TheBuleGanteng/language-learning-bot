@@ -1089,3 +1089,39 @@ itself; I pre-emptively suppressed a lint rule that this project's config
 doesn't enable, so the suppression had nothing to suppress.
 **Fix:** Removed the disable directive and documented `onToggleItem` with a
 normal JSDoc comment instead. `pnpm lint` then passed clean.
+
+### Production incident — auth crash from never-run Feature A migration (0008)
+**Symptom:** After deploying this change, the prod homepage returned `HTTP/2 200`
+but the app logs showed every authenticated request crashing in the Auth.js JWT
+callback: `JWTSessionError` → `Failed query: select "sessions_invalidated_at",
+"target_language", "native_language", "role", "display_name" from "users" …`
+with Postgres `code 42703` (`errorMissingColumn`). Logged-in users could not use
+the app.
+**Root cause:** Not caused by this UI-only change. "Feature A — shared vocab,
+roles, display names" (`632045b`) added `users.role` and `users.display_name`
+(migration `0008_stormy_micromax.sql`) but was committed and **never deployed** —
+the last actually-deployed commit was `3f48686`, pre-Feature-A. This change sits
+on top of Feature A, so the deploy shipped Feature A's code to prod for the first
+time while the prod DB still lacked its columns (8 of 9 migrations applied; only
+`0008` pending). The auth session query selects `role`/`display_name`, so it
+threw on every authenticated request.
+**Fix:** With explicit user authorization (per DEPLOY_CLAUDE.md's "STOP and ask
+before running prod migrations" rule), applied `0008` to production:
+1. Took a `pg_dump -Fc` safety backup → `/home/matt/llb-pre-0008-<ts>.dump`.
+2. Opened an SSH local-forward to the prod Postgres container's docker-network IP
+   (no host port is published) and ran `pnpm db:migrate` (drizzle-kit) against it
+   so the `drizzle.__drizzle_migrations` journal stayed consistent — applied only
+   `0008` (9/9 now applied).
+3. Restarted the `language-learning-bot` container.
+**Verified:** `users.role` + `users.display_name` now present; the exact
+previously-failing query returns a row (`matt@mattmcdonnell.net` → `superuser`);
+prod returns `HTTP/2 200`; zero new `42703`/`JWTSessionError` log lines after the
+restart. Note `0008` also performed Feature A's intended data backfill (Matt set
+superuser, existing content attributed to Matt and flipped to `shared`, two test
+accounts deleted).
+
+### Deploy
+Shipped via DEPLOY_CLAUDE.md: pushed project repo (`8c57825`), bumped the
+`vm-infrastructure` submodule pointer, rebuilt + force-recreated the
+`language-learning-bot` container on the VM, then applied the pending Feature A
+migration as above. Prod verified healthy (`HTTP/2 200`, clean logs).
