@@ -1,6 +1,13 @@
 import { z } from 'zod';
 
 const isProd = process.env.NODE_ENV === 'production';
+// `next build` sets NODE_ENV=production and imports every route module to
+// collect page data, but the real secrets are not present at build time (they
+// are mounted at runtime). Treat the build phase like dev — warn instead of
+// throwing — so a production image can be built without baking in secrets. The
+// hard fail-fast still applies at actual server startup, where NEXT_PHASE is
+// unset.
+const isBuildPhase = process.env.NEXT_PHASE === 'phase-production-build';
 
 const schema = z
   .object({
@@ -42,7 +49,7 @@ const schema = z
 const parsed = schema.safeParse(process.env);
 
 if (!parsed.success) {
-  if (isProd) {
+  if (isProd && !isBuildPhase) {
     console.error('Invalid environment variables:', parsed.error.flatten().fieldErrors);
     throw new Error('Invalid environment variables — refusing to start in production.');
   } else {
