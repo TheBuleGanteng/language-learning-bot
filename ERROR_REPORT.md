@@ -944,3 +944,59 @@ the ʉ→u mapping and the unit test asserts the actual deterministic output
 ### Known follow-ups
 - Hotkey scheme isn't customizable; users with strong opinions on Vietnamese-style IMEs would need extension points
 - The palette doesn't yet handle Thai script — only romanized characters
+
+## Deployment prep
+
+### Changes
+- Removed `file.makePublic()` from GCS `putPublic` (`src/lib/storage/gcs.ts`). The production bucket uses uniform bucket-level access with bucket-wide public read, so per-object ACL calls throw; the direct `storage.googleapis.com/<bucket>/<key>` URL resolves because the whole bucket is public. The `Storage` client already relies on ADC (`GOOGLE_APPLICATION_CREDENTIALS`).
+- Added base-path support for client fetches: new `src/lib/base-path.ts` exposes `withBase()`, and all 49 client-side `fetch('/api/...')` call sites across 24 files now route through it. Next.js auto-prefixes navigation and `_next` assets via `basePath`, but NOT raw browser `fetch()` — those would 404 under the `/language-learning` sub-path without the helper. No-op in dev.
+- Dockerfile: bumped to `node:22-alpine` (matches `.nvmrc`), accepts `WEB_BASEPATH` / `NEXT_PUBLIC_BASE_PATH` / `GCP_DEPLOYMENT` build args, added the native-build toolchain (`python3 make g++`) to the deps stage. Kept the existing migrations + `drizzle.config.ts` copy into the runner.
+- Added `.dockerignore` excluding `secrets/`, `.env*` (except `.env.example`), `node_modules`, `.next`, local `storage/`, tests, and large artifacts — the service-account key is never baked into the image.
+- Extended `.env.example` with production base-path (`NEXT_PUBLIC_BASE_PATH` / `WEB_BASEPATH` / `GCP_DEPLOYMENT`) and GCS (`GCS_BUCKET`, credentials path) guidance.
+- Added `DEPLOYMENT.md` — the manual VM-side runbook (submodule, secrets, compose, nginx location block, build, migrations, verify, data import, backups).
+
+### Decisions / deviations from the spec
+The spec was a generic template; several of its files already existed in tailored form and several of its variable names did not match this codebase. Reconciled rather than clobbered:
+- **Env var names kept as the code actually reads them** (`src/lib/env.ts`): `GCS_BUCKET` (not `GCS_BUCKET_NAME`), `NEXTAUTH_URL` + `AUTH_TRUST_HOST` (not `AUTH_URL`). `DEPLOYMENT.md` and `.env.example` use the real names.
+- **Auth is email+password with Resend verification** (Credentials provider, `trustHost: true`), not magic-link as the spec's prose assumed. `auth.ts` already derives everything from env — no change needed.
+- **`next.config.ts` left as-is.** It already sets `basePath` and `output: 'standalone'`. The spec's extra `assetPrefix` is redundant under `basePath` and risks double-prefixing `next-pwa`/workbox URLs; `images.unoptimized` is moot because the app uses no `next/image`. Skipped both to avoid regressions.
+- **Dockerfile kept the migrations copy** the spec's version omitted, and stayed on the existing slim alpine pattern rather than the spec's verbatim contents.
+- **Migrations caveat documented:** the runner image is bare `node` with no `pnpm`/`drizzle-kit`, so `pnpm db:migrate` cannot run inside it. `DEPLOYMENT.md` Step 8 gives a one-off-container approach and a laptop-tunnel fallback instead.
+
+### Build blockers found and fixed during Docker verification
+The local `pnpm build` passed because Next auto-loads `.env.local`, but the
+Docker build (no secrets in the image, by design) surfaced three import-time
+failures. Fixed each:
+1. **pnpm version mismatch** — the container's corepack pulled a newer pnpm than
+   the host's 10.12.2, and newer pnpm turns `ERR_PNPM_IGNORED_BUILDS`
+   (unconfigured build scripts: esbuild, msw, protobufjs, @google/genai) into a
+   hard error. Pinned `"packageManager": "pnpm@10.12.2"` in package.json so
+   corepack uses the same version host/CI/Docker, matching `pnpm-workspace.yaml`'s
+   `ignoredBuiltDependencies` allowlist.
+2. **env throws at build time** — `src/lib/env.ts` threw "refusing to start in
+   production" while `next build` collected page data, because required secrets
+   aren't present at build time. Added an `isBuildPhase` check
+   (`process.env.NEXT_PHASE === 'phase-production-build'`, confirmed set by Next
+   16's build/index.js) so the build warns instead of throwing. Runtime
+   fail-fast is preserved (NEXT_PHASE is unset at real server start).
+3. **crypto key derived at import** — `src/lib/crypto.ts` ran
+   `Buffer.from(env.APP_ENCRYPTION_KEY, 'base64')` at module load, throwing
+   `ERR_INVALID_ARG_TYPE` on the undefined build-time key when the
+   reset-password route was imported. Made key derivation lazy/memoized
+   (`getKey()`); the 32-byte validation now runs on first encrypt/decrypt at
+   runtime. Other env-consuming constructors (pg Pool via Proxy, Resend, OpenAI/
+   Anthropic/GoogleGenAI) were already lazy, so no other changes were needed.
+
+### Verification (local, no deploy)
+- `pnpm lint` — 0 errors
+- `pnpm test` — 75/75 passing
+- `pnpm build` — succeeds (standalone output)
+- `tsc --noEmit` — clean (validated the 49 fetch edits + the env/crypto fixes)
+- `docker build` with production base-path args — **succeeds**, final image 263MB
+- Container smoke test (dummy secrets, `STORAGE_DRIVER=local`): server boots,
+  `GET /language-learning/login` → 200, `GET /login` (no base path) → 404, and
+  page assets are emitted under `/language-learning/_next/static/...` — base-path
+  routing and asset prefixing confirmed end-to-end.
+
+### Out of scope (manual, on the VM — documented in DEPLOYMENT.md)
+- Submodule add to vm-infrastructure; top-level docker-compose changes (postgres + app services); nginx location block; production secret generation/placement; first-deploy DB migration; optional dev→prod data migration; backup cron.
