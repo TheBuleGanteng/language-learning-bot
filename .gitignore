@@ -105,3 +105,6 @@ PHOTO_EXTRACTION_INSTRUCTIONS.md
 # Service account keys and other secrets
 secrets/
 *.json.bak
+
+# Database dumps (created during deploy/backup steps — never commit)
+*.dump

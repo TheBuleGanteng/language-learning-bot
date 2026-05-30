@@ -57,6 +57,10 @@ export class LocalStorageProvider implements StorageProvider {
   }
 
   async getUrl(key: string): Promise<string> {
+    return this.publicUrl(key);
+  }
+
+  publicUrl(key: string): string {
     // The `/api/files/[...path]` route reads from disk + auth-checks.
     // We URI-encode each path segment (key may contain spaces or unicode).
     const segments = key.split('/').map((s) => encodeURIComponent(s));

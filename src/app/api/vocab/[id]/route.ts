@@ -36,7 +36,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
     .where(eq(vocabTags.vocabItemId, id));
 
   const imageUrl = item.imageStorageKey
-    ? await storage().getUrl(item.imageStorageKey)
+    ? storage().publicUrl(item.imageStorageKey)
     : null;
 
   return NextResponse.json({

@@ -58,7 +58,7 @@ export async function POST(
     .where(eq(vocabItems.id, id))
     .limit(1);
   const imageUrl = updated?.imageStorageKey
-    ? await storage().getUrl(updated.imageStorageKey)
+    ? storage().publicUrl(updated.imageStorageKey)
     : null;
 
   return NextResponse.json({

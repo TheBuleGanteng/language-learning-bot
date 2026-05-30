@@ -25,5 +25,16 @@ export interface StorageProvider {
   delete(key: string): Promise<void>;
   /** Returns a URL the browser can fetch. */
   getUrl(key: string): Promise<string>;
+  /**
+   * Stable browser-loadable URL for content stored via `putPublic`. Unlike
+   * `getUrl`, this is synchronous and never performs signing or network I/O,
+   * so it cannot fail or time out — important for list endpoints that resolve
+   * a URL per row. The key MUST refer to public content (`public/` prefix).
+   *
+   *  - GCS: the direct `https://storage.googleapis.com/<bucket>/<key>` URL,
+   *    which resolves because the bucket has bucket-wide public read.
+   *  - Local FS: the `/api/files/public/...` route URL.
+   */
+  publicUrl(key: string): string;
   exists(key: string): Promise<boolean>;
 }

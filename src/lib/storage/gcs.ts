@@ -75,6 +75,14 @@ export class GcsStorageProvider implements StorageProvider {
     return url;
   }
 
+  publicUrl(key: string): string {
+    // Direct, unsigned URL — resolves because the bucket is publicly readable
+    // (uniform access + bucket-wide public read). Encode each path segment but
+    // keep the slashes so the object path stays intact.
+    const encoded = key.split('/').map(encodeURIComponent).join('/');
+    return `https://storage.googleapis.com/${this.bucketName}/${encoded}`;
+  }
+
   async exists(key: string): Promise<boolean> {
     const [exists] = await this.bucket().file(key).exists();
     return exists;

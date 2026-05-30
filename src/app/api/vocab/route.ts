@@ -182,14 +182,16 @@ export async function GET(req: Request) {
     pageSize === 'all' ? false : (page - 1) * pageSize + items.length < total;
 
   const store = storage();
-  const itemsWithUrls = await Promise.all(
-    items.map(async (i) => ({
-      ...i,
-      lessons: lessonMap.get(i.id) ?? [],
-      tags: tagMap.get(i.id) ?? [],
-      imageUrl: i.imageStorageKey ? await store.getUrl(i.imageStorageKey) : null,
-    })),
-  );
+  // Vocab images are public (written via putPublic), so resolve them to their
+  // stable public URL. This is synchronous and cannot throw — unlike per-row
+  // signed-URL generation, which on the GCS driver could fail or time out and
+  // take the whole list response (and thus the table) down with it.
+  const itemsWithUrls = items.map((i) => ({
+    ...i,
+    lessons: lessonMap.get(i.id) ?? [],
+    tags: tagMap.get(i.id) ?? [],
+    imageUrl: i.imageStorageKey ? store.publicUrl(i.imageStorageKey) : null,
+  }));
 
   return NextResponse.json({
     items: itemsWithUrls,

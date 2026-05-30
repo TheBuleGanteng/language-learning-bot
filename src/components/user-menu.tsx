@@ -10,6 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { withBase } from '@/lib/base-path';
 
 interface Props {
   email: string;
@@ -37,7 +38,10 @@ export function UserMenu({ email }: Props) {
         />
         <DropdownMenuItem
           onClick={() => {
-            void signOut({ callbackUrl: '/' });
+            // After logout, land on the login page. withBase prefixes the
+            // production sub-path (/language-learning) so we don't end up on
+            // the business site root; in dev it resolves to '/login'.
+            void signOut({ callbackUrl: withBase('/login') });
           }}
         >
           <LogOut className="mr-2 h-4 w-4" />

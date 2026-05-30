@@ -1000,3 +1000,42 @@ failures. Fixed each:
 
 ### Out of scope (manual, on the VM — documented in DEPLOYMENT.md)
 - Submodule add to vm-infrastructure; top-level docker-compose changes (postgres + app services); nginx location block; production secret generation/placement; first-deploy DB migration; optional dev→prod data migration; backup cron.
+
+## Bug fixes: default vocab view + logout redirect
+
+### Bug 1 — vocab table empty by default (prod only)
+**Symptom:** `/language/[lang]/vocab` showed an empty table with no lesson/tag
+filter selected; selecting a filter populated it. Worked locally, broke in prod.
+
+**Root cause (not the query):** The `/api/vocab` GET query is correct — with no
+filters it returns all of the user's items. The empty table came from the route
+*throwing*. It resolved an image URL per row via `store.getUrl()`, which on the
+**GCS** driver (prod) generates a V4 **signed** URL and ran inside a
+`Promise.all`. Vocab images are actually **public** (written via `putPublic` to
+`public/…` on a bucket-wide-public bucket), so signing is both unnecessary and a
+failure/latency surface: one failing or slow signature rejected the whole
+response → client got no `items` → empty table. The `local` driver (dev) returns
+a cheap `/api/files/…` path that never fails, so it worked locally. Filtered
+views appeared to "work" only when their result set excluded completed-image rows.
+
+**Fix:** Added a synchronous `publicUrl(key)` to the storage layer
+(`types.ts`/`gcs.ts`/`local.ts`) that returns the stable public URL with no
+signing or I/O, so it cannot throw or time out. Switched the three vocab-image
+sites (`/api/vocab` list, `/api/vocab/[id]`, `/api/vocab/[id]/image/generate`) to
+`publicUrl`. The list mapping is now synchronous (no `Promise.all`). Private
+lesson-file routes still use the signed `getUrl`, unchanged.
+
+### Bug 2 — logout redirected to the business site root
+**Symptom:** Sign out sent the user to `kebayorantechnologies.com/` instead of
+the login page.
+
+**Fix:** `src/components/user-menu.tsx` — `signOut({ callbackUrl: '/' })` →
+`signOut({ callbackUrl: withBase('/login') })`. `withBase` reads
+`NEXT_PUBLIC_BASE_PATH` (same value the spec's inline expression uses), resolving
+to `/login` in dev and `/language-learning/login` in prod, consistent with the
+rest of the codebase's client paths.
+
+### Verification
+- `tsc --noEmit` clean · `pnpm lint` 0 errors · `pnpm test` 75/75 · `pnpm build` succeeds
+- Bug 2's dev fallback (`/login`) confirms the logic; the sub-path form only
+  applies in production.
