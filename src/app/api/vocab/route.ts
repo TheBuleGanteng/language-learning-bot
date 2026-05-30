@@ -12,6 +12,7 @@ import {
 import { auth } from '@/lib/auth';
 import { buildOrderBy } from '@/lib/vocab';
 import { storage } from '@/lib/storage';
+import { escapeRegex, normalizeText } from '@/lib/text-normalize';
 
 const DEFAULT_PAGE_SIZE = 100;
 const ALLOWED_PAGE_SIZES = new Set([25, 50, 100]);
@@ -56,12 +57,15 @@ export async function GET(req: Request) {
     url.searchParams.get('order'),
   );
 
+  // Accent-agnostic search: match on the normalized columns (diacritics
+  // stripped, IPA mapped to Latin, lowercased) so `saai` finds `sǎai`.
+  const qn = search ? normalizeText(search) : '';
   const wheres = [eq(vocabItems.userId, userId)];
   if (search) {
     wheres.push(
       or(
-        ilike(vocabItems.targetText, `%${search}%`),
-        ilike(vocabItems.nativeText, `%${search}%`),
+        ilike(vocabItems.targetTextNormalized, `%${qn}%`),
+        ilike(vocabItems.nativeTextNormalized, `%${qn}%`),
       )!,
     );
   }
@@ -95,6 +99,28 @@ export async function GET(req: Request) {
 
   const whereExpr = and(...wheres);
 
+  // Relevance ranking, applied only when searching and the user hasn't asked
+  // for an explicit column sort (which always wins). Tiers, best first:
+  //   1 exact match on original text (visually exact)
+  //   2 exact match on normalized text (e.g. "saai" ↔ "sǎai")
+  //   3 whole-word match  4 prefix match  5 substring match
+  // Tiebreaker: shorter of the two fields first.
+  const regexQn = escapeRegex(qn);
+  const wordPattern = `\\m${regexQn}\\M`;
+  const searchOrder =
+    search
+      ? sql`CASE
+          WHEN lower(${vocabItems.targetText}) = lower(${search}) OR lower(${vocabItems.nativeText}) = lower(${search}) THEN 1
+          WHEN ${vocabItems.targetTextNormalized} = ${qn} OR ${vocabItems.nativeTextNormalized} = ${qn} THEN 2
+          WHEN ${vocabItems.targetTextNormalized} ~* ${wordPattern} OR ${vocabItems.nativeTextNormalized} ~* ${wordPattern} THEN 3
+          WHEN ${vocabItems.targetTextNormalized} LIKE ${qn + '%'} OR ${vocabItems.nativeTextNormalized} LIKE ${qn + '%'} THEN 4
+          WHEN ${vocabItems.targetTextNormalized} LIKE ${'%' + qn + '%'} OR ${vocabItems.nativeTextNormalized} LIKE ${'%' + qn + '%'} THEN 5
+          ELSE 6
+        END ASC, LEAST(LENGTH(${vocabItems.targetText}), LENGTH(${vocabItems.nativeText})) ASC`
+      : null;
+  // Precedence: explicit sort > search relevance > default (newest first).
+  const finalOrder = orderByExpr ?? searchOrder ?? desc(vocabItems.createdAt);
+
   const [totalRow] = await db
     .select({ n: sql<number>`count(*)::int` })
     .from(vocabItems)
@@ -108,7 +134,7 @@ export async function GET(req: Request) {
     .select()
     .from(vocabItems)
     .where(whereExpr)
-    .orderBy(orderByExpr ?? desc(vocabItems.createdAt));
+    .orderBy(finalOrder);
   const items =
     pageSize === 'all'
       ? await baseQuery
@@ -215,6 +241,8 @@ export async function POST(req: Request) {
         userId,
         targetText: d.targetText,
         nativeText: d.nativeText,
+        targetTextNormalized: normalizeText(d.targetText),
+        nativeTextNormalized: normalizeText(d.nativeText),
         transliteration: d.transliteration ?? null,
         pos: d.pos ?? null,
         exampleTarget: d.exampleTarget ?? null,

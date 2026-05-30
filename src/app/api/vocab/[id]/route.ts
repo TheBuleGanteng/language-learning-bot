@@ -5,6 +5,7 @@ import { db } from '@/db';
 import { vocabItems, vocabTags, vocabLessons, lessons, tags } from '@/db/schema';
 import { auth } from '@/lib/auth';
 import { storage } from '@/lib/storage';
+import { normalizeText } from '@/lib/text-normalize';
 
 async function getUserId() {
   const session = await auth();
@@ -89,8 +90,14 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     if (!existing) throw new Error('NOT_FOUND');
 
     const updates: Record<string, unknown> = { updatedAt: new Date() };
-    if (d.targetText !== undefined) updates.targetText = d.targetText;
-    if (d.nativeText !== undefined) updates.nativeText = d.nativeText;
+    if (d.targetText !== undefined) {
+      updates.targetText = d.targetText;
+      updates.targetTextNormalized = normalizeText(d.targetText);
+    }
+    if (d.nativeText !== undefined) {
+      updates.nativeText = d.nativeText;
+      updates.nativeTextNormalized = normalizeText(d.nativeText);
+    }
     if (d.transliteration !== undefined) updates.transliteration = d.transliteration;
     if (d.pos !== undefined) updates.pos = d.pos;
     if (d.exampleTarget !== undefined) updates.exampleTarget = d.exampleTarget;

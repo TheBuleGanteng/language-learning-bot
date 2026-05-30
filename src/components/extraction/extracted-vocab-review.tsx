@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type KeyboardEvent } from 'react';
 import { useParams } from 'next/navigation';
 import { AlertTriangle, Plus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { SpecialInput } from '@/components/special-input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import {
@@ -296,6 +297,7 @@ export function ExtractedVocabReview({
                     onChange={setDraft}
                     onCommit={commitEdit}
                     onCancel={cancelEdit}
+                    special
                   />
                 </TableCell>
                 <TableCell className="align-top whitespace-normal break-words">
@@ -436,6 +438,8 @@ interface EditableCellProps {
   onChange: (v: string) => void;
   onCommit: () => void;
   onCancel: () => void;
+  /** Use the IPA/diacritic-aware input (palette + hotkeys) for this cell. */
+  special?: boolean;
 }
 function EditableCell({
   value,
@@ -446,23 +450,37 @@ function EditableCell({
   onChange,
   onCommit,
   onCancel,
+  special,
 }: EditableCellProps) {
   if (editing) {
+    const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        onCommit();
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        onCancel();
+      }
+    };
+    if (special) {
+      return (
+        <SpecialInput
+          autoFocus
+          value={draft}
+          onChange={onChange}
+          onBlur={onCommit}
+          onKeyDown={onKeyDown}
+          className="h-8 text-sm"
+        />
+      );
+    }
     return (
       <Input
         autoFocus
         value={draft}
         onChange={(e) => onChange(e.target.value)}
         onBlur={onCommit}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            onCommit();
-          } else if (e.key === 'Escape') {
-            e.preventDefault();
-            onCancel();
-          }
-        }}
+        onKeyDown={onKeyDown}
         className="h-8 text-sm"
       />
     );

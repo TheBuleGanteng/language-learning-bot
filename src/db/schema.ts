@@ -185,6 +185,10 @@ export const vocabItems = pgTable(
       .references(() => users.id, { onDelete: 'cascade' }),
     targetText: text('target_text').notNull(),
     nativeText: text('native_text').notNull(),
+    // Accent-agnostic search columns: targetText/nativeText run through
+    // normalizeText() (strip diacritics, map IPA → Latin, lowercase).
+    targetTextNormalized: text('target_text_normalized').notNull().default(''),
+    nativeTextNormalized: text('native_text_normalized').notNull().default(''),
     transliteration: text('transliteration'),
     pos: text('pos'),
     exampleTarget: text('example_target'),
@@ -202,6 +206,8 @@ export const vocabItems = pgTable(
   },
   (t) => [
     index('vocab_items_user_created_idx').on(t.userId, t.createdAt.desc()),
+    index('vocab_target_normalized_idx').on(t.targetTextNormalized),
+    index('vocab_native_normalized_idx').on(t.nativeTextNormalized),
     check(
       'vocab_items_image_status_check',
       sql`${t.imageStatus} IN ('none', 'generating', 'completed', 'refused', 'failed')`,

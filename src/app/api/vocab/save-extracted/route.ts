@@ -10,6 +10,7 @@ import {
   vocabTags,
 } from '@/db/schema';
 import { auth } from '@/lib/auth';
+import { normalizeText } from '@/lib/text-normalize';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -132,6 +133,8 @@ export async function POST(req: Request) {
               userId,
               targetText: target,
               nativeText: native,
+              targetTextNormalized: normalizeText(target),
+              nativeTextNormalized: normalizeText(native),
             })
             .returning({ id: vocabItems.id });
           for (const lid of lessonIds) {

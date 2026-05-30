@@ -915,3 +915,32 @@ regression risk across all three for a "tiny remediation." Added a `useEffect`
 `document`, closing the popover on a click outside the wrapper ref or on Escape.
 Selecting an option still keeps the popover open (clicks inside the wrapper are
 ignored), matching the spec's expected behavior.
+
+## Search quality + special character input
+
+### Changes
+- Search results now ranked by relevance: exact > whole-word > prefix > substring, length tiebreaker
+- Added `target_text_normalized` and `native_text_normalized` columns with indexes
+- Normalization (`src/lib/text-normalize.ts`): map ɛ/ʉ/ɔ to e/u/o + NFD decompose + strip combining marks (Mn) + lowercase
+- Backfill script: `scripts/backfill-normalized-text.ts` (run via `node --env-file=.env.local --import tsx scripts/backfill-normalized-text.ts`)
+- Search WHERE/ORDER use normalized columns for matching; tier 1 still checks original text for visual-exact
+- New `<SpecialInput>` component (`src/components/special-input.tsx`) wraps Input with palette popover + inline hotkey replacement
+- Hotkey scheme: `` ` `` / `'` / `\` / `^` after a vowel → háček/acute/grave/circumflex; `6` after e/u/o → ɛ/ʉ/ɔ
+- SpecialInput applied to vocab search bar, vocab add/edit target field, transliteration, photo-extraction inline target edit
+- Normalized columns populated on every write path: POST /api/vocab, PATCH /api/vocab/[id], save-extracted, CSV import
+
+### Why
+Search was sorted by DB insertion order, making exact lookups frustrating. Accent
+input was copy-paste-only. These three improvements together close the loop on text
+entry and retrieval.
+
+### Note on a spec inconsistency
+The build spec's docstring/test claimed `normalizeText('krʉ̂angbin') → 'krueangbin'`,
+but the authoritative IPA map (ʉ → u, confirmed by the spec's own ERROR_REPORT entry)
+yields `'kruangbin'` (ʉ→u, combining circumflex stripped). The implementation follows
+the ʉ→u mapping and the unit test asserts the actual deterministic output
+(`'kruangbin'`), rather than copying the spec's self-contradictory value.
+
+### Known follow-ups
+- Hotkey scheme isn't customizable; users with strong opinions on Vietnamese-style IMEs would need extension points
+- The palette doesn't yet handle Thai script — only romanized characters

@@ -13,7 +13,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { SpecialInput } from '@/components/special-input';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { BulkImageDialog } from '@/components/vocab/bulk-image-dialog';
@@ -575,10 +575,10 @@ function VocabInner() {
 
       <section className="space-y-4">
         <form onSubmit={submitSearch} className="flex gap-2">
-          <Input
+          <SpecialInput
             placeholder={`Search ${targetLabel || 'target'} or ${nativeLabel || 'native'} text…`}
             value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
+            onChange={(val) => setSearchInput(val)}
           />
           <Button type="submit" variant="outline">
             Search

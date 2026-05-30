@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { SpecialInput } from '@/components/special-input';
 import { Label } from '@/components/ui/label';
 import { LessonPicker } from '@/components/lesson-picker';
 import { TagPicker } from '@/components/tag-picker';
@@ -125,11 +126,11 @@ export function VocabForm({ initial, mode }: Props) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-1.5">
           <Label htmlFor="targetText">{targetLabel}</Label>
-          <Input
+          <SpecialInput
             id="targetText"
             required
             value={v.targetText}
-            onChange={(e) => on('targetText', e.target.value)}
+            onChange={(val) => on('targetText', val)}
           />
         </div>
         <div className="space-y-1.5">
@@ -143,10 +144,10 @@ export function VocabForm({ initial, mode }: Props) {
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="transliteration">Transliteration (optional)</Label>
-          <Input
+          <SpecialInput
             id="transliteration"
             value={v.transliteration}
-            onChange={(e) => on('transliteration', e.target.value)}
+            onChange={(val) => on('transliteration', val)}
           />
         </div>
         <div className="space-y-1.5">
