@@ -1039,3 +1039,33 @@ rest of the codebase's client paths.
 - `tsc --noEmit` clean · `pnpm lint` 0 errors · `pnpm test` 75/75 · `pnpm build` succeeds
 - Bug 2's dev fallback (`/login`) confirms the logic; the sub-path form only
   applies in production.
+
+## Production: missing vocab images + scroll-jump (shipped)
+
+### Bug — vocab images broken in production
+**Cause:** Images were generated in dev (`STORAGE_DRIVER=local`) and saved to the
+laptop's `./storage/public/users/...`. The dev DB was later migrated to prod via
+pg_dump/restore, so vocab rows carried their `imageStorageKey` across, but the
+image *bytes* never left the laptop — the prod GCS bucket had the rows' keys but
+no objects, so every completed-image thumbnail 404'd.
+
+**Fix (one-time data migration, no code/DB change):** Uploaded the 24 local PNGs
+to `gs://language-learning-bot/public/` with `gsutil -m cp -r`, landing them at
+`public/users/<userId>/vocab/<vocabId>/<file>.png` — the exact keys the DB
+references. 24/24 uploaded (35.9 MiB), 0 failures. Verified two sample objects
+serve `HTTP 200, image/png` directly over `https://storage.googleapis.com/...`
+(bucket-wide public read working; no `makePublic()` needed on the uniform bucket).
+
+### Bug — filter/sort changes scrolled the page to the top
+**Cause:** The vocab page's same-page `router.push`/`router.replace` calls used
+the App Router default (scroll to top) on every query-param update.
+
+**Fix:** Passed `{ scroll: false }` to the three same-page navigations in
+`VocabInner` (notice cleanup, `updateParams`, `clearFilters`). Different-page
+navigations are `<Link>`-based and were left to scroll normally.
+
+### Deploy
+Shipped via DEPLOY_CLAUDE.md: pushed project repo (`3f48686`), bumped the
+`vm-infrastructure` submodule pointer (`c5619bd`), rebuilt + recreated the
+`language-learning-bot` container on the VM. Verified: prod returns `HTTP/2 200`,
+app logs show a clean Next.js 16.2.6 startup with no errors.
