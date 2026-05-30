@@ -13,12 +13,16 @@ const credSchema = z.object({
   password: z.string().min(1),
 });
 
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
+  basePath: `${basePath}/api/auth`,
   secret: env.AUTH_SECRET,
   session: { strategy: 'jwt' },
   pages: {
-    signIn: '/login',
+    signIn: `${basePath}/login`,
+    error: `${basePath}/auth-error`,
   },
   providers: [
     Credentials({

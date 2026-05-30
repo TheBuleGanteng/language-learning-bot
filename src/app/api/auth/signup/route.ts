@@ -71,7 +71,7 @@ export async function POST(req: Request) {
     expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
   });
 
-  const link = `${env.APP_URL}${env.NEXT_PUBLIC_BASE_PATH ?? ''}/verify?token=${token}`;
+  const link = `${env.APP_URL}/verify?token=${token}`;
   // Fire-and-forget so a slow Resend response doesn't block the user's signup.
   // sendVerificationEmail swallows its own errors and logs them.
   void sendVerificationEmail(newUser.email, link);
