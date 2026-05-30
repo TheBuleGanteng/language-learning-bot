@@ -42,6 +42,8 @@ import {
 import { useRouter } from 'next/navigation';
 import { useFieldAutoSave, SaveStatus } from '@/components/save-status';
 import { withBase } from '@/lib/base-path';
+import { ProfileSection } from '@/components/settings/profile-section';
+import { RoleManagementSection } from '@/components/settings/role-management-section';
 
 interface KeyInfo {
   masked: string;
@@ -340,6 +342,7 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-6 max-w-2xl">
+      <ProfileSection />
       <Card>
         <CardHeader>
           <CardTitle>Languages</CardTitle>
@@ -720,6 +723,7 @@ export default function SettingsPage() {
           })}
         </CardContent>
       </Card>
+      <RoleManagementSection />
     </div>
   );
 }

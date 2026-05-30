@@ -18,8 +18,12 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { NewLessonDialog } from '@/components/new-lesson-dialog';
 import { DeleteLessonDialog } from '@/components/delete-lesson-dialog';
+import { LessonsBulkShareDialog } from '@/components/lessons/bulk-share-dialog';
+import { DisplayNameGate } from '@/components/display-name-gate';
+import { canShare, type UserRole } from '@/lib/roles';
 import { lessonPath } from '@/lib/routes';
 import { stripHtml } from '@/lib/strip-html';
 import { withBase } from '@/lib/base-path';
@@ -68,6 +72,17 @@ export function LessonsIndexClient({ lang }: Props) {
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
   const [newLessonOpen, setNewLessonOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+  const [me, setMe] = useState<{ role: UserRole; displayName: string | null } | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showShareDialog, setShowShareDialog] = useState(false);
+  const [refetch, setRefetch] = useState(0);
+
+  useEffect(() => {
+    fetch(withBase('/api/me'))
+      .then((r) => r.json())
+      .then((d) => setMe({ role: d.role, displayName: d.displayName }))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     setLoading(true);
@@ -80,7 +95,18 @@ export function LessonsIndexClient({ lang }: Props) {
       .then((r) => r.json())
       .then((d: { lessons: LessonRow[] }) => setRows(d.lessons ?? []))
       .finally(() => setLoading(false));
-  }, [sortCol, sortOrder]);
+  }, [sortCol, sortOrder, refetch]);
+
+  const canShareLessons = !!me && canShare(me.role);
+
+  function toggleSelected(id: string, checked: boolean) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  }
 
   function cycleSort(col: SortCol) {
     if (sortCol !== col) {
@@ -132,10 +158,42 @@ export function LessonsIndexClient({ lang }: Props) {
         />
       )}
 
+      {canShareLessons && selectedIds.size > 0 && (
+        <div className="sticky top-0 z-10 flex items-center gap-2 flex-wrap rounded-md border bg-background p-2 shadow-sm">
+          <span className="text-sm font-medium">{selectedIds.size} selected</span>
+          <DisplayNameGate userDisplayName={me?.displayName ?? null}>
+            <Button size="xs" variant="outline" onClick={() => setShowShareDialog(true)}>
+              Share / Unshare
+            </Button>
+          </DisplayNameGate>
+          <Button
+            size="xs"
+            variant="ghost"
+            onClick={() => setSelectedIds(new Set())}
+            className="ml-auto"
+          >
+            Clear selection
+          </Button>
+        </div>
+      )}
+
+      {showShareDialog && (
+        <LessonsBulkShareDialog
+          open={showShareDialog}
+          onOpenChange={setShowShareDialog}
+          lessonIds={Array.from(selectedIds)}
+          onDone={() => {
+            setSelectedIds(new Set());
+            setRefetch((c) => c + 1);
+          }}
+        />
+      )}
+
       <div className="border rounded-md overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow className="bg-muted border-b-2">
+              {canShareLessons && <TableHead className="w-10" />}
               {COLS.map((c) => (
                 <TableHead
                   key={c.id}
@@ -155,6 +213,15 @@ export function LessonsIndexClient({ lang }: Props) {
                 className="cursor-pointer hover:bg-muted/50 active:bg-muted/70 transition-colors"
                 onClick={() => router.push(lessonPath(lang, r.id))}
               >
+                {canShareLessons && (
+                  <TableCell className="w-10 align-top" onClick={(e) => e.stopPropagation()}>
+                    <Checkbox
+                      checked={selectedIds.has(r.id)}
+                      onCheckedChange={(c) => toggleSelected(r.id, c === true)}
+                      aria-label={`Select ${r.name}`}
+                    />
+                  </TableCell>
+                )}
                 <TableCell className="whitespace-normal break-words align-top">
                   <span className="font-medium text-blue-700 dark:text-blue-400 hover:underline">
                     {r.name}
@@ -192,7 +259,7 @@ export function LessonsIndexClient({ lang }: Props) {
             {rows.length === 0 && !loading && (
               <TableRow>
                 <TableCell
-                  colSpan={COLS.length + 2}
+                  colSpan={COLS.length + 2 + (canShareLessons ? 1 : 0)}
                   className="text-center py-8 text-muted-foreground"
                 >
                   No lessons yet. Create your first lesson.

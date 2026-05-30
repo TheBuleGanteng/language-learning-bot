@@ -43,7 +43,7 @@ export async function PATCH(
       imagePromptOverride: parsed.data.override?.trim() || null,
       updatedAt: new Date(),
     })
-    .where(and(eq(vocabItems.id, id), eq(vocabItems.userId, userId)))
+    .where(and(eq(vocabItems.id, id), eq(vocabItems.createdBy, userId)))
     .returning({ id: vocabItems.id });
   if (result.length === 0) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });

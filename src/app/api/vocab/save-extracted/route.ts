@@ -131,6 +131,8 @@ export async function POST(req: Request) {
             .insert(vocabItems)
             .values({
               userId,
+              createdBy: userId,
+              // §3d: photo-extracted items are private by default (schema default).
               targetText: target,
               nativeText: native,
               targetTextNormalized: normalizeText(target),

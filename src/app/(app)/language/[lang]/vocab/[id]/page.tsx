@@ -5,6 +5,9 @@ import { vocabItems, vocabLessons, vocabTags, lessons, tags } from '@/db/schema'
 import { auth } from '@/lib/auth';
 import { VocabForm } from '@/components/vocab/vocab-form';
 import { VocabImageControls } from '@/components/vocab/vocab-image-controls';
+import { VisibilityToggle } from '@/components/vocab/visibility-toggle';
+import { DisplayNameGate } from '@/components/display-name-gate';
+import { canShare, type UserRole } from '@/lib/roles';
 import { storage } from '@/lib/storage';
 
 export default async function EditVocabPage({
@@ -14,7 +17,10 @@ export default async function EditVocabPage({
 }) {
   const { id } = await params;
   const session = await auth();
-  const userId = (session?.user as { id?: string } | undefined)?.id;
+  const sessionUser = session?.user as
+    | { id?: string; role?: UserRole; displayName?: string | null }
+    | undefined;
+  const userId = sessionUser?.id;
   if (!userId) notFound();
 
   const [item] = await db
@@ -69,6 +75,14 @@ export default async function EditVocabPage({
         initialStatus={imageStatus}
         initialOverride={item.imagePromptOverride}
       />
+      {canShare(sessionUser?.role ?? 'regular') && item.createdBy === userId && (
+        <DisplayNameGate userDisplayName={sessionUser?.displayName ?? null}>
+          <VisibilityToggle
+            vocabId={item.id}
+            initialVisibility={item.visibility as 'private' | 'shared'}
+          />
+        </DisplayNameGate>
+      )}
     </div>
   );
 }

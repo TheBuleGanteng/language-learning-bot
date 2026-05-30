@@ -29,6 +29,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { FilterAccordion } from '@/components/vocab/filter-accordion';
+import { VocabBulkShareDialog } from '@/components/vocab/bulk-share-dialog';
+import { DisplayNameGate } from '@/components/display-name-gate';
+import { canShare } from '@/lib/roles';
 import { colorForLesson, colorForTag } from '@/lib/colors';
 import { cn } from '@/lib/utils';
 import { vocabPath, lessonPath } from '@/lib/routes';
@@ -89,6 +92,9 @@ interface VocabItem {
   imageStorageKey: string | null;
   imageStatus: 'none' | 'generating' | 'completed' | 'refused' | 'failed';
   imageUrl: string | null;
+  createdBy: string | null;
+  createdByDisplayName: string | null;
+  visibility: 'private' | 'shared';
 }
 
 type ImageStatusFilter = 'all' | 'has' | 'none' | 'failed';
@@ -111,8 +117,11 @@ interface ListResponse {
   hasMore: boolean;
 }
 interface MeResponse {
+  id: string;
   targetLanguage: string;
   nativeLanguage: string;
+  role: 'regular' | 'admin' | 'superuser';
+  displayName: string | null;
 }
 
 function VocabInner() {
@@ -133,6 +142,7 @@ function VocabInner() {
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showBulkDialog, setShowBulkDialog] = useState(false);
+  const [showShareDialog, setShowShareDialog] = useState(false);
   const [batch, setBatch] = useState<BatchSnapshot | null>(null);
   const [previewItem, setPreviewItem] = useState<VocabItem | null>(null);
   // Bumping this state forces the fetch effect to re-run even when none of
@@ -144,6 +154,7 @@ function VocabInner() {
 
   const selectedLessons = useMemo(() => new Set(search.getAll('lesson')), [search]);
   const selectedTags = useMemo(() => new Set(search.getAll('tag')), [search]);
+  const selectedCreatedBy = useMemo(() => new Set(search.getAll('createdBy')), [search]);
   const mode: 'and' | 'or' = search.get('mode') === 'or' ? 'or' : 'and';
   const imageStatusFilter = parseImageStatusFilter(search.get('imageStatus'));
   const searchTerm = search.get('search') ?? '';
@@ -165,6 +176,16 @@ function VocabInner() {
     { id: 'tags', label: 'Tags' },
   ];
 
+  // Distinct creators among the currently-visible vocab — powers the
+  // "Created by" filter. Names fall back to the creator id when no display name.
+  const creatorOptions = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const i of items) {
+      if (i.createdBy) m.set(i.createdBy, i.createdByDisplayName ?? i.createdBy);
+    }
+    return [...m.entries()].map(([id, name]) => ({ id, name }));
+  }, [items]);
+
   const filterKey = useMemo(
     () =>
       [
@@ -176,6 +197,7 @@ function VocabInner() {
         imageStatusFilter,
         Array.from(selectedLessons).sort().join(','),
         Array.from(selectedTags).sort().join(','),
+        Array.from(selectedCreatedBy).sort().join(','),
       ].join('|'),
     [
       searchTerm,
@@ -186,6 +208,7 @@ function VocabInner() {
       imageStatusFilter,
       selectedLessons,
       selectedTags,
+      selectedCreatedBy,
     ],
   );
 
@@ -235,6 +258,7 @@ function VocabInner() {
     if (searchTerm) qs.set('search', searchTerm);
     for (const id of selectedLessons) qs.append('lesson', id);
     for (const id of selectedTags) qs.append('tag', id);
+    for (const id of selectedCreatedBy) qs.append('createdBy', id);
     if (imageStatusFilter !== 'all') qs.set('imageStatus', imageStatusFilter);
     qs.set('mode', mode);
     if (sortCol) {
@@ -260,6 +284,7 @@ function VocabInner() {
     searchTerm,
     selectedLessons,
     selectedTags,
+    selectedCreatedBy,
     mode,
     sortCol,
     sortOrder,
@@ -283,6 +308,12 @@ function VocabInner() {
     updateParams((p) => {
       p.delete('tag');
       for (const v of next) p.append('tag', v);
+    });
+  }
+  function setSelectedCreatedBy(next: Set<string>) {
+    updateParams((p) => {
+      p.delete('createdBy');
+      for (const v of next) p.append('createdBy', v);
     });
   }
   function setMode(m: 'and' | 'or') {
@@ -572,6 +603,15 @@ function VocabInner() {
           swatch={(o) => colorForTag(o.name)}
           emptyHint="No tags yet."
         />
+
+        <FilterAccordion
+          title="Created by"
+          slug="created-by"
+          options={creatorOptions}
+          selected={selectedCreatedBy}
+          onChange={setSelectedCreatedBy}
+          emptyHint="No creators to filter by yet."
+        />
       </aside>
 
       <section className="space-y-4">
@@ -634,6 +674,18 @@ function VocabInner() {
             >
               Generate Images for {selectedIds.size.toLocaleString()}
             </Button>
+            {me && canShare(me.role) && (
+              <DisplayNameGate userDisplayName={me.displayName}>
+                <Button
+                  size="xs"
+                  variant="outline"
+                  onClick={() => setShowShareDialog(true)}
+                  disabled={selectedIds.size === 0}
+                >
+                  Share / Unshare
+                </Button>
+              </DisplayNameGate>
+            )}
             <Button size="xs" variant="ghost" onClick={exitSelectionMode} className="ml-auto">
               Cancel
             </Button>
@@ -845,6 +897,13 @@ function VocabInner() {
         selectedCount={selectedIds.size}
         vocabIds={Array.from(selectedIds)}
         onConfirm={confirmBulkGenerate}
+      />
+
+      <VocabBulkShareDialog
+        open={showShareDialog}
+        onOpenChange={setShowShareDialog}
+        vocabIds={Array.from(selectedIds)}
+        onDone={() => setRefetchCounter((c) => c + 1)}
       />
 
       <ImagePreviewDialog

@@ -65,6 +65,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             inv: users.sessionsInvalidatedAt,
             target: users.targetLanguage,
             native: users.nativeLanguage,
+            role: users.role,
+            displayName: users.displayName,
           })
           .from(users)
           .where(eq(users.id, token.userId as string))
@@ -78,6 +80,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (row) {
           token.targetLanguage = normalizeLanguageCode(row.target);
           token.nativeLanguage = normalizeLanguageCode(row.native);
+          // Refreshed every request so role/displayName changes (role grants,
+          // setting a display name) take effect without re-login.
+          token.role = row.role ?? 'regular';
+          token.displayName = row.displayName ?? null;
         }
       }
       // `trigger` can be used by middleware-driven token updates if needed
@@ -96,10 +102,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           id?: string;
           targetLanguage?: string;
           nativeLanguage?: string;
+          role?: string;
+          displayName?: string | null;
         };
         u.id = token.userId as string;
         if (token.targetLanguage) u.targetLanguage = token.targetLanguage as string;
         if (token.nativeLanguage) u.nativeLanguage = token.nativeLanguage as string;
+        u.role = (token.role as string) ?? 'regular';
+        u.displayName = (token.displayName as string | null) ?? null;
       }
       return session;
     },

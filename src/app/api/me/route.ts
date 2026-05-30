@@ -17,9 +17,12 @@ export async function GET() {
 
   const [row] = await db
     .select({
+      id: users.id,
       email: users.email,
       targetLanguage: users.targetLanguage,
       nativeLanguage: users.nativeLanguage,
+      role: users.role,
+      displayName: users.displayName,
     })
     .from(users)
     .where(eq(users.id, userId))
@@ -27,8 +30,11 @@ export async function GET() {
   if (!row) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
   return NextResponse.json({
+    id: row.id,
     email: row.email,
     targetLanguage: normalizeLanguageCode(row.targetLanguage),
     nativeLanguage: normalizeLanguageCode(row.nativeLanguage),
+    role: row.role,
+    displayName: row.displayName,
   });
 }

@@ -6,16 +6,18 @@ import { lessons, vocabItems, vocabLessons } from '@/db/schema';
 import { auth } from '@/lib/auth';
 import { storage } from '@/lib/storage';
 import { planLessonDeletion, toSummary } from '@/lib/lesson-deletion';
+import { lessonVisibleSql } from '@/lib/visibility';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-async function requireUserOwnsLesson(userId: string, lessonId: string) {
+/** Returns the lesson's creator id, or undefined if the lesson doesn't exist. */
+async function getLessonCreator(lessonId: string): Promise<string | null | undefined> {
   const [row] = await db
-    .select({ id: lessons.id })
+    .select({ createdBy: lessons.createdBy })
     .from(lessons)
-    .where(and(eq(lessons.id, lessonId), eq(lessons.userId, userId)))
+    .where(eq(lessons.id, lessonId))
     .limit(1);
-  return !!row;
+  return row ? row.createdBy : undefined;
 }
 
 export async function GET(
@@ -33,7 +35,7 @@ export async function GET(
   const [row] = await db
     .select()
     .from(lessons)
-    .where(and(eq(lessons.id, lessonId), eq(lessons.userId, userId)))
+    .where(and(eq(lessons.id, lessonId), lessonVisibleSql(userId)))
     .limit(1);
   if (!row) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
@@ -63,8 +65,13 @@ export async function PATCH(
   if (!UUID_RE.test(lessonId)) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
-  if (!(await requireUserOwnsLesson(userId, lessonId))) {
+  // Ownership guard (§3b): only the creator may edit.
+  const creator = await getLessonCreator(lessonId);
+  if (creator === undefined) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
+  if (creator !== userId) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
   let body: unknown;

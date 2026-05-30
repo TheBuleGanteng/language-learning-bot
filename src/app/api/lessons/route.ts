@@ -5,6 +5,7 @@ import type { SQL } from 'drizzle-orm';
 import { db } from '@/db';
 import { lessons, vocabLessons } from '@/db/schema';
 import { auth } from '@/lib/auth';
+import { lessonVisibleSql } from '@/lib/visibility';
 
 const SORT_COLS = ['name', 'topic', 'date', 'vocab_count'] as const;
 type SortCol = (typeof SORT_COLS)[number];
@@ -49,7 +50,7 @@ export async function GET(req: Request) {
     })
     .from(lessons)
     .leftJoin(vocabLessons, eq(vocabLessons.lessonId, lessons.id))
-    .where(eq(lessons.userId, userId))
+    .where(lessonVisibleSql(userId))
     .groupBy(lessons.id)
     .orderBy(orderBy);
 
@@ -100,6 +101,8 @@ export async function POST(req: Request) {
     .insert(lessons)
     .values({
       userId,
+      createdBy: userId,
+      // visibility defaults to 'private'
       name: d.name.trim(),
       topic: d.topic ?? null,
       date: d.date ?? null,

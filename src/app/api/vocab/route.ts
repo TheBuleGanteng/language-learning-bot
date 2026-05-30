@@ -8,11 +8,13 @@ import {
   vocabLessons,
   lessons,
   tags,
+  users,
 } from '@/db/schema';
 import { auth } from '@/lib/auth';
 import { buildOrderBy } from '@/lib/vocab';
 import { storage } from '@/lib/storage';
 import { escapeRegex, normalizeText } from '@/lib/text-normalize';
+import { vocabVisibleSql } from '@/lib/visibility';
 
 const DEFAULT_PAGE_SIZE = 100;
 const ALLOWED_PAGE_SIZES = new Set([25, 50, 100]);
@@ -44,6 +46,10 @@ export async function GET(req: Request) {
   }
   const tagIds = url.searchParams.getAll('tag').filter((s) => UUID_RE.test(s));
   const mode = url.searchParams.get('mode') === 'or' ? 'or' : 'and';
+  // "Created by" filter (§4b): narrow to items authored by a specific user.
+  const createdByRaw = url.searchParams.get('createdBy');
+  const createdByFilter =
+    createdByRaw && UUID_RE.test(createdByRaw) ? createdByRaw : null;
 
   // imageStatus filter: 'has' (completed), 'none' (strict — only
   // image_status='none'), 'failed' (failed+refused). 'generating' is
@@ -60,7 +66,11 @@ export async function GET(req: Request) {
   // Accent-agnostic search: match on the normalized columns (diacritics
   // stripped, IPA mapped to Latin, lowercased) so `saai` finds `sǎai`.
   const qn = search ? normalizeText(search) : '';
-  const wheres = [eq(vocabItems.userId, userId)];
+  // Visibility: the viewer's own items plus shared items in their language.
+  const wheres = [vocabVisibleSql(userId)];
+  if (createdByFilter) {
+    wheres.push(eq(vocabItems.createdBy, createdByFilter));
+  }
   if (search) {
     wheres.push(
       or(
@@ -181,6 +191,17 @@ export async function GET(req: Request) {
   const hasMore =
     pageSize === 'all' ? false : (page - 1) * pageSize + items.length < total;
 
+  // Resolve creator display names (fall back to email) for the "Created by"
+  // column/filter (§4b).
+  const creatorIds = [...new Set(items.map((i) => i.createdBy).filter((v): v is string => !!v))];
+  const creators = creatorIds.length
+    ? await db
+        .select({ id: users.id, displayName: users.displayName, email: users.email })
+        .from(users)
+        .where(inArray(users.id, creatorIds))
+    : [];
+  const creatorMap = new Map(creators.map((c) => [c.id, c.displayName ?? c.email]));
+
   const store = storage();
   // Vocab images are public (written via putPublic), so resolve them to their
   // stable public URL. This is synchronous and cannot throw — unlike per-row
@@ -190,6 +211,7 @@ export async function GET(req: Request) {
     ...i,
     lessons: lessonMap.get(i.id) ?? [],
     tags: tagMap.get(i.id) ?? [],
+    createdByDisplayName: i.createdBy ? (creatorMap.get(i.createdBy) ?? null) : null,
     imageUrl: i.imageStorageKey ? store.publicUrl(i.imageStorageKey) : null,
   }));
 
@@ -241,6 +263,8 @@ export async function POST(req: Request) {
       .insert(vocabItems)
       .values({
         userId,
+        createdBy: userId,
+        // visibility defaults to 'private' (new content is private by default)
         targetText: d.targetText,
         nativeText: d.nativeText,
         targetTextNormalized: normalizeText(d.targetText),

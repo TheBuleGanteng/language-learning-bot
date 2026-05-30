@@ -26,7 +26,7 @@ export async function DELETE(
   const [item] = await db
     .select()
     .from(vocabItems)
-    .where(and(eq(vocabItems.id, id), eq(vocabItems.userId, userId)))
+    .where(and(eq(vocabItems.id, id), eq(vocabItems.createdBy, userId)))
     .limit(1);
   if (!item) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 

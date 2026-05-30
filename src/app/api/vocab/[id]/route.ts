@@ -6,6 +6,7 @@ import { vocabItems, vocabTags, vocabLessons, lessons, tags } from '@/db/schema'
 import { auth } from '@/lib/auth';
 import { storage } from '@/lib/storage';
 import { normalizeText } from '@/lib/text-normalize';
+import { vocabVisibleSql } from '@/lib/visibility';
 
 async function getUserId() {
   const session = await auth();
@@ -20,7 +21,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
   const [item] = await db
     .select()
     .from(vocabItems)
-    .where(and(eq(vocabItems.id, id), eq(vocabItems.userId, userId)))
+    .where(and(eq(vocabItems.id, id), vocabVisibleSql(userId)))
     .limit(1);
   if (!item) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
@@ -81,11 +82,23 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   }
   const d = parsed.data;
 
+  // Ownership guard (§3b): only the creator may edit. 404 if it doesn't exist,
+  // 403 if it exists but belongs to someone else.
+  const [owner] = await db
+    .select({ createdBy: vocabItems.createdBy })
+    .from(vocabItems)
+    .where(eq(vocabItems.id, id))
+    .limit(1);
+  if (!owner) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  if (owner.createdBy !== userId) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   await db.transaction(async (tx) => {
     const [existing] = await tx
       .select({ id: vocabItems.id })
       .from(vocabItems)
-      .where(and(eq(vocabItems.id, id), eq(vocabItems.userId, userId)))
+      .where(eq(vocabItems.id, id))
       .limit(1);
     if (!existing) throw new Error('NOT_FOUND');
 
@@ -155,12 +168,17 @@ export async function DELETE(_req: Request, ctx: { params: Promise<{ id: string 
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const { id } = await ctx.params;
 
-  const result = await db
-    .delete(vocabItems)
-    .where(and(eq(vocabItems.id, id), eq(vocabItems.userId, userId)))
-    .returning({ id: vocabItems.id });
-  if (result.length === 0) {
-    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  // Ownership guard (§3b): only the creator may delete.
+  const [owner] = await db
+    .select({ createdBy: vocabItems.createdBy })
+    .from(vocabItems)
+    .where(eq(vocabItems.id, id))
+    .limit(1);
+  if (!owner) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  if (owner.createdBy !== userId) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
+
+  await db.delete(vocabItems).where(eq(vocabItems.id, id));
   return NextResponse.json({ ok: true });
 }

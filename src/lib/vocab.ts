@@ -50,7 +50,7 @@ export async function findOrCreateLesson(
   if (existing) return existing.id;
   const [created] = await tx
     .insert(lessons)
-    .values({ userId, name: trimmed })
+    .values({ userId, createdBy: userId, name: trimmed })
     .returning({ id: lessons.id });
   return created.id;
 }
@@ -71,7 +71,7 @@ export async function findOrCreateTags(
   if (missing.length > 0) {
     const created = await tx
       .insert(tags)
-      .values(missing.map((name) => ({ userId, name })))
+      .values(missing.map((name) => ({ userId, createdBy: userId, name })))
       .returning({ id: tags.id, name: tags.name });
     for (const t of created) existingMap.set(t.name, t.id);
   }

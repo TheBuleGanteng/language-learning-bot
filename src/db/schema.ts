@@ -1,6 +1,8 @@
 import {
   pgTable,
+  pgEnum,
   text,
+  varchar,
   timestamp,
   uuid,
   integer,
@@ -16,6 +18,13 @@ import {
 import { sql } from 'drizzle-orm';
 
 // =============================================================================
+// enums — role-based admin + content visibility (Feature A)
+// =============================================================================
+
+export const userRoleEnum = pgEnum('user_role', ['regular', 'admin', 'superuser']);
+export const visibilityEnum = pgEnum('visibility', ['private', 'shared']);
+
+// =============================================================================
 // users
 // =============================================================================
 
@@ -26,6 +35,11 @@ export const users = pgTable('users', {
   emailVerifiedAt: timestamp('email_verified_at', { withTimezone: true }),
   targetLanguage: text('target_language').notNull().default('th'),
   nativeLanguage: text('native_language').notNull().default('en'),
+  // Role-based admin (Feature A). Display name is the public identity shown on
+  // shared content; nullable until the user sets one, unique (case-insensitive
+  // uniqueness is enforced in the API).
+  role: userRoleEnum('role').notNull().default('regular'),
+  displayName: varchar('display_name', { length: 50 }).unique(),
   // Bumped on password reset / "sign out everywhere". JWTs whose `iat` is
   // earlier than this timestamp are rejected in the auth callback. This is
   // how we invalidate sessions under a stateless JWT strategy.
@@ -149,6 +163,9 @@ export const lessons = pgTable(
     lessonNumber: integer('lesson_number'),
     topic: text('topic'),
     date: date('date'),
+    // Feature A: original author + share visibility.
+    createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+    visibility: visibilityEnum('visibility').notNull().default('private'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [uniqueIndex('lessons_user_id_name_unique').on(t.userId, t.name)],
@@ -167,6 +184,9 @@ export const tags = pgTable(
       .references(() => users.id, { onDelete: 'cascade' }),
     name: text('name').notNull(),
     color: text('color'),
+    // Feature A: original author + share visibility.
+    createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+    visibility: visibilityEnum('visibility').notNull().default('private'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [uniqueIndex('tags_user_id_name_unique').on(t.userId, t.name)],
@@ -201,11 +221,16 @@ export const vocabItems = pgTable(
     imagePromptOverride: text('image_prompt_override'),
     imageProvider: text('image_provider'),
     imageModel: text('image_model'),
+    // Feature A: original author + share visibility.
+    createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+    visibility: visibilityEnum('visibility').notNull().default('private'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     index('vocab_items_user_created_idx').on(t.userId, t.createdAt.desc()),
+    index('vocab_items_created_by_idx').on(t.createdBy),
+    index('vocab_items_visibility_idx').on(t.visibility),
     index('vocab_target_normalized_idx').on(t.targetTextNormalized),
     index('vocab_native_normalized_idx').on(t.nativeTextNormalized),
     check(

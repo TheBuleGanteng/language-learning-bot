@@ -57,6 +57,13 @@
       "when": 1780112607194,
       "tag": "0007_glamorous_proudstar",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1780135739508,
+      "tag": "0008_stormy_micromax",
+      "breakpoints": true
     }
   ]
 }
