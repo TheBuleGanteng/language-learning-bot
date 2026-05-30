@@ -1125,3 +1125,43 @@ Shipped via DEPLOY_CLAUDE.md: pushed project repo (`8c57825`), bumped the
 `vm-infrastructure` submodule pointer, rebuilt + force-recreated the
 `language-learning-bot` container on the VM, then applied the pending Feature A
 migration as above. Prod verified healthy (`HTTP/2 200`, clean logs).
+
+## 2026-05-30 — Feature B: Flashcards (FSRS decks)
+
+Added Anki-style flashcard decks with FSRS scheduling: schema (decks,
+deck_items, card_reviews, study_sessions + 3 enums; migration `0009`), `ts-fsrs`
+integration, 8 deck API endpoints, a "Learn" navbar dropdown, deck list page,
+deck-builder mode + BulkSelectBar "Add to deck"/"Create deck", and a study
+session page (flip, ratings, completion, nothing-due, mobile full-screen).
+
+### Bug — ts-fsrs Card type mismatches broke the build
+**Symptom:** `tsc` failed on `src/lib/fsrs.ts`: (1) `Rating` not assignable to
+the `Grade` parameter of `scheduler.next()`; (2) `last_elapsed_days` is not a
+property of `Card`; (3) `learning_steps` is a required `Card` property.
+**Root cause:** The spec's wrapper sketch was written against an older/assumed
+ts-fsrs shape. Installed `ts-fsrs@5.4.1` differs: `next()` accepts `Grade`
+(ratings excluding `Manual`), `Card` has no `last_elapsed_days`, and ≥5 adds a
+required `learning_steps` field.
+**Fix:** Cast the rating to `Grade` in `scheduleCard` (callers only pass
+Again/Hard/Good/Easy), dropped `last_elapsed_days`, and defaulted
+`learning_steps: 0` in `dbRowToCard` (the Feature B schema doesn't persist it —
+acceptable for vocab review). `tsc`/`pnpm build` then passed clean.
+
+### Bug — FSRS card state would have persisted as a numeric string
+**Symptom:** Caught in review before shipping: ts-fsrs `Card.state` is the
+numeric `State` enum (New=0…), but `card_reviews.state` is a `varchar` storing
+the name ('New', 'Learning', …). The spec's `String(card.state)` would have
+written "0" and then failed to round-trip.
+**Root cause:** `State` is a numeric enum; `String(0)` ≠ `'New'`.
+**Fix:** Added `stateNameToEnum`/`stateEnumToName` helpers in `src/lib/fsrs.ts`
+to convert both directions explicitly.
+
+### Deploy
+Pre-flight: committed + deployed a pending `settings/page.tsx` `withBase()` fix
+(`2f3e981`) and verified `HTTP 200`. Feature B: pushed project repo (`54ae118`),
+bumped the submodule, then — with explicit user confirmation per the prod-migration
+rule — backed up prod (`pg_dump -Fc` → `llb-pre-0009-*.dump`), applied the
+additive migration `0009` (4 tables + 3 enums, no data mutation) via drizzle-kit
+over an SSH tunnel (10/10 applied), and rebuilt + force-recreated the container.
+Verified: 4 new tables present, `HTTP/2 200`, `/api/decks` returns 401 (not 500),
+zero error lines after restart.
