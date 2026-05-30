@@ -198,7 +198,7 @@ function VocabInner() {
       toast.error("You're not studying that language yet. Set it up in Settings.");
       const next = new URLSearchParams(search.toString());
       next.delete('notice');
-      router.replace(`${vocabPath(lang)}${next.size ? `?${next}` : ''}`);
+      router.replace(`${vocabPath(lang)}${next.size ? `?${next}` : ''}`, { scroll: false });
     }
     // run on first paint only — subsequent edits are user-driven
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -270,7 +270,7 @@ function VocabInner() {
   function updateParams(mut: (p: URLSearchParams) => void) {
     const p = new URLSearchParams(search.toString());
     mut(p);
-    router.push(`${vocabPath(lang)}?${p.toString()}`);
+    router.push(`${vocabPath(lang)}?${p.toString()}`, { scroll: false });
   }
 
   function setSelectedLessons(next: Set<string>) {
@@ -289,7 +289,7 @@ function VocabInner() {
     updateParams((p) => p.set('mode', m));
   }
   function clearFilters() {
-    router.push(vocabPath(lang));
+    router.push(vocabPath(lang), { scroll: false });
   }
   function setPageSize(ps: PageSizeOption) {
     updateParams((p) => {
