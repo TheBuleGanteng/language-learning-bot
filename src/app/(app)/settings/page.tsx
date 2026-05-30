@@ -136,7 +136,7 @@ export default function SettingsPage() {
   });
 
   async function load(revealProvider?: Provider) {
-    const url = revealProvider ? `/api/settings?reveal=${revealProvider}` : '/api/settings';
+    const url = revealProvider ? withBase(`/api/settings?reveal=${revealProvider}`) : withBase('/api/settings');
     const res = await fetch(url);
     if (!res.ok) {
       toast.error('Failed to load settings');
