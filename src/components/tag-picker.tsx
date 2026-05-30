@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { MultiSelectChips, type NameId } from '@/components/multi-select-chips';
 import { colorForTag } from '@/lib/colors';
+import { withBase } from '@/lib/base-path';
 
 interface TagPickerProps {
   selectedTagIds: string[];
@@ -28,7 +29,7 @@ export function TagPicker({ selectedTagIds, onChange }: TagPickerProps) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch('/api/tags')
+    fetch(withBase('/api/tags'))
       .then((r) => r.json())
       .then((d: { tags?: NameId[] }) => setOptions(d.tags ?? []))
       .catch(() => setOptions([]));
@@ -51,7 +52,7 @@ export function TagPicker({ selectedTagIds, onChange }: TagPickerProps) {
     setSaving(true);
     setError(null);
     try {
-      const res = await fetch('/api/tags', {
+      const res = await fetch(withBase('/api/tags'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: trimmed }),

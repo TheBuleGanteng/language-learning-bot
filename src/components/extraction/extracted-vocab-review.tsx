@@ -22,6 +22,7 @@ import type { ExtractedRow } from '@/lib/extraction';
 import { NewLessonDialog } from '@/components/new-lesson-dialog';
 import { MultiSelectChips, type NameId } from '@/components/multi-select-chips';
 import { toast } from 'sonner';
+import { withBase } from '@/lib/base-path';
 
 interface ReviewRow {
   id: string;
@@ -79,8 +80,8 @@ export function ExtractedVocabReview({
 
   useEffect(() => {
     Promise.all([
-      fetch('/api/tags').then((r) => r.json()),
-      fetch('/api/lessons').then((r) => r.json()),
+      fetch(withBase('/api/tags')).then((r) => r.json()),
+      fetch(withBase('/api/lessons')).then((r) => r.json()),
     ]).then(([t, l]) => {
       setAllTags((t.tags ?? []) as NameId[]);
       setAllLessons((l.lessons ?? []) as NameId[]);
@@ -191,7 +192,7 @@ export function ExtractedVocabReview({
     }
     setSaving(true);
     try {
-      const res = await fetch('/api/vocab/save-extracted', {
+      const res = await fetch(withBase('/api/vocab/save-extracted'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ rows: payload }),

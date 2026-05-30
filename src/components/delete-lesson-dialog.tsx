@@ -9,6 +9,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import type { DeletionSummary } from '@/lib/lesson-deletion';
+import { withBase } from '@/lib/base-path';
 
 interface DeleteLessonDialogProps {
   open: boolean;
@@ -36,7 +37,7 @@ export function DeleteLessonDialog({
     setLoadError(null);
     setDeleteError(null);
     setDeleting(false);
-    fetch(`/api/lessons/${lessonId}/deletion-preview`)
+    fetch(withBase(`/api/lessons/${lessonId}/deletion-preview`))
       .then(async (res) => {
         if (!res.ok) {
           const d = await res.json().catch(() => ({}));
@@ -60,7 +61,7 @@ export function DeleteLessonDialog({
     setDeleting(true);
     setDeleteError(null);
     try {
-      const res = await fetch(`/api/lessons/${lessonId}`, { method: 'DELETE' });
+      const res = await fetch(withBase(`/api/lessons/${lessonId}`), { method: 'DELETE' });
       if (!res.ok) {
         const d = await res.json().catch(() => ({}));
         throw new Error(d.error ?? 'Failed to delete lesson');

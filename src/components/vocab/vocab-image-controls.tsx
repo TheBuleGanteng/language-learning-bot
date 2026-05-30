@@ -16,6 +16,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
+import { withBase } from '@/lib/base-path';
 
 interface Props {
   vocabId: string;
@@ -44,7 +45,7 @@ export function VocabImageControls({
     setGenerating(true);
     setStatus('generating');
     try {
-      const res = await fetch(`/api/vocab/${vocabId}/image/generate`, { method: 'POST' });
+      const res = await fetch(withBase(`/api/vocab/${vocabId}/image/generate`), { method: 'POST' });
       const data = await res.json().catch(() => ({}));
       if (res.status === 402) {
         toast.error(data?.message ?? 'Hard stop reached.');
@@ -70,7 +71,7 @@ export function VocabImageControls({
   }
 
   async function fireDelete() {
-    const res = await fetch(`/api/vocab/${vocabId}/image`, { method: 'DELETE' });
+    const res = await fetch(withBase(`/api/vocab/${vocabId}/image`), { method: 'DELETE' });
     if (!res.ok) {
       toast.error('Delete failed');
       return;
@@ -85,7 +86,7 @@ export function VocabImageControls({
   async function saveOverride(nextValue: string | null) {
     setSavingOverride(true);
     try {
-      const res = await fetch(`/api/vocab/${vocabId}/image-prompt-override`, {
+      const res = await fetch(withBase(`/api/vocab/${vocabId}/image-prompt-override`), {
         method: 'PATCH',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ override: nextValue }),

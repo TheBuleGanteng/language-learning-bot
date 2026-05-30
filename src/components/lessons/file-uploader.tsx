@@ -5,6 +5,7 @@ import { useDropzone } from 'react-dropzone';
 import { Upload } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { withBase } from '@/lib/base-path';
 
 interface Props {
   lessonId: string;
@@ -47,7 +48,7 @@ export function FileUploader({
         const fd = new FormData();
         fd.append('file', file);
         fd.append('kind', kind);
-        const res = await fetch(`/api/lessons/${lessonId}/files/upload`, {
+        const res = await fetch(withBase(`/api/lessons/${lessonId}/files/upload`), {
           method: 'POST',
           body: fd,
         });

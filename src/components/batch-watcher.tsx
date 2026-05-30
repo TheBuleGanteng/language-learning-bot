@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { vocabPath } from '@/lib/routes';
+import { withBase } from '@/lib/base-path';
 
 interface PendingNotification {
   batchId: string;
@@ -71,7 +72,7 @@ export function BatchWatcher({ userLang }: Props) {
   const poll = useCallback(async () => {
     if (cancelledRef.current) return;
     try {
-      const res = await fetch('/api/vocab/active-batch');
+      const res = await fetch(withBase('/api/vocab/active-batch'));
       if (!res.ok) {
         schedule(POLL_BACKOFF_MS);
         return;
@@ -112,7 +113,7 @@ export function BatchWatcher({ userLang }: Props) {
       if (!prev) return null;
       // Best-effort fire-and-forget — if the POST fails the next poll
       // will resurface the same notification.
-      void fetch('/api/vocab/active-batch/dismiss', {
+      void fetch(withBase('/api/vocab/active-batch/dismiss'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ batchId: prev.batchId }),

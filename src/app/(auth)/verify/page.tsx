@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { withBase } from '@/lib/base-path';
 
 function VerifyInner() {
   const router = useRouter();
@@ -22,7 +23,7 @@ function VerifyInner() {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch('/api/auth/verify', {
+        const res = await fetch(withBase('/api/auth/verify'), {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({ token }),

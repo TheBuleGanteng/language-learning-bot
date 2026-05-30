@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { withBase } from '@/lib/base-path';
 
 interface ImportResult {
   inserted: number;
@@ -80,7 +81,7 @@ export default function ImportPage() {
     try {
       const fd = new FormData();
       fd.append('file', file);
-      const res = await fetch('/api/vocab/import', { method: 'POST', body: fd });
+      const res = await fetch(withBase('/api/vocab/import'), { method: 'POST', body: fd });
       const data = await res.json();
       if (!res.ok) {
         toast.error(data?.error ?? 'Import failed');

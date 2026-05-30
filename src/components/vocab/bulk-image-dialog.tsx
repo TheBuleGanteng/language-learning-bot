@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { withBase } from '@/lib/base-path';
 
 interface SpendSnapshot {
   currentSpend: number;
@@ -53,7 +54,7 @@ export function BulkImageDialog({
   useEffect(() => {
     if (!open) return;
     setSpend(null);
-    fetch('/api/settings/image-spend')
+    fetch(withBase('/api/settings/image-spend'))
       .then((r) => (r.ok ? r.json() : null))
       .then((s) => setSpend(s ?? null));
   }, [open]);

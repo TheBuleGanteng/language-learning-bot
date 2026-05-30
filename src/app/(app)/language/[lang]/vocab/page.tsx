@@ -52,6 +52,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
+import { withBase } from '@/lib/base-path';
 
 type SortCol = 'thai' | 'english' | 'lessons' | 'tags';
 type SortOrder = 'asc' | 'desc';
@@ -206,9 +207,9 @@ function VocabInner() {
   useEffect(() => {
     (async () => {
       const [lr, tr, mr] = await Promise.all([
-        fetch('/api/lessons').then((r) => r.json()),
-        fetch('/api/tags').then((r) => r.json()),
-        fetch('/api/me').then((r) => r.json()),
+        fetch(withBase('/api/lessons')).then((r) => r.json()),
+        fetch(withBase('/api/tags')).then((r) => r.json()),
+        fetch(withBase('/api/me')).then((r) => r.json()),
       ]);
       setLessons(lr.lessons ?? []);
       setTags(tr.tags ?? []);
@@ -240,7 +241,7 @@ function VocabInner() {
       qs.set('sort', sortCol);
       qs.set('order', sortOrder);
     }
-    fetch(`/api/vocab?${qs.toString()}`)
+    fetch(withBase(`/api/vocab?${qs.toString()}`))
       .then((r) => r.json())
       .then((d: ListResponse) => {
         setTotal(d.total);
@@ -336,7 +337,7 @@ function VocabInner() {
 
   async function doDelete() {
     if (!deleteId) return;
-    const res = await fetch(`/api/vocab/${deleteId}`, { method: 'DELETE' });
+    const res = await fetch(withBase(`/api/vocab/${deleteId}`), { method: 'DELETE' });
     if (res.ok) {
       toast.success('Deleted');
       setItems((prev) => prev.filter((i) => i.id !== deleteId));
@@ -401,7 +402,7 @@ function VocabInner() {
   function startPolling() {
     if (pollingRef.current) clearInterval(pollingRef.current);
     pollingRef.current = setInterval(async () => {
-      const res = await fetch('/api/vocab/generation-status');
+      const res = await fetch(withBase('/api/vocab/generation-status'));
       if (!res.ok) return;
       const data = (await res.json()) as { batch: BatchSnapshot | null };
       setBatch(data.batch);
@@ -424,7 +425,7 @@ function VocabInner() {
   // On first paint, hydrate any in-flight batch — survives page reload.
   useEffect(() => {
     (async () => {
-      const res = await fetch('/api/vocab/generation-status');
+      const res = await fetch(withBase('/api/vocab/generation-status'));
       if (!res.ok) return;
       const data = (await res.json()) as { batch: BatchSnapshot | null };
       if (data.batch?.inFlight) {
@@ -436,7 +437,7 @@ function VocabInner() {
   }, []);
 
   async function confirmBulkGenerate(vocabIds: string[]) {
-    const res = await fetch('/api/vocab/generate-images', {
+    const res = await fetch(withBase('/api/vocab/generate-images'), {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ vocabIds }),
@@ -477,7 +478,7 @@ function VocabInner() {
   }
 
   async function cancelBatch() {
-    await fetch('/api/vocab/generation-status', { method: 'DELETE' });
+    await fetch(withBase('/api/vocab/generation-status'), { method: 'DELETE' });
     toast.message('Stopping batch — items already in flight will still finish.');
   }
 

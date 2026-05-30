@@ -24,6 +24,7 @@ import { DeleteLessonDialog } from '@/components/delete-lesson-dialog';
 import { Camera, Trash2 } from 'lucide-react';
 import { languageName } from '@/lib/languages';
 import { flashcardsPath, chatPath, lessonsPath } from '@/lib/routes';
+import { withBase } from '@/lib/base-path';
 
 interface LessonShape {
   id: string;
@@ -40,7 +41,7 @@ interface Props {
 }
 
 async function patchLesson(lessonId: string, body: Record<string, unknown>) {
-  const res = await fetch(`/api/lessons/${lessonId}`, {
+  const res = await fetch(withBase(`/api/lessons/${lessonId}`), {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
@@ -71,7 +72,7 @@ export function LessonDetailClient({ lang, lesson, initialVocabCount }: Props) {
   );
 
   useEffect(() => {
-    fetch('/api/me')
+    fetch(withBase('/api/me'))
       .then((r) => (r.ok ? r.json() : null))
       .then((mr) => setMe(mr ?? null));
   }, []);

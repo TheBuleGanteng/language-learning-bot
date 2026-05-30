@@ -10,6 +10,7 @@ import { ConfirmDeleteDialog } from './confirm-delete-dialog';
 import { RichTextEditor } from '@/components/rich-text-editor';
 import { RenderedHtml } from '@/components/rendered-html';
 import { stripHtml } from '@/lib/strip-html';
+import { withBase } from '@/lib/base-path';
 
 interface Props {
   lessonId: string;
@@ -36,7 +37,7 @@ export function LinksSection({ lessonId, onCountChange }: Props) {
   const [expandedYt, setExpandedYt] = useState<Set<string>>(new Set());
 
   const load = useCallback(async () => {
-    const res = await fetch(`/api/lessons/${lessonId}/links`);
+    const res = await fetch(withBase(`/api/lessons/${lessonId}/links`));
     if (!res.ok) return;
     const data = (await res.json()) as { links: LinkRow[] };
     setLinks(data.links);
@@ -55,7 +56,7 @@ export function LinksSection({ lessonId, onCountChange }: Props) {
       // Notes is HTML from the rich text editor — send as-is if it has any
       // visible content, otherwise omit so the API stores null.
       const notesHtml = stripHtml(notes).trim() ? notes : undefined;
-      const res = await fetch(`/api/lessons/${lessonId}/links`, {
+      const res = await fetch(withBase(`/api/lessons/${lessonId}/links`), {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
@@ -80,7 +81,7 @@ export function LinksSection({ lessonId, onCountChange }: Props) {
 
   async function doDelete() {
     if (!pending) return;
-    const res = await fetch(`/api/lessons/${lessonId}/links/${pending.id}`, {
+    const res = await fetch(withBase(`/api/lessons/${lessonId}/links/${pending.id}`), {
       method: 'DELETE',
     });
     if (!res.ok) {

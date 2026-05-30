@@ -16,6 +16,7 @@ import { PhotoUploader } from './photo-uploader';
 import { ExtractedVocabReview } from './extracted-vocab-review';
 import type { ExtractedRow } from '@/lib/extraction';
 import { toast } from 'sonner';
+import { withBase } from '@/lib/base-path';
 
 interface Props {
   open: boolean;
@@ -72,7 +73,7 @@ export function ExtractionFlow({
           new File([p.blob], p.filename, { type: p.mimeType }),
         );
       }
-      const res = await fetch('/api/vocab/extract-from-photos', {
+      const res = await fetch(withBase('/api/vocab/extract-from-photos'), {
         method: 'POST',
         body: fd,
       });

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { FileUploader } from './file-uploader';
 import { ConfirmDeleteDialog } from './confirm-delete-dialog';
+import { withBase } from '@/lib/base-path';
 
 interface Props {
   lessonId: string;
@@ -39,7 +40,7 @@ export function NotesSection({ lessonId, onCountChange }: Props) {
   const [pending, setPending] = useState<FileRow | null>(null);
 
   const load = useCallback(async () => {
-    const res = await fetch(`/api/lessons/${lessonId}/files`);
+    const res = await fetch(withBase(`/api/lessons/${lessonId}/files`));
     if (!res.ok) return;
     const data = (await res.json()) as { files: FileRow[] };
     const pdfs = data.files.filter((f) => f.kind === 'pdf');
@@ -53,7 +54,7 @@ export function NotesSection({ lessonId, onCountChange }: Props) {
 
   async function doDelete() {
     if (!pending) return;
-    const res = await fetch(`/api/lessons/${lessonId}/files/${pending.id}`, {
+    const res = await fetch(withBase(`/api/lessons/${lessonId}/files/${pending.id}`), {
       method: 'DELETE',
     });
     if (!res.ok) {

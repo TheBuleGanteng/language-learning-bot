@@ -6,6 +6,7 @@ import 'react-h5-audio-player/lib/styles.css';
 import { Button } from '@/components/ui/button';
 import { FileUploader } from './file-uploader';
 import { ConfirmDeleteDialog } from './confirm-delete-dialog';
+import { withBase } from '@/lib/base-path';
 
 interface Props {
   lessonId: string;
@@ -41,7 +42,7 @@ export function AudioSection({ lessonId, onCountChange }: Props) {
   const [pending, setPending] = useState<FileRow | null>(null);
 
   const load = useCallback(async () => {
-    const res = await fetch(`/api/lessons/${lessonId}/files`);
+    const res = await fetch(withBase(`/api/lessons/${lessonId}/files`));
     if (!res.ok) return;
     const data = (await res.json()) as { files: FileRow[] };
     const audio = data.files.filter((f) => f.kind === 'audio');
@@ -55,7 +56,7 @@ export function AudioSection({ lessonId, onCountChange }: Props) {
 
   async function doDelete() {
     if (!pending) return;
-    const res = await fetch(`/api/lessons/${lessonId}/files/${pending.id}`, {
+    const res = await fetch(withBase(`/api/lessons/${lessonId}/files/${pending.id}`), {
       method: 'DELETE',
     });
     if (!res.ok) {

@@ -22,6 +22,7 @@ import { NewLessonDialog } from '@/components/new-lesson-dialog';
 import { DeleteLessonDialog } from '@/components/delete-lesson-dialog';
 import { lessonPath } from '@/lib/routes';
 import { stripHtml } from '@/lib/strip-html';
+import { withBase } from '@/lib/base-path';
 
 interface LessonRow {
   id: string;
@@ -75,7 +76,7 @@ export function LessonsIndexClient({ lang }: Props) {
       qs.set('sort', sortCol);
       qs.set('order', sortOrder);
     }
-    fetch(`/api/lessons?${qs.toString()}`)
+    fetch(withBase(`/api/lessons?${qs.toString()}`))
       .then((r) => r.json())
       .then((d: { lessons: LessonRow[] }) => setRows(d.lessons ?? []))
       .finally(() => setLoading(false));

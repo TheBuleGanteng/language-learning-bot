@@ -45,6 +45,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
+import { withBase } from '@/lib/base-path';
 
 type SortCol = 'thai' | 'english' | 'lessons' | 'tags';
 type SortOrder = 'asc' | 'desc';
@@ -116,7 +117,7 @@ export function VocabTable({
   );
 
   useEffect(() => {
-    fetch('/api/me')
+    fetch(withBase('/api/me'))
       .then((r) => (r.ok ? r.json() : null))
       .then((mr) => setMe(mr ?? null));
   }, []);
@@ -142,7 +143,7 @@ export function VocabTable({
       qs.set('sort', sortCol);
       qs.set('order', sortOrder);
     }
-    fetch(`/api/vocab?${qs.toString()}`)
+    fetch(withBase(`/api/vocab?${qs.toString()}`))
       .then((r) => r.json())
       .then(
         (d: {
@@ -191,7 +192,7 @@ export function VocabTable({
 
   async function doDelete() {
     if (!deleteId) return;
-    const res = await fetch(`/api/vocab/${deleteId}`, { method: 'DELETE' });
+    const res = await fetch(withBase(`/api/vocab/${deleteId}`), { method: 'DELETE' });
     if (res.ok) {
       toast.success('Deleted');
       setItems((prev) => prev.filter((i) => i.id !== deleteId));

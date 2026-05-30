@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RichTextEditor } from '@/components/rich-text-editor';
 import { lessonPath } from '@/lib/routes';
+import { withBase } from '@/lib/base-path';
 
 interface NewLessonDialogProps {
   open: boolean;
@@ -52,7 +53,7 @@ export function NewLessonDialog({
     setSaving(true);
     setError(null);
     try {
-      const res = await fetch('/api/lessons', {
+      const res = await fetch(withBase('/api/lessons'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

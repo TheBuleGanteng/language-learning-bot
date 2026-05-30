@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { MultiSelectChips, type NameId } from '@/components/multi-select-chips';
 import { NewLessonDialog } from '@/components/new-lesson-dialog';
 import { colorForLesson } from '@/lib/colors';
+import { withBase } from '@/lib/base-path';
 
 interface LessonPickerProps {
   selectedLessonIds: string[];
@@ -23,7 +24,7 @@ export function LessonPicker({ selectedLessonIds, onChange, lang }: LessonPicker
   const [newLessonOpen, setNewLessonOpen] = useState(false);
 
   useEffect(() => {
-    fetch('/api/lessons')
+    fetch(withBase('/api/lessons'))
       .then((r) => r.json())
       .then((d: { lessons?: NameId[] }) => setOptions(d.lessons ?? []))
       .catch(() => setOptions([]));

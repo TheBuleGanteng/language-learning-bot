@@ -41,6 +41,7 @@ import {
 } from '@/lib/extraction/catalog';
 import { useRouter } from 'next/navigation';
 import { useFieldAutoSave, SaveStatus } from '@/components/save-status';
+import { withBase } from '@/lib/base-path';
 
 interface KeyInfo {
   masked: string;
@@ -146,7 +147,7 @@ export default function SettingsPage() {
   }
 
   async function loadSpend() {
-    const res = await fetch('/api/settings/image-spend');
+    const res = await fetch(withBase('/api/settings/image-spend'));
     if (!res.ok) return;
     setSpend((await res.json()) as SpendSnapshot);
   }
@@ -157,7 +158,7 @@ export default function SettingsPage() {
   }, []);
 
   async function patchOrThrow(body: Record<string, unknown>) {
-    const res = await fetch('/api/settings', {
+    const res = await fetch(withBase('/api/settings'), {
       method: 'PATCH',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(body),
@@ -171,7 +172,7 @@ export default function SettingsPage() {
   async function patchForKey(body: Record<string, unknown>) {
     setBusy(true);
     try {
-      const res = await fetch('/api/settings', {
+      const res = await fetch(withBase('/api/settings'), {
         method: 'PATCH',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify(body),
@@ -214,7 +215,7 @@ export default function SettingsPage() {
       setReveal({ ...reveal, [provider]: false });
       return;
     }
-    const res = await fetch(`/api/settings?reveal=${provider}`);
+    const res = await fetch(withBase(`/api/settings?reveal=${provider}`));
     if (!res.ok) {
       toast.error('Failed to fetch key');
       return;
