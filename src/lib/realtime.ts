@@ -12,7 +12,8 @@ const REALTIME_URL = 'https://api.openai.com/v1/realtime';
 const APPROX_USD_PER_MINUTE = 0.3;
 
 export interface RealtimeSessionConfig {
-  openaiApiKey: string;
+  /** Short-lived ephemeral token from /api/avatar/token (NOT the raw key). */
+  ephemeralToken: string;
   systemPrompt: string;
   onSpeaking: () => void;
   onListening: () => void;
@@ -71,7 +72,7 @@ export class RealtimeSession {
         method: 'POST',
         body: offer.sdp,
         headers: {
-          Authorization: `Bearer ${this.config.openaiApiKey}`,
+          Authorization: `Bearer ${this.config.ephemeralToken}`,
           'Content-Type': 'application/sdp',
         },
       });

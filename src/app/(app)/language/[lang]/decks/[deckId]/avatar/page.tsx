@@ -52,7 +52,6 @@ export default function AvatarPage() {
   const [completion, setCompletion] = useState<Completion | null>(null);
 
   const sessionRef = useRef<RealtimeSession | null>(null);
-  const apiKeyRef = useRef<string | null>(null);
   const promptRef = useRef<string>('');
   const transcriptEndRef = useRef<HTMLDivElement | null>(null);
   const savedRef = useRef(false);
@@ -61,25 +60,27 @@ export default function AvatarPage() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      // Page-load pre-check: presence of a key + spend limits. The raw key is
+      // never returned; the ephemeral token is fetched on mic tap (§2c).
       const cfgRes = await fetch(withBase('/api/avatar/session-config'));
       if (cancelled) return;
-      if (cfgRes.status === 402) {
-        const d = await cfgRes.json().catch(() => ({}));
-        if (d.error === 'hard_stop') {
-          setHardStopLimit(Number(d.hardStopLimit ?? 0));
-          setPhase('hard-stop');
-        } else {
-          setPhase('no-key');
-        }
-        return;
-      }
       if (!cfgRes.ok) {
         toast.error('Could not start Kruu Bingo.');
         return;
       }
       const cfg = await cfgRes.json();
-      apiKeyRef.current = cfg.openaiApiKey;
-      if (cfg.warning) {
+      if (!cfg.hasKey) {
+        setPhase('no-key');
+        return;
+      }
+      if (cfg.hardStopTriggered) {
+        setHardStopLimit(Number(cfg.hardStopLimit ?? 0));
+        setPhase('hard-stop');
+        return;
+      }
+      // Remember the limit in case the token exchange reports a hard stop later.
+      setHardStopLimit(Number(cfg.hardStopLimit ?? 0));
+      if (cfg.warningTriggered) {
         toast.warning(
           `You've spent $${Number(cfg.monthlySpend).toFixed(2)} this month (warning threshold: $${Number(cfg.warningLimit).toFixed(2)}).`,
         );
@@ -154,10 +155,39 @@ export default function AvatarPage() {
   );
 
   async function startSession() {
-    if (started || !apiKeyRef.current) return;
+    if (started) return;
     setStarted(true);
+
+    // GA handshake step 1: exchange the user's key for an ephemeral token
+    // server-side (this fetch is inside the mic-tap user gesture).
+    let ephemeralToken: string;
+    try {
+      const res = await fetch(withBase('/api/avatar/token'), { method: 'POST' });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        if (d.error === 'no_openai_key') setPhase('no-key');
+        else if (d.error === 'hard_stop') setPhase('hard-stop');
+        else if (d.error === 'openai_error')
+          toast.error('Could not connect to OpenAI. Check your API key in Settings.');
+        else toast.error('Connection failed. Please try again.');
+        setStarted(false);
+        return;
+      }
+      const data = await res.json();
+      ephemeralToken = data.ephemeralToken;
+      if (data.warning) {
+        toast.warning(
+          `You've spent $${Number(data.warning.monthlySpend).toFixed(2)} this month (warning threshold: $${Number(data.warning.warningLimit).toFixed(2)}).`,
+        );
+      }
+    } catch {
+      toast.error('Connection failed. Please try again.');
+      setStarted(false);
+      return;
+    }
+
     const session = new RealtimeSession({
-      openaiApiKey: apiKeyRef.current,
+      ephemeralToken,
       systemPrompt: promptRef.current,
       onSpeaking: () => setAvatarState('speaking'),
       onListening: () => setAvatarState('listening'),
