@@ -284,10 +284,10 @@ export default function FlashcardsPage() {
                     <div className="inline-flex items-center gap-1">
                       {/* Direct links bypass the mode chooser (§13). */}
                       <Button asChild size="xs">
-                        <Link href={deckFlashcardsPath(lang, deck.id)}>Study</Link>
+                        <Link href={deckFlashcardsPath(lang, deck.id)}>Flashcards</Link>
                       </Button>
                       <Button asChild size="xs" variant="outline">
-                        <Link href={deckAvatarPath(lang, deck.id)}>Practice</Link>
+                        <Link href={deckAvatarPath(lang, deck.id)}>AI Chat</Link>
                       </Button>
                     </div>
                   </TableCell>
