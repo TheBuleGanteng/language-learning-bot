@@ -1215,3 +1215,37 @@ dropped (MTD AI spend resets to $0) and custom spend limits reset to defaults
 Verified: tables swapped, `HTTP/2 200`, `/api/decks` + `/api/avatar/session-config`
 + `/api/settings/ai-spend` all 401 (auth-gated), old `/api/settings/image-spend`
 → 404, zero error lines after restart.
+
+## 2026-05-31 — OpenAI Realtime API 400: beta endpoint disabled
+**Symptom**: POST /v1/realtime returned 400 "beta_api_shape_disabled" — the
+avatar could not connect.
+**Root cause**: The GA Realtime API requires a server-side ephemeral token
+exchange via /v1/realtime/client_secrets before the client-side WebRTC
+handshake. The old beta pattern of calling /v1/realtime directly from the
+browser with the raw API key is no longer supported.
+**Fix**: Added /api/avatar/token server-side route to exchange the user's
+encrypted API key for an ephemeral token. Updated realtime.ts to accept
+`ephemeralToken` instead of `openaiApiKey`. Repurposed /api/avatar/session-config
+to a page-load pre-check (returns `hasKey` + spend limits, never the key).
+Updated the avatar page to call the token endpoint on mic tap, with no-key /
+hard-stop / openai_error / network-error handling. (Live voice still requires a
+real key + mic to verify end-to-end; deploy confirmed the route builds and is
+auth-gated, 401 unauthenticated.)
+
+## 2026-05-31 — Kruu Bingo avatar showing CSS placeholder instead of Lottie
+**Symptom**: Avatar page showed the CSS/SVG smiley placeholder instead of the
+animated character.
+**Root cause**: kruu-bingo.tsx was never updated from the placeholder to use
+the Lottie JSON files now present in public/animations/.
+**Fix**: Updated the KruuBingo component to import and render the Lottie
+animations (idle/speaking/listening) via `lottie-react`. Used a relative import
+(`../../../public/animations/...`) since `@/*` resolves to `./src`, not the
+project root; `resolveJsonModule` was already enabled. Verified the JSON assets
+are committed so the VM build resolves them (build produced no "cannot find
+module" errors).
+
+### Deploy
+Code-only, no migration. Pushed project repo (`f131171`), bumped submodule
+(`3394ed9`), rebuilt + force-recreated the container. Verified: `HTTP/2 200`,
+POST `/api/avatar/token` → 401 (route live, not 404), `/api/avatar/session-config`
+→ 401, zero error lines after restart.
