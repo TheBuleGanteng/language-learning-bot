@@ -1165,3 +1165,53 @@ additive migration `0009` (4 tables + 3 enums, no data mutation) via drizzle-kit
 over an SSH tunnel (10/10 applied), and rebuilt + force-recreated the container.
 Verified: 4 new tables present, `HTTP/2 200`, `/api/decks` returns 401 (not 500),
 zero error lines after restart.
+
+## 2026-05-31 — Feature C: Kruu Bingo avatar + /decks refactor + consolidated AI spend
+
+Four-part change: (1) moved flashcard routes `/flashcards` → `/decks` and added
+a deck mode-chooser hub; (2) replaced `image_generation_log` with `ai_spend_log`
+(spend now spans all AI features) and rewrote `cost-tracking.ts`; (3) added the
+`avatar_sessions` table; (4) built the Kruu Bingo avatar (Realtime API WebRTC
+client, system prompt, session API routes, avatar session page, guard dialogs).
+
+### Bug — drizzle-kit generate blocked on an interactive rename prompt
+**Symptom:** `pnpm db:generate` aborted with "Interactive prompts require a TTY"
+because dropping `image_generation_log` while adding `ai_spend_log` (and swapping
+the `user_settings` spend columns) is an ambiguous rename-vs-create that
+drizzle-kit resolves interactively; piping input is rejected.
+**Root cause:** A single diff containing both a created and a deleted table/column
+triggers drizzle's interactive resolver, which needs a real TTY.
+**Fix:** Split into two unambiguous migrations. `0010` is purely additive (old
+objects temporarily kept in the schema so nothing is dropped); then the old
+objects were removed and `0011` generated as a purely-destructive diff (no
+creates → no rename prompt). Both apply cleanly and non-interactively.
+
+### Note — Lottie avatar asset replaced with a CSS placeholder
+**Symptom/decision:** §7 calls for a Lottie character from LottieFiles, but no
+asset could be fetched in this environment.
+**Fix:** Implemented `KruuBingo` (`src/components/avatar/kruu-bingo.tsx`) as a
+lightweight CSS/SVG placeholder with idle/listening/speaking states.
+`lottie-react` is installed; to use a real animation, drop
+idle/speaking/listening JSON into `public/animations/` and swap the placeholder
+for a `<Lottie>` player. **Action for user: replace the placeholder avatar.**
+
+### Note — OpenAI Realtime client not runtime-verified
+`src/lib/realtime.ts` implements the documented Realtime WebRTC handshake +
+event names and uses the model id `gpt-realtime`. It depends on a live API, a
+microphone, the user's OpenAI key, and a browser, so it could not be exercised
+by the local lint/test/build gates — runtime behaviour is unverified. Cost is a
+duration-based estimate (~$0.30/min). **Action for user: smoke-test a live
+voice session and confirm the model id/event names against current OpenAI docs.**
+
+### Deploy
+Pushed project repo (`a23bda6`), bumped the submodule (`ab6e8c1`), then — with
+explicit user confirmation per the prod-migration rule — backed up prod
+(`pg_dump -Fc` → `llb-pre-0010-0011-*.dump`, capturing the 29 about-to-be-dropped
+`image_generation_log` rows) and applied `0010` + `0011` via drizzle-kit over an
+SSH tunnel (12/12 applied), then rebuilt + force-recreated the container.
+**Intentional data reset (spec §4e "start fresh"):** the 29 cost rows were
+dropped (MTD AI spend resets to $0) and custom spend limits reset to defaults
+($25/$100) since the old columns were dropped. `image_generation_batches` kept.
+Verified: tables swapped, `HTTP/2 200`, `/api/decks` + `/api/avatar/session-config`
++ `/api/settings/ai-spend` all 401 (auth-gated), old `/api/settings/image-spend`
+→ 404, zero error lines after restart.
