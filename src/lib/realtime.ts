@@ -6,7 +6,7 @@
 // runtime behaviour against the live API is not verified in this environment.
 // See ERROR_REPORT.md.
 
-const REALTIME_MODEL = 'gpt-realtime';
+const REALTIME_MODEL = 'gpt-4o-realtime-preview';
 const REALTIME_URL = 'https://api.openai.com/v1/realtime';
 // Rough estimate: ~$0.06/min audio in + ~$0.24/min audio out (spec §9).
 const APPROX_USD_PER_MINUTE = 0.3;
