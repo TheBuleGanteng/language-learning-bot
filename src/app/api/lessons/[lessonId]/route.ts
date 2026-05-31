@@ -119,8 +119,8 @@ export async function DELETE(
   if (!plan) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
   // DB is the source of truth. Delete vocab-only items first (cascades vocab_tags,
-  // vocab_lessons, item_performance; image_generation_log.vocab_item_id is set null),
-  // then the lesson row (cascades lesson_files, lesson_links, and the remaining
+  // vocab_lessons, item_performance), then the lesson row (cascades lesson_files,
+  // lesson_links, and the remaining
   // vocab_lessons join rows — removing this lesson's association from shared vocab).
   await db.transaction(async (tx) => {
     if (plan.vocabDeletedIds.length > 0) {

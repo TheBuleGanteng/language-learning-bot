@@ -136,12 +136,14 @@ export const userSettings = pgTable('user_settings', {
   imageModel: text('image_model').notNull().default('imagen-4-fast'),
   extractionProvider: text('extraction_provider').notNull().default('anthropic'),
   extractionModel: text('extraction_model').notNull().default('claude-opus-4-7'),
-  imageSpendReminderUsd: numeric('image_spend_reminder_usd', { precision: 8, scale: 2 })
+  // Feature C: spend caps now cover ALL AI features (image gen + avatar), not
+  // just image generation.
+  aiSpendReminderUsd: numeric('ai_spend_reminder_usd', { precision: 10, scale: 2 })
     .notNull()
-    .default('25'),
-  imageSpendHardStopUsd: numeric('image_spend_hard_stop_usd', { precision: 8, scale: 2 })
+    .default('25.00'),
+  aiSpendHardStopUsd: numeric('ai_spend_hard_stop_usd', { precision: 10, scale: 2 })
     .notNull()
-    .default('100'),
+    .default('100.00'),
   // Format: "{YYYY-MM}:{amount}". Null until the first reminder fires this
   // month. On read, if the YYYY-MM prefix doesn't match the current month,
   // treat the band as 0 — no separate "reset at month boundary" job needed.
@@ -331,34 +333,27 @@ export const lessonLinks = pgTable(
 );
 
 // =============================================================================
-// image_generation_log (cost tracking)
+// ai_spend_log (consolidated cost tracking across all AI features — Feature C,
+// replaces image_generation_log)
 // =============================================================================
 
-export const imageGenerationLog = pgTable(
-  'image_generation_log',
+export const aiFeatureEnum = pgEnum('ai_feature', ['image_gen', 'avatar']);
+
+export const aiSpendLog = pgTable(
+  'ai_spend_log',
   {
     id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
     userId: uuid('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
-    // Nullable: vocab item may be deleted later but we keep the historical cost row.
-    vocabItemId: uuid('vocab_item_id').references(() => vocabItems.id, {
-      onDelete: 'set null',
-    }),
-    provider: text('provider').notNull(),
-    model: text('model').notNull(),
-    estimatedCostUsd: numeric('estimated_cost_usd', { precision: 10, scale: 6 }).notNull(),
-    status: text('status').notNull(),
-    errorMessage: text('error_message'),
+    feature: aiFeatureEnum('feature').notNull(),
+    // Cost in USD.
+    costUsd: numeric('cost_usd', { precision: 10, scale: 6 }).notNull(),
+    // Human-readable, e.g. "imagen-4-fast 1 image" or "realtime 45s".
+    description: varchar('description', { length: 200 }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [
-    index('img_gen_log_user_month_idx').on(t.userId, t.createdAt),
-    check(
-      'image_generation_log_status_check',
-      sql`${t.status} IN ('success', 'failed', 'refused')`,
-    ),
-  ],
+  (t) => [index('ai_spend_log_user_month_idx').on(t.userId, t.createdAt)],
 );
 
 // =============================================================================
@@ -525,6 +520,27 @@ export const studySessions = pgTable(
 );
 
 // =============================================================================
+// avatar_sessions (Kruu Bingo practice sessions — Feature C)
+// =============================================================================
+
+export const avatarSessions = pgTable('avatar_sessions', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  deckId: uuid('deck_id')
+    .notNull()
+    .references(() => decks.id, { onDelete: 'cascade' }),
+  // Duration in seconds.
+  durationSeconds: integer('duration_seconds').notNull().default(0),
+  // Cost in USD (also logged to ai_spend_log for cap tracking).
+  costUsd: numeric('cost_usd', { precision: 10, scale: 6 }).notNull().default('0'),
+  // Number of user turns in the conversation.
+  turnCount: integer('turn_count').notNull().default(0),
+  completedAt: timestamp('completed_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+// =============================================================================
 // types
 // =============================================================================
 
@@ -542,8 +558,10 @@ export type LessonFile = typeof lessonFiles.$inferSelect;
 export type NewLessonFile = typeof lessonFiles.$inferInsert;
 export type LessonLink = typeof lessonLinks.$inferSelect;
 export type NewLessonLink = typeof lessonLinks.$inferInsert;
-export type ImageGenerationLog = typeof imageGenerationLog.$inferSelect;
-export type NewImageGenerationLog = typeof imageGenerationLog.$inferInsert;
+export type AiSpendLog = typeof aiSpendLog.$inferSelect;
+export type NewAiSpendLog = typeof aiSpendLog.$inferInsert;
+export type AvatarSession = typeof avatarSessions.$inferSelect;
+export type NewAvatarSession = typeof avatarSessions.$inferInsert;
 export type ImageGenerationBatch = typeof imageGenerationBatches.$inferSelect;
 export type NewImageGenerationBatch = typeof imageGenerationBatches.$inferInsert;
 export type Deck = typeof decks.$inferSelect;

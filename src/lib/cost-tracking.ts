@@ -1,6 +1,8 @@
-import { and, eq, gte, ne, sql } from 'drizzle-orm';
+import { and, eq, gte, sql } from 'drizzle-orm';
 import { db } from '@/db';
-import { imageGenerationLog, userSettings } from '@/db/schema';
+import { aiSpendLog, userSettings } from '@/db/schema';
+
+export type AiFeature = 'image_gen' | 'avatar';
 
 /** UTC year-month prefix used in user_settings.image_spend_last_reminder_at. */
 export function currentMonthPrefix(now: Date = new Date()): string {
@@ -17,30 +19,75 @@ export function currentMonthLabel(now: Date = new Date()): string {
   });
 }
 
+function monthStart(now: Date = new Date()): Date {
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+}
+
 /**
- * Sum of estimatedCostUsd for this user's image_generation_log rows in the
- * current UTC calendar month. Excludes outright `failed` calls (we didn't
- * actually get a billable result); includes `refused` (the provider still
- * billed for the API call) and `success`.
+ * Total USD spent by this user in the current UTC calendar month across ALL AI
+ * features (image generation + avatar). Only billable rows are written to
+ * ai_spend_log, so this is a straight SUM.
  */
-export async function getMonthToDateImageSpend(userId: string): Promise<number> {
-  const now = new Date();
-  const monthStart = new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1),
-  );
+export async function getMonthlySpend(userId: string): Promise<number> {
   const result = await db
     .select({
-      total: sql<string>`COALESCE(SUM(${imageGenerationLog.estimatedCostUsd}), 0)::text`,
+      total: sql<string>`COALESCE(SUM(${aiSpendLog.costUsd}), 0)::text`,
     })
-    .from(imageGenerationLog)
-    .where(
-      and(
-        eq(imageGenerationLog.userId, userId),
-        gte(imageGenerationLog.createdAt, monthStart),
-        ne(imageGenerationLog.status, 'failed'),
-      ),
-    );
+    .from(aiSpendLog)
+    .where(and(eq(aiSpendLog.userId, userId), gte(aiSpendLog.createdAt, monthStart())));
   return Number(result[0]?.total ?? 0);
+}
+
+/** Record a billable AI spend event. */
+export async function logSpend(
+  userId: string,
+  feature: AiFeature,
+  costUsd: number,
+  description: string,
+): Promise<void> {
+  await db.insert(aiSpendLog).values({
+    userId,
+    feature,
+    costUsd: costUsd.toFixed(6),
+    description: description.slice(0, 200),
+  });
+}
+
+export interface SpendLimitStatus {
+  underLimit: boolean;
+  warningTriggered: boolean;
+  hardStopTriggered: boolean;
+  monthlySpend: number;
+  warningLimit: number;
+  hardStopLimit: number;
+}
+
+/**
+ * Evaluate the user's current spend against their configured caps.
+ * - hardStopTriggered: at or above the hard stop (block new spend)
+ * - warningTriggered: at or above the reminder threshold but below hard stop
+ */
+export async function checkSpendLimits(userId: string): Promise<SpendLimitStatus> {
+  const [row] = await db
+    .select({
+      reminder: userSettings.aiSpendReminderUsd,
+      hardStop: userSettings.aiSpendHardStopUsd,
+    })
+    .from(userSettings)
+    .where(eq(userSettings.userId, userId))
+    .limit(1);
+  const warningLimit = Number(row?.reminder ?? 25);
+  const hardStopLimit = Number(row?.hardStop ?? 100);
+  const monthlySpend = await getMonthlySpend(userId);
+  const hardStopTriggered = monthlySpend >= hardStopLimit;
+  return {
+    underLimit: !hardStopTriggered,
+    warningTriggered: !hardStopTriggered && warningLimit > 0 && monthlySpend >= warningLimit,
+    hardStopTriggered,
+    monthlySpend,
+    warningLimit,
+    hardStopLimit,
+  };
 }
 
 export class HardStopExceededError extends Error {
@@ -49,7 +96,7 @@ export class HardStopExceededError extends Error {
 
   constructor(currentSpend: number, hardStop: number) {
     super(
-      `Image generation blocked: monthly hard stop ($${hardStop.toFixed(2)}) reached. ` +
+      `AI spend blocked: monthly hard stop ($${hardStop.toFixed(2)}) reached. ` +
         `Current spend: $${currentSpend.toFixed(2)}.`,
     );
     this.name = 'HardStopExceededError';
@@ -67,12 +114,12 @@ export async function enforceHardStop(
   costToAdd: number,
 ): Promise<{ currentSpend: number; hardStop: number }> {
   const [row] = await db
-    .select({ hardStop: userSettings.imageSpendHardStopUsd })
+    .select({ hardStop: userSettings.aiSpendHardStopUsd })
     .from(userSettings)
     .where(eq(userSettings.userId, userId))
     .limit(1);
   const hardStop = Number(row?.hardStop ?? 100);
-  const currentSpend = await getMonthToDateImageSpend(userId);
+  const currentSpend = await getMonthlySpend(userId);
   if (currentSpend + costToAdd > hardStop) {
     throw new HardStopExceededError(currentSpend, hardStop);
   }
@@ -80,9 +127,8 @@ export async function enforceHardStop(
 }
 
 /**
- * Parse "YYYY-MM:amount" into its parts. Returns null if the prefix doesn't
- * match the current month (i.e., the stored band is from a previous month
- * and should be treated as zero).
+ * Parse "YYYY-MM:amount" into its amount, treating a stale (previous-month)
+ * prefix as zero.
  */
 function parseLastReminderForCurrentMonth(
   raw: string | null,
@@ -101,16 +147,15 @@ export interface ReminderBandCrossed {
 }
 
 /**
- * If the user has crossed into a new reminder band this month (e.g., from
- * <$25 to >=$25), record it and return the new band. Otherwise return null.
- * Idempotent: calling again within the same band is a no-op.
+ * If the user has crossed into a new reminder band this month, record it and
+ * return the new band. Idempotent within a band.
  */
 export async function checkAndRecordReminderBand(
   userId: string,
 ): Promise<ReminderBandCrossed | null> {
   const [row] = await db
     .select({
-      reminder: userSettings.imageSpendReminderUsd,
+      reminder: userSettings.aiSpendReminderUsd,
       last: userSettings.imageSpendLastReminderAt,
     })
     .from(userSettings)
@@ -121,7 +166,7 @@ export async function checkAndRecordReminderBand(
   const reminder = Number(row.reminder ?? 25);
   if (reminder <= 0) return null;
 
-  const spend = await getMonthToDateImageSpend(userId);
+  const spend = await getMonthlySpend(userId);
   const currentBand = Math.floor(spend / reminder) * reminder;
   const lastBand = parseLastReminderForCurrentMonth(row.last);
 
@@ -136,7 +181,7 @@ export async function checkAndRecordReminderBand(
   return null;
 }
 
-export interface ImageSpendSnapshot {
+export interface SpendSnapshot {
   currentSpend: number;
   hardStop: number;
   reminder: number;
@@ -145,15 +190,12 @@ export interface ImageSpendSnapshot {
   monthLabel: string;
 }
 
-/**
- * Single-trip read of all numeric values the UI needs for the spend banner.
- * The settings page composes this with provider/model info from /api/settings.
- */
-export async function getImageSpendSnapshot(userId: string): Promise<ImageSpendSnapshot> {
+/** Single-trip read of all numeric values the spend UI needs. */
+export async function getSpendSnapshot(userId: string): Promise<SpendSnapshot> {
   const [row] = await db
     .select({
-      reminder: userSettings.imageSpendReminderUsd,
-      hardStop: userSettings.imageSpendHardStopUsd,
+      reminder: userSettings.aiSpendReminderUsd,
+      hardStop: userSettings.aiSpendHardStopUsd,
       last: userSettings.imageSpendLastReminderAt,
     })
     .from(userSettings)
@@ -163,7 +205,7 @@ export async function getImageSpendSnapshot(userId: string): Promise<ImageSpendS
   const reminder = Number(row?.reminder ?? 25);
   const hardStop = Number(row?.hardStop ?? 100);
   const lastReminderBand = parseLastReminderForCurrentMonth(row?.last ?? null);
-  const currentSpend = await getMonthToDateImageSpend(userId);
+  const currentSpend = await getMonthlySpend(userId);
   const nextReminderBand =
     reminder > 0 ? (Math.floor(currentSpend / reminder) + 1) * reminder : 0;
 

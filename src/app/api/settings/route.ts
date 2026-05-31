@@ -90,8 +90,8 @@ export async function GET(req: Request) {
     imageModel: s.imageModel,
     extractionProvider: s.extractionProvider,
     extractionModel: s.extractionModel,
-    imageSpendReminderUsd: Number(s.imageSpendReminderUsd ?? 25),
-    imageSpendHardStopUsd: Number(s.imageSpendHardStopUsd ?? 100),
+    aiSpendReminderUsd: Number(s.aiSpendReminderUsd ?? 25),
+    aiSpendHardStopUsd: Number(s.aiSpendHardStopUsd ?? 100),
     keys: {
       anthropic: formatKey(s.anthropicApiKeyEncrypted, reveal === 'anthropic'),
       openai: formatKey(s.openaiApiKeyEncrypted, reveal === 'openai'),
@@ -109,8 +109,8 @@ const patchSchema = z.object({
     .enum(EXTRACTION_PROVIDERS as readonly [ExtractionProvider, ...ExtractionProvider[]])
     .optional(),
   extractionModel: z.string().min(1).max(100).optional(),
-  imageSpendReminderUsd: z.number().min(1).max(99999).optional(),
-  imageSpendHardStopUsd: z.number().min(1).max(99999).optional(),
+  aiSpendReminderUsd: z.number().min(1).max(99999).optional(),
+  aiSpendHardStopUsd: z.number().min(1).max(99999).optional(),
   targetLanguage: z.enum(LANGUAGE_CODES).optional(),
   nativeLanguage: z.enum(LANGUAGE_CODES).optional(),
   apiKey: z
@@ -204,31 +204,31 @@ export async function PATCH(req: Request) {
     updates.extractionModel = parsed.data.extractionModel;
   }
 
-  if (parsed.data.imageSpendReminderUsd !== undefined) {
-    updates.imageSpendReminderUsd = parsed.data.imageSpendReminderUsd.toFixed(2);
+  if (parsed.data.aiSpendReminderUsd !== undefined) {
+    updates.aiSpendReminderUsd = parsed.data.aiSpendReminderUsd.toFixed(2);
   }
-  if (parsed.data.imageSpendHardStopUsd !== undefined) {
-    updates.imageSpendHardStopUsd = parsed.data.imageSpendHardStopUsd.toFixed(2);
+  if (parsed.data.aiSpendHardStopUsd !== undefined) {
+    updates.aiSpendHardStopUsd = parsed.data.aiSpendHardStopUsd.toFixed(2);
   }
 
   // Cross-field check: hard stop must be >= reminder. Use the post-patch
   // values, falling back to stored values for fields not in this PATCH.
   if (
-    parsed.data.imageSpendReminderUsd !== undefined ||
-    parsed.data.imageSpendHardStopUsd !== undefined
+    parsed.data.aiSpendReminderUsd !== undefined ||
+    parsed.data.aiSpendHardStopUsd !== undefined
   ) {
     const [stored] = await db
       .select({
-        reminder: userSettings.imageSpendReminderUsd,
-        hardStop: userSettings.imageSpendHardStopUsd,
+        reminder: userSettings.aiSpendReminderUsd,
+        hardStop: userSettings.aiSpendHardStopUsd,
       })
       .from(userSettings)
       .where(eq(userSettings.userId, userId))
       .limit(1);
     const newReminder =
-      parsed.data.imageSpendReminderUsd ?? Number(stored?.reminder ?? 25);
+      parsed.data.aiSpendReminderUsd ?? Number(stored?.reminder ?? 25);
     const newHardStop =
-      parsed.data.imageSpendHardStopUsd ?? Number(stored?.hardStop ?? 100);
+      parsed.data.aiSpendHardStopUsd ?? Number(stored?.hardStop ?? 100);
     if (newHardStop < newReminder) {
       return NextResponse.json(
         { error: 'Hard stop must be ≥ reminder' },

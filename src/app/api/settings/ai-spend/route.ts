@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm';
 import { db } from '@/db';
 import { userSettings } from '@/db/schema';
 import { auth } from '@/lib/auth';
-import { getImageSpendSnapshot } from '@/lib/cost-tracking';
+import { getSpendSnapshot } from '@/lib/cost-tracking';
 import {
   imageModelCost,
   isImageProvider,
@@ -11,10 +11,10 @@ import {
 } from '@/lib/image-gen';
 
 /**
- * Combined "image spend status" payload for the Settings page. Returns the
- * MTD spend, the user's configured reminder + hard-stop, and which provider/
- * model they have selected so the UI can show "X images possible at current
- * model price" without an extra round-trip.
+ * Combined AI-spend status payload for the Settings page. Returns the MTD
+ * spend (across all AI features), the user's configured reminder + hard-stop,
+ * and the selected image provider/model so the UI can show "X images possible
+ * at current model price" without an extra round-trip.
  */
 export async function GET() {
   const session = await auth();
@@ -39,7 +39,7 @@ export async function GET() {
       ? imageModelCost(provider, model)
       : 0;
 
-  const snap = await getImageSpendSnapshot(userId);
+  const snap = await getSpendSnapshot(userId);
 
   return NextResponse.json({
     ...snap,

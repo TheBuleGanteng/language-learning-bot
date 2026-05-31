@@ -14,14 +14,25 @@ export function flashcardsPath(lang: string, lessonId: string) {
   return `/language/${lang}/lessons/${lessonId}/practice/flashcards`;
 }
 
-// Feature B: standalone flashcard decks (distinct from the per-lesson practice
-// flashcards above).
+// Feature B/C: standalone flashcard decks (distinct from the per-lesson
+// practice flashcards above). Feature C moved these under /decks/.
 export function decksPath(lang: string) {
-  return `/language/${lang}/flashcards`;
+  return `/language/${lang}/decks`;
 }
 
-export function deckStudyPath(lang: string, deckId: string) {
-  return `/language/${lang}/flashcards/${deckId}/study`;
+// Mode-chooser hub for a single deck.
+export function deckHubPath(lang: string, deckId: string) {
+  return `/language/${lang}/decks/${deckId}`;
+}
+
+// Spaced-repetition flashcard study session for a deck.
+export function deckFlashcardsPath(lang: string, deckId: string) {
+  return `/language/${lang}/decks/${deckId}/flashcards`;
+}
+
+// Kruu Bingo avatar practice session for a deck.
+export function deckAvatarPath(lang: string, deckId: string) {
+  return `/language/${lang}/decks/${deckId}/avatar`;
 }
 
 export function chatPath(lang: string, lessonId: string) {

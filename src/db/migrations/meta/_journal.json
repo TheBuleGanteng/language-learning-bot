@@ -71,6 +71,20 @@
       "when": 1780146481903,
       "tag": "0009_striped_venus",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1780192265735,
+      "tag": "0010_melted_network",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1780192287104,
+      "tag": "0011_nice_marauders",
+      "breakpoints": true
     }
   ]
 }

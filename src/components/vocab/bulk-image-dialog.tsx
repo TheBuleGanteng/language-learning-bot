@@ -54,7 +54,7 @@ export function BulkImageDialog({
   useEffect(() => {
     if (!open) return;
     setSpend(null);
-    fetch(withBase('/api/settings/image-spend'))
+    fetch(withBase('/api/settings/ai-spend'))
       .then((r) => (r.ok ? r.json() : null))
       .then((s) => setSpend(s ?? null));
   }, [open]);

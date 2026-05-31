@@ -7,7 +7,7 @@ import { auth } from '@/lib/auth';
 import {
   HardStopExceededError,
   enforceHardStop,
-  getMonthToDateImageSpend,
+  getMonthlySpend,
 } from '@/lib/cost-tracking';
 import {
   imageModelCost,
@@ -55,7 +55,7 @@ export async function POST(req: Request) {
     .select({
       provider: userSettings.imageProvider,
       model: userSettings.imageModel,
-      hardStop: userSettings.imageSpendHardStopUsd,
+      hardStop: userSettings.aiSpendHardStopUsd,
     })
     .from(userSettings)
     .where(eq(userSettings.userId, userId))
@@ -75,7 +75,7 @@ export async function POST(req: Request) {
     await enforceHardStop(userId, totalCost);
   } catch (err) {
     if (err instanceof HardStopExceededError) {
-      const spend = await getMonthToDateImageSpend(userId);
+      const spend = await getMonthlySpend(userId);
       const remaining = Math.max(0, err.hardStop - spend);
       const affordable =
         costPerImage > 0 ? Math.max(0, Math.floor(remaining / costPerImage)) : 0;

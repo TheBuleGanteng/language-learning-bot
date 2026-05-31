@@ -59,8 +59,8 @@ interface SettingsState {
   imageModel: string;
   extractionProvider: ExtractionProvider;
   extractionModel: string;
-  imageSpendReminderUsd: number;
-  imageSpendHardStopUsd: number;
+  aiSpendReminderUsd: number;
+  aiSpendHardStopUsd: number;
   keys: Record<Provider, KeyInfo | null>;
 }
 
@@ -144,12 +144,12 @@ export default function SettingsPage() {
     }
     const data = (await res.json()) as SettingsState;
     setState(data);
-    setReminderDraft(String(data.imageSpendReminderUsd ?? 25));
-    setHardStopDraft(String(data.imageSpendHardStopUsd ?? 100));
+    setReminderDraft(String(data.aiSpendReminderUsd ?? 25));
+    setHardStopDraft(String(data.aiSpendHardStopUsd ?? 100));
   }
 
   async function loadSpend() {
-    const res = await fetch(withBase('/api/settings/image-spend'));
+    const res = await fetch(withBase('/api/settings/ai-spend'));
     if (!res.ok) return;
     setSpend((await res.json()) as SpendSnapshot);
   }
@@ -306,10 +306,10 @@ export default function SettingsPage() {
       });
       return;
     }
-    if (next === state.imageSpendReminderUsd) return;
-    setState({ ...state, imageSpendReminderUsd: next });
+    if (next === state.aiSpendReminderUsd) return;
+    setState({ ...state, aiSpendReminderUsd: next });
     void reminderSave.run(async () => {
-      await patchOrThrow({ imageSpendReminderUsd: next });
+      await patchOrThrow({ aiSpendReminderUsd: next });
       await loadSpend();
     });
   }
@@ -317,16 +317,16 @@ export default function SettingsPage() {
   function saveHardStop() {
     if (!state) return;
     const next = Number(hardStopDraft);
-    if (!Number.isFinite(next) || next < state.imageSpendReminderUsd) {
+    if (!Number.isFinite(next) || next < state.aiSpendReminderUsd) {
       hardStopSave.run(async () => {
         throw new Error('Must be ≥ reminder');
       });
       return;
     }
-    if (next === state.imageSpendHardStopUsd) return;
-    setState({ ...state, imageSpendHardStopUsd: next });
+    if (next === state.aiSpendHardStopUsd) return;
+    setState({ ...state, aiSpendHardStopUsd: next });
     void hardStopSave.run(async () => {
-      await patchOrThrow({ imageSpendHardStopUsd: next });
+      await patchOrThrow({ aiSpendHardStopUsd: next });
       await loadSpend();
     });
   }
@@ -588,12 +588,13 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card id="ai-spend">
         <CardHeader>
-          <CardTitle>Image generation budget</CardTitle>
+          <CardTitle>AI spend limits</CardTitle>
           <CardDescription>
-            Set monthly spending controls for image generation. Estimated based on provider
-            price-per-image. Resets on the 1st of each calendar month.
+            Monthly cap applies to all AI features including image generation and Kruu
+            Bingo practice sessions. Estimated based on provider pricing. Resets on the
+            1st of each calendar month.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -661,7 +662,7 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card id="api-keys">
         <CardHeader>
           <CardTitle>API keys</CardTitle>
           <CardDescription>

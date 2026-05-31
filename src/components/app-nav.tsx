@@ -66,11 +66,16 @@ export function AppNav({ lang }: Props) {
               </Link>
             }
           />
-          <DropdownMenuItem disabled title="Coming soon">
-            <MessagesSquare className="mr-2 h-4 w-4" />
-            AI Conversation
-            <span className="ml-2 text-xs text-muted-foreground">Coming soon</span>
-          </DropdownMenuItem>
+          {/* Sends the user to the deck list; each deck's "Practice" button
+              opens the Kruu Bingo avatar session (§12). */}
+          <DropdownMenuItem
+            render={
+              <Link href={decksPath(lang)}>
+                <MessagesSquare className="mr-2 h-4 w-4" />
+                Practice with Kruu Bingo
+              </Link>
+            }
+          />
         </DropdownMenuContent>
       </DropdownMenu>
     </nav>

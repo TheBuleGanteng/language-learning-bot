@@ -33,7 +33,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { withBase } from '@/lib/base-path';
-import { vocabPath, deckStudyPath } from '@/lib/routes';
+import { vocabPath, deckHubPath, deckFlashcardsPath, deckAvatarPath } from '@/lib/routes';
 
 type Direction = 'forward' | 'reverse' | 'both';
 
@@ -219,7 +219,10 @@ export default function FlashcardsPage() {
               {decks.map((deck) => (
                 <TableRow key={deck.id}>
                   <TableCell className="font-medium align-middle">
-                    <span className="block">{deck.name}</span>
+                    {/* Deck name links to the mode chooser hub (§13). */}
+                    <Link href={deckHubPath(lang, deck.id)} className="block hover:underline">
+                      {deck.name}
+                    </Link>
                     <span className="text-xs text-muted-foreground capitalize">
                       {deck.source} · {deck.direction}
                     </span>
@@ -278,9 +281,15 @@ export default function FlashcardsPage() {
                     </div>
                   </TableCell>
                   <TableCell className="text-right align-middle">
-                    <Button asChild size="xs">
-                      <Link href={deckStudyPath(lang, deck.id)}>Study</Link>
-                    </Button>
+                    <div className="inline-flex items-center gap-1">
+                      {/* Direct links bypass the mode chooser (§13). */}
+                      <Button asChild size="xs">
+                        <Link href={deckFlashcardsPath(lang, deck.id)}>Study</Link>
+                      </Button>
+                      <Button asChild size="xs" variant="outline">
+                        <Link href={deckAvatarPath(lang, deck.id)}>Practice</Link>
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}

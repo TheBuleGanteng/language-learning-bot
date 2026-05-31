@@ -3,7 +3,6 @@ import { and, eq, inArray, sql, lt } from 'drizzle-orm';
 import { db } from '@/db';
 import {
   imageGenerationBatches,
-  imageGenerationLog,
   userSettings,
   users,
   vocabItems,
@@ -15,6 +14,7 @@ import {
   HardStopExceededError,
   checkAndRecordReminderBand,
   enforceHardStop,
+  logSpend,
   type ReminderBandCrossed,
 } from '@/lib/cost-tracking';
 import { buildImagePrompt } from './prompt';
@@ -87,7 +87,7 @@ async function loadUserConfig(userId: string): Promise<UserImageConfig | null> {
     .select({
       provider: userSettings.imageProvider,
       model: userSettings.imageModel,
-      hardStop: userSettings.imageSpendHardStopUsd,
+      hardStop: userSettings.aiSpendHardStopUsd,
       anth: userSettings.anthropicApiKeyEncrypted,
       openai: userSettings.openaiApiKeyEncrypted,
       gemini: userSettings.geminiApiKeyEncrypted,
@@ -193,17 +193,12 @@ export async function generateImageForVocabItem(
     };
   }
 
-  // Log the call before mutating vocab row so cost tracking survives
-  // any subsequent failure storing the image.
-  await db.insert(imageGenerationLog).values({
-    userId,
-    vocabItemId,
-    provider: cfg.provider,
-    model: cfg.model,
-    estimatedCostUsd: cost.toFixed(6),
-    status: result.status,
-    errorMessage: result.errorMessage ?? null,
-  });
+  // Log billable spend before mutating the vocab row so cost tracking
+  // survives a later storage failure. Only success + refused are billed (the
+  // provider still charges for a refusal); an outright failed call is not.
+  if (result.status === 'success' || result.status === 'refused') {
+    await logSpend(userId, 'image_gen', cost, `${cfg.provider} ${cfg.model} 1 image`);
+  }
 
   if (result.status === 'success' && result.imageBuffer) {
     // If a previous image exists, delete it (regenerate semantics).
