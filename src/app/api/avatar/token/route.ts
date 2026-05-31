@@ -51,7 +51,7 @@ export async function POST() {
         Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ model: REALTIME_MODEL, voice: VOICE }),
+      body: JSON.stringify({ session: { type: "realtime", model: REALTIME_MODEL, audio: { output: { voice: VOICE } } } }),
     });
 
     if (!tokenRes.ok) {
