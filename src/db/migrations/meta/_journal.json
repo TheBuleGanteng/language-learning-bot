@@ -92,6 +92,13 @@
       "when": 1780461387540,
       "tag": "0012_orange_mister_sinister",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1780467292050,
+      "tag": "0013_powerful_black_bolt",
+      "breakpoints": true
     }
   ]
 }

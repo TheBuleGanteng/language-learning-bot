@@ -24,6 +24,7 @@ import { NoKeyDialog } from '@/components/avatar/no-key-dialog';
 import { HardStopDialog } from '@/components/avatar/hard-stop-dialog';
 import { RealtimeSession } from '@/lib/realtime';
 import { buildKruuBingoPrompt } from '@/lib/kruu-bingo-prompt';
+import { voiceModelCostPerMinute } from '@/lib/voice-models';
 
 type Phase = 'loading' | 'no-key' | 'hard-stop' | 'ready' | 'completed';
 type AvatarState = 'idle' | 'speaking' | 'listening';
@@ -330,6 +331,9 @@ export default function AvatarPage() {
     // GA handshake step 1: exchange the user's key for an ephemeral token
     // server-side (this fetch is inside the mic-tap user gesture).
     let ephemeralToken: string;
+    // Per-minute estimate for the model the token route actually minted with,
+    // so session-cost logging matches what the user was shown in settings.
+    let costPerMinute: number | undefined;
     try {
       const res = await fetch(withBase('/api/avatar/token'), { method: 'POST' });
       if (!res.ok) {
@@ -344,6 +348,7 @@ export default function AvatarPage() {
       }
       const data = await res.json();
       ephemeralToken = data.ephemeralToken;
+      if (data.model) costPerMinute = voiceModelCostPerMinute(data.model);
       if (data.warning) {
         toast.warning(
           `You've spent $${Number(data.warning.monthlySpend).toFixed(2)} this month (warning threshold: $${Number(data.warning.warningLimit).toFixed(2)}).`,
@@ -357,6 +362,7 @@ export default function AvatarPage() {
 
     const session = new RealtimeSession({
       ephemeralToken,
+      costPerMinute,
       systemPrompt: promptRef.current,
       onSpeaking: () => {
         setAvatarState('speaking');

@@ -19,7 +19,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { MODELS, PROVIDERS, defaultModelFor, type Provider } from '@/lib/models';
+import { MODELS, PROVIDERS, type Provider } from '@/lib/models';
+import { VOICE_MODELS, voiceModelCostPerMinute } from '@/lib/voice-models';
 import {
   LANGUAGES,
   UNLOCKED_TARGET_LANGUAGES,
@@ -60,6 +61,7 @@ interface SettingsState {
   imageModel: string;
   extractionProvider: ExtractionProvider;
   extractionModel: string;
+  voiceModel: string;
   aiSpendReminderUsd: number;
   aiSpendHardStopUsd: number;
   keys: Record<Provider, KeyInfo | null>;
@@ -113,8 +115,7 @@ export default function SettingsPage() {
 
   const targetSave = useFieldAutoSave();
   const nativeSave = useFieldAutoSave();
-  const providerSave = useFieldAutoSave();
-  const modelSave = useFieldAutoSave();
+  const voiceModelSave = useFieldAutoSave();
   const imageProviderSave = useFieldAutoSave();
   const imageModelSave = useFieldAutoSave();
   const extractionProviderSave = useFieldAutoSave();
@@ -245,20 +246,11 @@ export default function SettingsPage() {
     });
   }
 
-  function onProviderChange(p: Provider) {
-    if (!state || p === state.llmProvider) return;
-    const newModel = defaultModelFor(p);
-    setState({ ...state, llmProvider: p, llmModel: newModel });
-    void providerSave.run(async () => {
-      await patchOrThrow({ llmProvider: p, llmModel: newModel });
-    });
-  }
-
-  function onModelChange(modelId: string) {
-    if (!state || modelId === state.llmModel) return;
-    setState({ ...state, llmModel: modelId });
-    void modelSave.run(async () => {
-      await patchOrThrow({ llmModel: modelId });
+  function onVoiceModelChange(modelId: string) {
+    if (!state || modelId === state.voiceModel) return;
+    setState({ ...state, voiceModel: modelId });
+    void voiceModelSave.run(async () => {
+      await patchOrThrow({ voiceModel: modelId });
     });
   }
 
@@ -336,6 +328,7 @@ export default function SettingsPage() {
 
   const imageProviderHasKey = !!state.keys[IMAGE_PROVIDER_KEY[state.imageProvider]];
   const imageCostPerImage = imageModelCost(state.imageProvider, state.imageModel);
+  const voiceCostPerMin = voiceModelCostPerMinute(state.voiceModel);
   const imagesPossible =
     spend && spend.estimatedCostPerImage > 0
       ? Math.max(0, Math.floor((spend.hardStop - spend.currentSpend) / spend.estimatedCostPerImage))
@@ -409,183 +402,215 @@ export default function SettingsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Chat Model</CardTitle>
+          <CardTitle>AI model selection</CardTitle>
           <CardDescription>
-            Choose which model the AI tutor uses for chat. Each user can pick independently.
+            Choose the models that power each AI feature. Each user can pick
+            independently.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <Label>Provider</Label>
-                <SaveStatus status={providerSave.status} />
-              </div>
-              <Select
-                value={state.llmProvider}
-                onValueChange={(v) => v && onProviderChange(v as Provider)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {PROVIDERS.map((p) => (
-                    <SelectItem key={p} value={p}>
-                      {PROVIDER_LABELS[p]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+        <CardContent className="space-y-6">
+          {/* Chat Model — not yet wired to anything; shown disabled. */}
+          <div className="space-y-2 border-b pb-6">
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-medium">Chat Model</h3>
+              <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                Coming soon
+              </span>
             </div>
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <Label>Model</Label>
-                <SaveStatus status={modelSave.status} />
-              </div>
-              <Select value={state.llmModel} onValueChange={(v) => v && onModelChange(v)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {MODELS[state.llmProvider].map((m) => (
-                    <SelectItem key={m.id} value={m.id}>
-                      {m.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Image Model</CardTitle>
-          <CardDescription>
-            Choose which model generates illustrations for your vocabulary.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <Label>Provider</Label>
-                <SaveStatus status={imageProviderSave.status} />
-              </div>
-              <Select
-                value={state.imageProvider}
-                onValueChange={(v) => v && onImageProviderChange(v as ImageProviderId)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {IMAGE_PROVIDERS.map((p) => (
-                    <SelectItem key={p} value={p}>
-                      {IMAGE_PROVIDER_LABELS[p]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <Label>Model</Label>
-                <SaveStatus status={imageModelSave.status} />
-              </div>
-              <Select
-                value={state.imageModel}
-                onValueChange={(v) => v && onImageModelChange(v)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {IMAGE_MODELS[state.imageProvider].map((m) => (
-                    <SelectItem key={m.id} value={m.id}>
-                      {m.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Estimated cost: ${imageCostPerImage.toFixed(3)} per image
-          </p>
-          {!imageProviderHasKey && (
-            <p className="text-xs text-amber-700">
-              You haven&apos;t entered an API key for{' '}
-              {IMAGE_PROVIDER_LABELS[state.imageProvider]}. Add one below to use this
-              model.
+            <p className="text-xs text-muted-foreground">
+              Will let the text AI tutor use the model of your choice. Not yet active.
             </p>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Photo Extraction Model</CardTitle>
-          <CardDescription>
-            Choose which vision-capable model extracts vocabulary from photos you
-            upload.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
+            <div className="grid grid-cols-2 gap-3 opacity-60">
+              <div className="space-y-1.5">
                 <Label>Provider</Label>
-                <SaveStatus status={extractionProviderSave.status} />
+                <Select value={state.llmProvider} disabled>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PROVIDERS.map((p) => (
+                      <SelectItem key={p} value={p}>
+                        {PROVIDER_LABELS[p]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-              <Select
-                value={state.extractionProvider}
-                onValueChange={(v) =>
-                  v && onExtractionProviderChange(v as ExtractionProvider)
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {EXTRACTION_PROVIDERS.map((p) => (
-                    <SelectItem key={p} value={p}>
-                      {EXTRACTION_PROVIDER_LABELS[p]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
+              <div className="space-y-1.5">
                 <Label>Model</Label>
-                <SaveStatus status={extractionModelSave.status} />
+                <Select value={state.llmModel} disabled>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {MODELS[state.llmProvider].map((m) => (
+                      <SelectItem key={m.id} value={m.id}>
+                        {m.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-              <Select
-                value={state.extractionModel}
-                onValueChange={(v) => v && onExtractionModelChange(v)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {EXTRACTION_MODELS[state.extractionProvider].map((m) => (
-                    <SelectItem key={m.id} value={m.id}>
-                      {m.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
           </div>
-          {!state.keys[EXTRACTION_PROVIDER_KEY[state.extractionProvider]] && (
-            <p className="text-xs text-amber-700">
-              You haven&apos;t entered an API key for{' '}
-              {EXTRACTION_PROVIDER_LABELS[state.extractionProvider]}. Add one below
-              to use this model.
+
+          {/* Image Model — unchanged behavior. */}
+          <div className="space-y-2 border-b pb-6">
+            <h3 className="text-sm font-medium">Image Model</h3>
+            <p className="text-xs text-muted-foreground">
+              Generates illustrations for your vocabulary.
             </p>
-          )}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label>Provider</Label>
+                  <SaveStatus status={imageProviderSave.status} />
+                </div>
+                <Select
+                  value={state.imageProvider}
+                  onValueChange={(v) => v && onImageProviderChange(v as ImageProviderId)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {IMAGE_PROVIDERS.map((p) => (
+                      <SelectItem key={p} value={p}>
+                        {IMAGE_PROVIDER_LABELS[p]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label>Model</Label>
+                  <SaveStatus status={imageModelSave.status} />
+                </div>
+                <Select
+                  value={state.imageModel}
+                  onValueChange={(v) => v && onImageModelChange(v)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {IMAGE_MODELS[state.imageProvider].map((m) => (
+                      <SelectItem key={m.id} value={m.id}>
+                        {m.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Estimated cost: ${imageCostPerImage.toFixed(3)} per image
+            </p>
+            {!imageProviderHasKey && (
+              <p className="text-xs text-amber-700">
+                You haven&apos;t entered an API key for{' '}
+                {IMAGE_PROVIDER_LABELS[state.imageProvider]}. Add one below to use this
+                model.
+              </p>
+            )}
+          </div>
+
+          {/* AI Voice Chat Model — OpenAI realtime speech-to-speech (Kruu Bingo). */}
+          <div className="space-y-2 border-b pb-6">
+            <h3 className="text-sm font-medium">AI Voice Chat Model</h3>
+            <p className="text-xs text-muted-foreground">
+              The OpenAI realtime model that powers Kruu Bingo voice practice. Requires
+              an OpenAI API key.
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label>Model</Label>
+                  <SaveStatus status={voiceModelSave.status} />
+                </div>
+                <Select
+                  value={state.voiceModel}
+                  onValueChange={(v) => v && onVoiceModelChange(v)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {VOICE_MODELS.map((m) => (
+                      <SelectItem key={m.id} value={m.id}>
+                        {m.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Approximate cost: ~${voiceCostPerMin.toFixed(2)} / min
+            </p>
+          </div>
+
+          {/* Photo Extraction Model — unchanged behavior. */}
+          <div className="space-y-2">
+            <h3 className="text-sm font-medium">Photo Extraction Model</h3>
+            <p className="text-xs text-muted-foreground">
+              Vision-capable model that extracts vocabulary from photos you upload.
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label>Provider</Label>
+                  <SaveStatus status={extractionProviderSave.status} />
+                </div>
+                <Select
+                  value={state.extractionProvider}
+                  onValueChange={(v) =>
+                    v && onExtractionProviderChange(v as ExtractionProvider)
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {EXTRACTION_PROVIDERS.map((p) => (
+                      <SelectItem key={p} value={p}>
+                        {EXTRACTION_PROVIDER_LABELS[p]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label>Model</Label>
+                  <SaveStatus status={extractionModelSave.status} />
+                </div>
+                <Select
+                  value={state.extractionModel}
+                  onValueChange={(v) => v && onExtractionModelChange(v)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {EXTRACTION_MODELS[state.extractionProvider].map((m) => (
+                      <SelectItem key={m.id} value={m.id}>
+                        {m.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            {!state.keys[EXTRACTION_PROVIDER_KEY[state.extractionProvider]] && (
+              <p className="text-xs text-amber-700">
+                You haven&apos;t entered an API key for{' '}
+                {EXTRACTION_PROVIDER_LABELS[state.extractionProvider]}. Add one below
+                to use this model.
+              </p>
+            )}
+          </div>
         </CardContent>
       </Card>
 

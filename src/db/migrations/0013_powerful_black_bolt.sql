@@ -1,0 +1,1 @@
+ALTER TABLE "user_settings" ADD COLUMN "voice_model" varchar(64) DEFAULT 'gpt-realtime' NOT NULL;

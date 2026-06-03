@@ -27,6 +27,7 @@ import {
   isValidExtractionModel,
   type ExtractionProvider,
 } from '@/lib/extraction/catalog';
+import { isVoiceModel } from '@/lib/voice-models';
 
 const LANGUAGE_CODES = LANGUAGES.map((l) => l.code) as [string, ...string[]];
 
@@ -90,6 +91,7 @@ export async function GET(req: Request) {
     imageModel: s.imageModel,
     extractionProvider: s.extractionProvider,
     extractionModel: s.extractionModel,
+    voiceModel: s.voiceModel,
     aiSpendReminderUsd: Number(s.aiSpendReminderUsd ?? 25),
     aiSpendHardStopUsd: Number(s.aiSpendHardStopUsd ?? 100),
     keys: {
@@ -109,6 +111,7 @@ const patchSchema = z.object({
     .enum(EXTRACTION_PROVIDERS as readonly [ExtractionProvider, ...ExtractionProvider[]])
     .optional(),
   extractionModel: z.string().min(1).max(100).optional(),
+  voiceModel: z.string().min(1).max(64).optional(),
   aiSpendReminderUsd: z.number().min(1).max(99999).optional(),
   aiSpendHardStopUsd: z.number().min(1).max(99999).optional(),
   targetLanguage: z.enum(LANGUAGE_CODES).optional(),
@@ -202,6 +205,16 @@ export async function PATCH(req: Request) {
       );
     }
     updates.extractionModel = parsed.data.extractionModel;
+  }
+
+  if (parsed.data.voiceModel !== undefined) {
+    if (!isVoiceModel(parsed.data.voiceModel)) {
+      return NextResponse.json(
+        { error: `Voice model ${parsed.data.voiceModel} is not a valid realtime model` },
+        { status: 400 },
+      );
+    }
+    updates.voiceModel = parsed.data.voiceModel;
   }
 
   if (parsed.data.aiSpendReminderUsd !== undefined) {

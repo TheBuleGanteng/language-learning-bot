@@ -7,13 +7,21 @@
 // See ERROR_REPORT.md.
 
 const REALTIME_URL = 'https://api.openai.com/v1/realtime/calls';
-// Rough estimate: ~$0.06/min audio in + ~$0.24/min audio out (spec §9).
+// Fallback per-minute estimate when the caller doesn't supply a model-specific
+// one (kept for back-compat; the avatar page now passes the selected voice
+// model's estimate from src/lib/voice-models.ts).
 const APPROX_USD_PER_MINUTE = 0.3;
 
 export interface RealtimeSessionConfig {
   /** Short-lived ephemeral token from /api/avatar/token (NOT the raw key). */
   ephemeralToken: string;
   systemPrompt: string;
+  /**
+   * Approximate USD/min for the selected voice model (from voice-models.ts).
+   * Falls back to the flat estimate when omitted so cost logging stays
+   * consistent with what the user was shown in settings.
+   */
+  costPerMinute?: number;
   onSpeaking: () => void;
   onListening: () => void;
   onTranscript: (text: string, role: 'user' | 'assistant') => void;
@@ -220,6 +228,7 @@ export class RealtimeSession {
 
   /** Current session cost estimate in USD (duration-based; an estimate). */
   getEstimatedCost(): number {
-    return (this.getDurationSeconds() / 60) * APPROX_USD_PER_MINUTE;
+    const perMinute = this.config.costPerMinute ?? APPROX_USD_PER_MINUTE;
+    return (this.getDurationSeconds() / 60) * perMinute;
   }
 }

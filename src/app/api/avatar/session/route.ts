@@ -46,6 +46,9 @@ export async function POST(req: Request) {
     costUsd: d.costUsd.toFixed(6),
     turnCount: d.turnCount,
   });
+  // Practicing a deck with AI Voice Chat counts as studying it — keep the deck
+  // list's "Last studied" in sync, the same way flashcard sessions do.
+  await db.update(decks).set({ lastStudiedAt: new Date() }).where(eq(decks.id, d.deckId));
   await logSpend(user.id, 'avatar', d.costUsd, `Kruu Bingo session ${d.durationSeconds}s`);
 
   return NextResponse.json({ ok: true });

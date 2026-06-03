@@ -5,8 +5,8 @@ import { userSettings } from '@/db/schema';
 import { auth } from '@/lib/auth';
 import { decryptString } from '@/lib/crypto';
 import { checkSpendLimits } from '@/lib/cost-tracking';
+import { isVoiceModel, defaultVoiceModel } from '@/lib/voice-models';
 
-const REALTIME_MODEL = 'gpt-realtime';
 const VOICE = 'alloy';
 
 /**
@@ -25,9 +25,12 @@ export async function POST() {
     return NextResponse.json({ error: 'hard_stop' }, { status: 402 });
   }
 
-  // Get the user's OpenAI key.
+  // Get the user's OpenAI key + their selected voice model.
   const [settings] = await db
-    .select({ openaiKey: userSettings.openaiApiKeyEncrypted })
+    .select({
+      openaiKey: userSettings.openaiApiKeyEncrypted,
+      voiceModel: userSettings.voiceModel,
+    })
     .from(userSettings)
     .where(eq(userSettings.userId, userId))
     .limit(1);
@@ -35,6 +38,13 @@ export async function POST() {
   if (!settings?.openaiKey) {
     return NextResponse.json({ error: 'no_openai_key' }, { status: 402 });
   }
+
+  // Apply the user's choice; fall back to the default if unset/invalid. The
+  // model is bound to the ephemeral token, so this is the only place to set it.
+  const model =
+    settings.voiceModel && isVoiceModel(settings.voiceModel)
+      ? settings.voiceModel
+      : defaultVoiceModel();
 
   let apiKey: string;
   try {
@@ -51,7 +61,7 @@ export async function POST() {
         Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ session: { type: "realtime", model: REALTIME_MODEL, audio: { output: { voice: VOICE } } } }),
+      body: JSON.stringify({ session: { type: "realtime", model, audio: { output: { voice: VOICE } } } }),
     });
 
     if (!tokenRes.ok) {
@@ -72,7 +82,7 @@ export async function POST() {
     // Return only the ephemeral token — never the raw API key.
     return NextResponse.json({
       ephemeralToken,
-      model: REALTIME_MODEL,
+      model,
       warning: limits.warningTriggered
         ? {
             monthlySpend: limits.monthlySpend,

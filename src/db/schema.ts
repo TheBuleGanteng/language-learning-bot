@@ -136,6 +136,9 @@ export const userSettings = pgTable('user_settings', {
   imageModel: text('image_model').notNull().default('imagen-4-fast'),
   extractionProvider: text('extraction_provider').notNull().default('anthropic'),
   extractionModel: text('extraction_model').notNull().default('claude-opus-4-7'),
+  // AI Voice Chat (Kruu Bingo) realtime speech-to-speech model. Per-user, like
+  // the image model. Must be a value from src/lib/voice-models.ts.
+  voiceModel: varchar('voice_model', { length: 64 }).notNull().default('gpt-realtime'),
   // Feature C: spend caps now cover ALL AI features (image gen + avatar), not
   // just image generation.
   aiSpendReminderUsd: numeric('ai_spend_reminder_usd', { precision: 10, scale: 2 })

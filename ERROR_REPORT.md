@@ -1301,3 +1301,42 @@ them shrink below intrinsic content width. Verified with a Tailwind-rendered
 geometry check that both buttons sit fully inside the card content box at
 1280px and 1024px (each ~162px, evenly split), while the old markup overflowed.
 Labels, order (Continue primary, End secondary), and click handlers unchanged.
+
+## 2026-06-03 — Selectable voice model + settings cleanup + deck-vocab grounding
+**Context**: Seven local changes (CLAUDE_CODE_INSTRUCTIONS.md): per-user
+selectable AI Voice Chat model, consolidated "AI model selection" settings
+section, disabled "Coming soon" Chat Model, auto-saving + human-readable
+inactivity-timeout dropdown, voice chat updating `last_studied_at`, and
+deck-vocab grounding verification + prompt strengthening.
+
+**Deck-vocab grounding — VERIFICATION, not a bug**: Traced end to end whether
+the deck's vocab actually reaches the model. It already did, correctly:
+- The avatar page fetches the deck's cards via
+  `/api/decks/{deckId}/study?limit=999&ahead=true`, dedups them (a 'both' deck
+  has two cards per item), and builds `vocabItems`.
+- `buildKruuBingoPrompt({ targetLanguage, nativeLanguage, vocabItems })` embeds
+  the full list (native = target, with transliteration where present).
+- `RealtimeSession.configureSession()` sends that prompt as `instructions` in
+  the `session.update` event after the data channel opens (GA shape), so the
+  model receives it. A temporary vocab-count log confirmed the list was present
+  and complete; the log was removed before committing.
+No transmission fix was needed. Per §8c the prompt was still STRENGTHENED: a
+clear "FOCUS OF THIS CONVERSATION — the deck vocabulary" block now sits near the
+top (right after the CRITICAL LANGUAGE RULE), instructing the tutor to weave in,
+prompt for, and gently correct the specific items and to steer the conversation
+back to them, while keeping the Kruu Bingo persona and the existing vocab-list
+format.
+
+**Cost-estimate consistency (minor)**: `realtime.ts` used a flat
+`APPROX_USD_PER_MINUTE = 0.3` for session-cost logging regardless of model. It
+now accepts an optional `costPerMinute` (the avatar page passes the selected
+model's estimate from `src/lib/voice-models.ts`, resolved from the model the
+token route actually minted with), so logged cost matches what the user was
+shown in settings. Falls back to 0.3 when unset.
+
+**No bugs** were encountered; all gates (lint, 75 tests, build "Compiled
+successfully" + "Finished TypeScript") passed. Live voice behaviour (mic +
+OpenAI Realtime) and the authenticated settings UI remain unverifiable by the
+local gates; routes were confirmed to compile/serve (settings 307→login, APIs
+401), the timeout label formatter was unit-checked, and the voiceModel column +
+migration were applied and verified locally.

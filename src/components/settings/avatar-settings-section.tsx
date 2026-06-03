@@ -9,7 +9,6 @@ import {
   CardDescription,
   CardContent,
 } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -27,13 +26,18 @@ const MIN_SECONDS = 30;
 const MAX_SECONDS = 1800;
 const STEP_SECONDS = 30;
 
-// 0.5, 1, 1.5, … 30 minutes — stored/transmitted as seconds.
+// 30s, 60s, … 1800s in 30s steps — stored/transmitted as seconds.
 const OPTIONS: number[] = [];
 for (let s = MIN_SECONDS; s <= MAX_SECONDS; s += STEP_SECONDS) OPTIONS.push(s);
 
-function minutesLabel(seconds: number): string {
-  const mins = seconds / 60;
-  return `${mins} min`;
+// Human-readable duration: 30 → "30 sec.", 60 → "1 min.", 90 → "1 min. 30 sec.".
+function formatDuration(seconds: number): string {
+  const mins = Math.floor(seconds / 60);
+  const rem = seconds % 60;
+  const parts: string[] = [];
+  if (mins > 0) parts.push(`${mins} min.`);
+  if (rem > 0) parts.push(`${rem} sec.`);
+  return parts.length > 0 ? parts.join(' ') : '0 sec.';
 }
 
 /**
@@ -45,7 +49,6 @@ function minutesLabel(seconds: number): string {
 export function AvatarSettingsSection() {
   const [role, setRole] = useState<Role | null>(null);
   const [seconds, setSeconds] = useState<number>(DEFAULT_TIMEOUT_SECONDS);
-  const [draft, setDraft] = useState<number>(DEFAULT_TIMEOUT_SECONDS);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -65,26 +68,29 @@ export function AvatarSettingsSection() {
         if (!d) return;
         const v = Number(d.avatarInactivityTimeoutSeconds) || DEFAULT_TIMEOUT_SECONDS;
         setSeconds(v);
-        setDraft(v);
       })
       .catch(() => {});
   }, [isSuperuser]);
 
   if (!isSuperuser) return null;
 
-  async function save() {
+  // Auto-save on change: optimistically update, PATCH, revert + toast on error.
+  async function onChange(next: number) {
+    if (next === seconds) return;
+    const prev = seconds;
+    setSeconds(next);
     setSaving(true);
     try {
       const res = await fetch(withBase('/api/settings/avatar'), {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ avatarInactivityTimeoutSeconds: draft }),
+        body: JSON.stringify({ avatarInactivityTimeoutSeconds: next }),
       });
       const d = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(d?.error ?? 'Save failed');
-      setSeconds(draft);
-      toast.success('Avatar session settings saved');
+      toast.success('Inactivity timeout saved');
     } catch (e) {
+      setSeconds(prev);
       toast.error(e instanceof Error ? e.message : 'Save failed');
     } finally {
       setSaving(false);
@@ -103,16 +109,17 @@ export function AvatarSettingsSection() {
         <div className="space-y-1.5 max-w-xs">
           <Label htmlFor="avatar-inactivity-timeout">Inactivity timeout</Label>
           <Select
-            value={String(draft)}
-            onValueChange={(v) => v && setDraft(Number(v))}
+            value={String(seconds)}
+            onValueChange={(v) => v && onChange(Number(v))}
+            disabled={saving}
           >
             <SelectTrigger id="avatar-inactivity-timeout">
-              <SelectValue>{(value: string) => minutesLabel(Number(value))}</SelectValue>
+              <SelectValue>{(value: string) => formatDuration(Number(value))}</SelectValue>
             </SelectTrigger>
             <SelectContent>
               {OPTIONS.map((s) => (
                 <SelectItem key={s} value={String(s)}>
-                  {minutesLabel(s)}
+                  {formatDuration(s)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -122,9 +129,6 @@ export function AvatarSettingsSection() {
             Applies to all users.
           </p>
         </div>
-        <Button onClick={save} disabled={saving || draft === seconds}>
-          {saving ? 'Saving…' : 'Save'}
-        </Button>
       </CardContent>
     </Card>
   );
