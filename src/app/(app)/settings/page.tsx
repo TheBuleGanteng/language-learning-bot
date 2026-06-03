@@ -42,6 +42,7 @@ import {
 } from '@/lib/extraction/catalog';
 import { useRouter } from 'next/navigation';
 import { useFieldAutoSave, SaveStatus } from '@/components/save-status';
+import { InfoIcon } from '@/components/ui/info-icon';
 import { withBase } from '@/lib/base-path';
 import { ProfileSection } from '@/components/settings/profile-section';
 import { RoleManagementSection } from '@/components/settings/role-management-section';
@@ -334,6 +335,11 @@ export default function SettingsPage() {
       ? Math.max(0, Math.floor((spend.hardStop - spend.currentSpend) / spend.estimatedCostPerImage))
       : 0;
 
+  // Responsive table row: a labeled stacked card on mobile, an aligned grid row
+  // on desktop (Function | Provider | Model | Est. Cost).
+  const rowCls =
+    'grid grid-cols-1 gap-3 rounded-lg border p-3 md:grid-cols-[150px_1fr_1fr_120px] md:items-start md:gap-3 md:rounded-none md:border-0 md:border-b md:p-0 md:pb-4';
+
   return (
     <div className="space-y-6 max-w-2xl">
       <ProfileSection />
@@ -403,288 +409,299 @@ export default function SettingsPage() {
       <Card>
         <CardHeader>
           <CardTitle>AI model selection</CardTitle>
-          <CardDescription>
-            Choose the models that power each AI feature. Each user can pick
-            independently.
-          </CardDescription>
+          <CardDescription>Choose the models that power each AI feature.</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Chat Model — not yet wired to anything; shown disabled. */}
-          <div className="space-y-2 border-b pb-6">
-            <div className="flex items-center gap-2">
-              <h3 className="text-sm font-medium">Chat Model</h3>
+        <CardContent className="space-y-4">
+          {/* Column headers (desktop only) */}
+          <div className="hidden gap-3 px-1 text-xs font-medium text-muted-foreground md:grid md:grid-cols-[150px_1fr_1fr_120px]">
+            <span>Function</span>
+            <span>Provider</span>
+            <span>Model</span>
+            <span>Est. Cost</span>
+          </div>
+
+          {/* Text chat — greyed "Coming soon" (renamed former Chat row). */}
+          <div className={`${rowCls} opacity-70 md:opacity-100`}>
+            <div className="flex items-center gap-1.5">
+              <span className="text-sm font-medium">Text chat</span>
               <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
                 Coming soon
               </span>
+              <InfoIcon label="About text chat">
+                Will let the text AI tutor use the model of your choice. Not yet active.
+              </InfoIcon>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Will let the text AI tutor use the model of your choice. Not yet active.
-            </p>
-            <div className="grid grid-cols-2 gap-3 opacity-60">
-              <div className="space-y-1.5">
-                <Label>Provider</Label>
-                <Select value={state.llmProvider} disabled>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PROVIDERS.map((p) => (
-                      <SelectItem key={p} value={p}>
-                        {PROVIDER_LABELS[p]}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label>Model</Label>
-                <Select value={state.llmModel} disabled>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {MODELS[state.llmProvider].map((m) => (
-                      <SelectItem key={m.id} value={m.id}>
-                        {m.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="space-y-1 md:opacity-60">
+              <span className="text-xs text-muted-foreground md:hidden">Provider</span>
+              <Select value={state.llmProvider} disabled>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PROVIDERS.map((p) => (
+                    <SelectItem key={p} value={p}>
+                      {PROVIDER_LABELS[p]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1 md:opacity-60">
+              <span className="text-xs text-muted-foreground md:hidden">Model</span>
+              <Select value={state.llmModel} disabled>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {MODELS[state.llmProvider].map((m) => (
+                    <SelectItem key={m.id} value={m.id}>
+                      {m.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <span className="text-xs text-muted-foreground md:hidden">Est. Cost</span>
+              <p className="text-sm text-muted-foreground">—</p>
             </div>
           </div>
 
-          {/* Image Model — unchanged behavior. */}
-          <div className="space-y-2 border-b pb-6">
-            <h3 className="text-sm font-medium">Image Model</h3>
-            <p className="text-xs text-muted-foreground">
-              Generates illustrations for your vocabulary.
-            </p>
+          {/* Voice chat — OpenAI realtime (provider is fixed). */}
+          <div className={rowCls}>
+            <div className="flex items-center gap-1.5">
+              <span className="text-sm font-medium">Voice chat</span>
+              <InfoIcon label="About voice chat">
+                The OpenAI realtime model that powers Kruu Bingo voice practice. Requires
+                an OpenAI API key.
+              </InfoIcon>
+            </div>
+            <div className="space-y-1">
+              <span className="text-xs text-muted-foreground md:hidden">Provider</span>
+              <p className="py-1.5 text-sm">OpenAI</p>
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground md:hidden">Model</span>
+                <SaveStatus status={voiceModelSave.status} />
+              </div>
+              <Select value={state.voiceModel} onValueChange={(v) => v && onVoiceModelChange(v)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {VOICE_MODELS.map((m) => (
+                    <SelectItem key={m.id} value={m.id}>
+                      {m.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <span className="text-xs text-muted-foreground md:hidden">Est. Cost</span>
+              <p className="text-sm">~${voiceCostPerMin.toFixed(2)} / min</p>
+            </div>
+          </div>
+
+          {/* Photo analysis — renamed photo→vocab extraction (same setting). */}
+          <div className={rowCls}>
+            <div className="flex items-center gap-1.5">
+              <span className="text-sm font-medium">Photo analysis</span>
+              <InfoIcon label="About photo analysis">
+                Vision-capable model that extracts vocabulary from photos you upload.
+              </InfoIcon>
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground md:hidden">Provider</span>
+                <SaveStatus status={extractionProviderSave.status} />
+              </div>
+              <Select
+                value={state.extractionProvider}
+                onValueChange={(v) => v && onExtractionProviderChange(v as ExtractionProvider)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {EXTRACTION_PROVIDERS.map((p) => (
+                    <SelectItem key={p} value={p}>
+                      {EXTRACTION_PROVIDER_LABELS[p]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground md:hidden">Model</span>
+                <SaveStatus status={extractionModelSave.status} />
+              </div>
+              <Select
+                value={state.extractionModel}
+                onValueChange={(v) => v && onExtractionModelChange(v)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {EXTRACTION_MODELS[state.extractionProvider].map((m) => (
+                    <SelectItem key={m.id} value={m.id}>
+                      {m.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {!state.keys[EXTRACTION_PROVIDER_KEY[state.extractionProvider]] && (
+                <p className="text-xs text-amber-700">
+                  No API key for {EXTRACTION_PROVIDER_LABELS[state.extractionProvider]}. Add
+                  one below.
+                </p>
+              )}
+            </div>
+            <div className="space-y-1">
+              <span className="text-xs text-muted-foreground md:hidden">Est. Cost</span>
+              <p className="text-sm text-muted-foreground">—</p>
+            </div>
+          </div>
+
+          {/* Image generation — existing image-gen model. */}
+          <div className={`${rowCls} md:border-b-0 md:pb-0`}>
+            <div className="flex items-center gap-1.5">
+              <span className="text-sm font-medium">Image generation</span>
+              <InfoIcon label="About image generation">
+                Generates illustrations for your vocabulary.
+              </InfoIcon>
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground md:hidden">Provider</span>
+                <SaveStatus status={imageProviderSave.status} />
+              </div>
+              <Select
+                value={state.imageProvider}
+                onValueChange={(v) => v && onImageProviderChange(v as ImageProviderId)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {IMAGE_PROVIDERS.map((p) => (
+                    <SelectItem key={p} value={p}>
+                      {IMAGE_PROVIDER_LABELS[p]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground md:hidden">Model</span>
+                <SaveStatus status={imageModelSave.status} />
+              </div>
+              <Select value={state.imageModel} onValueChange={(v) => v && onImageModelChange(v)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {IMAGE_MODELS[state.imageProvider].map((m) => (
+                    <SelectItem key={m.id} value={m.id}>
+                      {m.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {!imageProviderHasKey && (
+                <p className="text-xs text-amber-700">
+                  No API key for {IMAGE_PROVIDER_LABELS[state.imageProvider]}. Add one
+                  below.
+                </p>
+              )}
+            </div>
+            <div className="space-y-1">
+              <span className="text-xs text-muted-foreground md:hidden">Est. Cost</span>
+              <p className="text-sm">${imageCostPerImage.toFixed(3)} per image</p>
+            </div>
+          </div>
+
+          {/* AI spend limits — sub-section beneath the table. */}
+          <div id="ai-spend" className="space-y-4 border-t pt-6">
+            <div className="flex items-center gap-1.5">
+              <h3 className="text-sm font-medium">AI spend limits</h3>
+              <InfoIcon label="About AI spend limits">
+                Monthly cap applies to all AI features including image generation and Kruu
+                Bingo practice sessions. Estimated based on provider pricing. Resets on the
+                1st of each calendar month.
+              </InfoIcon>
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <Label>Provider</Label>
-                  <SaveStatus status={imageProviderSave.status} />
+                  <div className="flex items-center gap-1.5">
+                    <Label htmlFor="reminder">Reminder every</Label>
+                    <InfoIcon label="About spend reminders">
+                      Show a banner each time your month-to-date spend crosses this amount.
+                    </InfoIcon>
+                  </div>
+                  <SaveStatus status={reminderSave.status} />
                 </div>
-                <Select
-                  value={state.imageProvider}
-                  onValueChange={(v) => v && onImageProviderChange(v as ImageProviderId)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {IMAGE_PROVIDERS.map((p) => (
-                      <SelectItem key={p} value={p}>
-                        {IMAGE_PROVIDER_LABELS[p]}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground">$</span>
+                  <Input
+                    id="reminder"
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={reminderDraft}
+                    onChange={(e) => setReminderDraft(e.target.value)}
+                    onBlur={saveReminder}
+                  />
+                </div>
               </div>
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <Label>Model</Label>
-                  <SaveStatus status={imageModelSave.status} />
+                  <div className="flex items-center gap-1.5">
+                    <Label htmlFor="hardstop">Hard stop at</Label>
+                    <InfoIcon label="About the hard stop">
+                      Block further image generation when month-to-date spend reaches this
+                      amount.
+                    </InfoIcon>
+                  </div>
+                  <SaveStatus status={hardStopSave.status} />
                 </div>
-                <Select
-                  value={state.imageModel}
-                  onValueChange={(v) => v && onImageModelChange(v)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {IMAGE_MODELS[state.imageProvider].map((m) => (
-                      <SelectItem key={m.id} value={m.id}>
-                        {m.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground">$</span>
+                  <Input
+                    id="hardstop"
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={hardStopDraft}
+                    onChange={(e) => setHardStopDraft(e.target.value)}
+                    onBlur={saveHardStop}
+                  />
+                </div>
               </div>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Estimated cost: ${imageCostPerImage.toFixed(3)} per image
-            </p>
-            {!imageProviderHasKey && (
-              <p className="text-xs text-amber-700">
-                You haven&apos;t entered an API key for{' '}
-                {IMAGE_PROVIDER_LABELS[state.imageProvider]}. Add one below to use this
-                model.
+            {spend && (
+              <p className="border-t pt-3 text-xs text-muted-foreground">
+                {spend.monthLabel} to date: ${spend.currentSpend.toFixed(2)} spent of $
+                {spend.hardStop.toFixed(2)} hard stop
+                {spend.reminder > 0 && (
+                  <>
+                    {' · '}Next reminder at ${spend.nextReminderBand.toFixed(2)}
+                  </>
+                )}
+                {spend.estimatedCostPerImage > 0 && (
+                  <>
+                    {' · '}
+                    {imagesPossible.toLocaleString()} images possible at current model price
+                  </>
+                )}
               </p>
             )}
           </div>
-
-          {/* AI Voice Chat Model — OpenAI realtime speech-to-speech (Kruu Bingo). */}
-          <div className="space-y-2 border-b pb-6">
-            <h3 className="text-sm font-medium">AI Voice Chat Model</h3>
-            <p className="text-xs text-muted-foreground">
-              The OpenAI realtime model that powers Kruu Bingo voice practice. Requires
-              an OpenAI API key.
-            </p>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <Label>Model</Label>
-                  <SaveStatus status={voiceModelSave.status} />
-                </div>
-                <Select
-                  value={state.voiceModel}
-                  onValueChange={(v) => v && onVoiceModelChange(v)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {VOICE_MODELS.map((m) => (
-                      <SelectItem key={m.id} value={m.id}>
-                        {m.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Approximate cost: ~${voiceCostPerMin.toFixed(2)} / min
-            </p>
-          </div>
-
-          {/* Photo Extraction Model — unchanged behavior. */}
-          <div className="space-y-2">
-            <h3 className="text-sm font-medium">Photo Extraction Model</h3>
-            <p className="text-xs text-muted-foreground">
-              Vision-capable model that extracts vocabulary from photos you upload.
-            </p>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <Label>Provider</Label>
-                  <SaveStatus status={extractionProviderSave.status} />
-                </div>
-                <Select
-                  value={state.extractionProvider}
-                  onValueChange={(v) =>
-                    v && onExtractionProviderChange(v as ExtractionProvider)
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {EXTRACTION_PROVIDERS.map((p) => (
-                      <SelectItem key={p} value={p}>
-                        {EXTRACTION_PROVIDER_LABELS[p]}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <Label>Model</Label>
-                  <SaveStatus status={extractionModelSave.status} />
-                </div>
-                <Select
-                  value={state.extractionModel}
-                  onValueChange={(v) => v && onExtractionModelChange(v)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {EXTRACTION_MODELS[state.extractionProvider].map((m) => (
-                      <SelectItem key={m.id} value={m.id}>
-                        {m.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            {!state.keys[EXTRACTION_PROVIDER_KEY[state.extractionProvider]] && (
-              <p className="text-xs text-amber-700">
-                You haven&apos;t entered an API key for{' '}
-                {EXTRACTION_PROVIDER_LABELS[state.extractionProvider]}. Add one below
-                to use this model.
-              </p>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card id="ai-spend">
-        <CardHeader>
-          <CardTitle>AI spend limits</CardTitle>
-          <CardDescription>
-            Monthly cap applies to all AI features including image generation and Kruu
-            Bingo practice sessions. Estimated based on provider pricing. Resets on the
-            1st of each calendar month.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="reminder">Reminder every</Label>
-                <SaveStatus status={reminderSave.status} />
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-muted-foreground">$</span>
-                <Input
-                  id="reminder"
-                  type="number"
-                  min="1"
-                  step="1"
-                  value={reminderDraft}
-                  onChange={(e) => setReminderDraft(e.target.value)}
-                  onBlur={saveReminder}
-                />
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Show a banner each time your month-to-date spend crosses this amount.
-              </p>
-            </div>
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="hardstop">Hard stop at</Label>
-                <SaveStatus status={hardStopSave.status} />
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-muted-foreground">$</span>
-                <Input
-                  id="hardstop"
-                  type="number"
-                  min="1"
-                  step="1"
-                  value={hardStopDraft}
-                  onChange={(e) => setHardStopDraft(e.target.value)}
-                  onBlur={saveHardStop}
-                />
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Block further image generation when month-to-date spend reaches this amount.
-              </p>
-            </div>
-          </div>
-          {spend && (
-            <p className="text-xs text-muted-foreground border-t pt-3">
-              {spend.monthLabel}: ${spend.currentSpend.toFixed(2)} spent of $
-              {spend.hardStop.toFixed(2)} hard stop
-              {spend.reminder > 0 && (
-                <>
-                  {' · '}Next reminder at ${spend.nextReminderBand.toFixed(2)}
-                </>
-              )}
-              {spend.estimatedCostPerImage > 0 && (
-                <>
-                  {' · '}
-                  {imagesPossible.toLocaleString()} images possible at current model price
-                </>
-              )}
-            </p>
-          )}
         </CardContent>
       </Card>
 

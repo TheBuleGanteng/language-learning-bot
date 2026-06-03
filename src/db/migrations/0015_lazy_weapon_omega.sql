@@ -1,0 +1,1 @@
+ALTER TABLE "user_settings" ADD COLUMN "captions_enabled" boolean DEFAULT false NOT NULL;

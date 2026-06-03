@@ -1,9 +1,8 @@
 'use client';
 
-import { Info } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { InfoIcon } from '@/components/ui/info-icon';
 import {
   BASE_LANGUAGE_USE_LEVELS,
   BASE_LANGUAGE_USE_LABELS,
@@ -45,34 +44,20 @@ export function BaseLanguageUseControl({
     <div className={cn('space-y-2', className)}>
       <div className="flex items-center gap-1.5">
         <Label>Base language use</Label>
-        <Popover>
-          <PopoverTrigger
-            openOnHover
-            render={
-              <button
-                type="button"
-                aria-label="About base language use"
-                className="inline-flex text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
-              />
-            }
-          >
-            <Info className="h-4 w-4" />
-          </PopoverTrigger>
-          <PopoverContent className="w-72">
-            <p className="font-medium">{BASE_LANGUAGE_USE_LABELS[value]}</p>
-            <p className="text-muted-foreground">{baseLanguageUseHelp(value, names)}</p>
-            <div className="mt-1 space-y-1 border-t pt-2">
-              {BASE_LANGUAGE_USE_LEVELS.map((lvl) => (
-                <p key={lvl} className="text-xs leading-snug">
-                  <span className="font-medium">{BASE_LANGUAGE_USE_LABELS[lvl]}:</span>{' '}
-                  <span className="text-muted-foreground">
-                    {baseLanguageUseHelp(lvl, names)}
-                  </span>
-                </p>
-              ))}
-            </div>
-          </PopoverContent>
-        </Popover>
+        <InfoIcon label="About base language use">
+          <p className="font-medium">{BASE_LANGUAGE_USE_LABELS[value]}</p>
+          <p className="text-muted-foreground">{baseLanguageUseHelp(value, names)}</p>
+          <div className="mt-1 space-y-1 border-t pt-2">
+            {BASE_LANGUAGE_USE_LEVELS.map((lvl) => (
+              <p key={lvl} className="text-xs leading-snug">
+                <span className="font-medium">{BASE_LANGUAGE_USE_LABELS[lvl]}:</span>{' '}
+                <span className="text-muted-foreground">
+                  {baseLanguageUseHelp(lvl, names)}
+                </span>
+              </p>
+            ))}
+          </div>
+        </InfoIcon>
       </div>
 
       <Slider

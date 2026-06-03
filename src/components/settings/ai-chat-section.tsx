@@ -18,6 +18,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { BaseLanguageUseControl } from '@/components/settings/base-language-use-control';
+import { CaptionsToggle } from '@/components/settings/captions-toggle';
+import { InfoIcon } from '@/components/ui/info-icon';
 import { withBase } from '@/lib/base-path';
 import { languageName } from '@/lib/languages';
 import {
@@ -61,6 +63,9 @@ export function AiChatSection() {
   const [blReady, setBlReady] = useState(false);
   const [blSaving, setBlSaving] = useState(false);
 
+  const [captionsEnabled, setCaptionsEnabled] = useState(false);
+  const [captionsSaving, setCaptionsSaving] = useState(false);
+
   const [timeoutSeconds, setTimeoutSeconds] = useState<number>(DEFAULT_TIMEOUT_SECONDS);
   const [timeoutSaving, setTimeoutSaving] = useState(false);
 
@@ -81,6 +86,7 @@ export function AiChatSection() {
       if (settingsRes.ok) {
         const s = await settingsRes.json();
         if (isBaseLanguageUse(s.baseLanguageUse)) setBaseLanguageUse(s.baseLanguageUse);
+        setCaptionsEnabled(Boolean(s.captionsEnabled));
       }
       setBlReady(true);
     })();
@@ -119,6 +125,27 @@ export function AiChatSection() {
       toast.error(e instanceof Error ? e.message : 'Save failed');
     } finally {
       setBlSaving(false);
+    }
+  }
+
+  async function saveCaptions(next: boolean) {
+    const prev = captionsEnabled;
+    setCaptionsEnabled(next);
+    setCaptionsSaving(true);
+    try {
+      const res = await fetch(withBase('/api/settings'), {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ captionsEnabled: next }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(d?.error ?? 'Save failed');
+      toast.success(`Captions ${next ? 'on' : 'off'}`);
+    } catch (e) {
+      setCaptionsEnabled(prev);
+      toast.error(e instanceof Error ? e.message : 'Save failed');
+    } finally {
+      setCaptionsSaving(false);
     }
   }
 
@@ -165,6 +192,22 @@ export function AiChatSection() {
           ) : (
             <p className="text-sm text-muted-foreground">Loading…</p>
           )}
+        </div>
+
+        {/* Voice chat captions on/off (per-user, mirrors the voice page). */}
+        <div className="space-y-2 border-t pt-6">
+          <div className="flex items-center gap-1.5">
+            <Label>Voice chat captions</Label>
+            <InfoIcon label="About captions">
+              Show YouTube-style captions (target-language transcript) during AI voice
+              chat. Mirrors the CC button on the voice chat page.
+            </InfoIcon>
+          </div>
+          <CaptionsToggle
+            enabled={captionsEnabled}
+            onToggle={saveCaptions}
+            disabled={captionsSaving}
+          />
         </div>
 
         {isSuperuser && (

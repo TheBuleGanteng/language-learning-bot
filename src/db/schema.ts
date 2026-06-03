@@ -145,6 +145,9 @@ export const userSettings = pgTable('user_settings', {
   baseLanguageUse: varchar('base_language_use', { length: 16 })
     .notNull()
     .default('moderate'),
+  // Show YouTube-style captions (target-language transcript) during AI voice
+  // chat. Per-user, default OFF.
+  captionsEnabled: boolean('captions_enabled').notNull().default(false),
   // Feature C: spend caps now cover ALL AI features (image gen + avatar), not
   // just image generation.
   aiSpendReminderUsd: numeric('ai_spend_reminder_usd', { precision: 10, scale: 2 })

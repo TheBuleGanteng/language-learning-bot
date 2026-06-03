@@ -94,6 +94,7 @@ export async function GET(req: Request) {
     extractionModel: s.extractionModel,
     voiceModel: s.voiceModel,
     baseLanguageUse: s.baseLanguageUse,
+    captionsEnabled: s.captionsEnabled,
     aiSpendReminderUsd: Number(s.aiSpendReminderUsd ?? 25),
     aiSpendHardStopUsd: Number(s.aiSpendHardStopUsd ?? 100),
     keys: {
@@ -115,6 +116,7 @@ const patchSchema = z.object({
   extractionModel: z.string().min(1).max(100).optional(),
   voiceModel: z.string().min(1).max(64).optional(),
   baseLanguageUse: z.string().min(1).max(16).optional(),
+  captionsEnabled: z.boolean().optional(),
   aiSpendReminderUsd: z.number().min(1).max(99999).optional(),
   aiSpendHardStopUsd: z.number().min(1).max(99999).optional(),
   targetLanguage: z.enum(LANGUAGE_CODES).optional(),
@@ -228,6 +230,10 @@ export async function PATCH(req: Request) {
       );
     }
     updates.baseLanguageUse = parsed.data.baseLanguageUse;
+  }
+
+  if (parsed.data.captionsEnabled !== undefined) {
+    updates.captionsEnabled = parsed.data.captionsEnabled;
   }
 
   if (parsed.data.aiSpendReminderUsd !== undefined) {

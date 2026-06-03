@@ -1366,3 +1366,38 @@ verified to compile/serve on the dev server (settings 307→login, settings APIs
 settings/voice UI remain unverifiable by the local gates — the §10 visual checks
 (slider auto-save, info popover on desktop+mobile, live "All"→repeat-both /
 "Never"→target-only mid-session) need a logged-in browser smoke test.
+
+## 2026-06-03 — AI model selection table + voice chat captions (feature, clean run)
+**Context**: Two local changes (CLAUDE_CODE_INSTRUCTIONS.md). Part A reformatted
+the "AI model selection" settings section into a responsive Function / Provider
+/ Model / Est. Cost table (rows: Text chat [greyed "Coming soon"], Voice chat,
+Photo analysis [renamed from Photo Extraction], Image generation), with the
+per-feature descriptions moved into ⓘ info popovers and the AI spend limits
+relocated into a sub-section beneath the table. Part B added YouTube-style
+captions to the AI voice chat (per-user `captions_enabled`, default off).
+**No bugs encountered** — lint, tsc --noEmit, 75 tests, and build ("Compiled
+successfully" + "Finished TypeScript") all passed; routes verified to
+compile/serve on the dev server (settings 307→login, settings APIs + PATCH 401).
+**Notes / non-obvious choices**:
+- Extracted a shared `InfoIcon` (`src/components/ui/info-icon.tsx`) from the
+  base-language-use control's popover so every ⓘ (table rows, spend limits,
+  captions) behaves identically — opens on desktop hover/focus AND mobile tap
+  via base-ui `PopoverTrigger openOnHover` (which keeps click/tap behavior).
+  Refactored `BaseLanguageUseControl` to use it.
+- Responsive table is one render, not two: a CSS grid that is a labeled stacked
+  card per row on mobile (`grid-cols-1`, bordered) and an aligned
+  `md:grid-cols-[150px_1fr_1fr_120px]` row on desktop — avoids duplicate
+  interactive Select instances and horizontal overflow on phones.
+- Est. Cost is display-only: Voice "~$X.XX / min", Image "$X.XXX per image",
+  Text chat "—", and Photo analysis "—" (extraction has no cost tracked in the
+  catalog yet — shown as "—" rather than a fabricated number).
+- Captions reuse the existing `onTranscript(text, role)` transcripts (no extra
+  transcription pass); the overlay renders the most recent transcript line over
+  the avatar with a speaker tag, shown only when captions are ON and a session
+  is started. New shared `CaptionsToggle` (CC button) used on both the voice
+  page and (with a label) the AI Chat settings section; both auto-save through
+  the same `PATCH /api/settings { captionsEnabled }` so they mirror.
+- Live voice (mic + OpenAI Realtime) and the authenticated UI remain
+  unverifiable by local gates — the §8 visual checks (table layout at 1280px
+  and 375–414px, info popovers on tap, captions overlay during a live exchange)
+  need a logged-in browser smoke test.

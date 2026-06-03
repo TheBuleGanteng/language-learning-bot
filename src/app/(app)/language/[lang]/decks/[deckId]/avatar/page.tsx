@@ -26,6 +26,7 @@ import { RealtimeSession } from '@/lib/realtime';
 import { buildKruuBingoPrompt } from '@/lib/kruu-bingo-prompt';
 import { voiceModelCostPerMinute } from '@/lib/voice-models';
 import { BaseLanguageUseControl } from '@/components/settings/base-language-use-control';
+import { CaptionsToggle } from '@/components/settings/captions-toggle';
 import {
   defaultBaseLanguageUse,
   isBaseLanguageUse,
@@ -115,6 +116,10 @@ export default function AvatarPage() {
   const [baseName, setBaseName] = useState('your base language');
   const [blSaving, setBlSaving] = useState(false);
 
+  // YouTube-style captions (target-language transcript overlay) — per-user (§4).
+  const [captionsEnabled, setCaptionsEnabled] = useState(false);
+  const [captionsSaving, setCaptionsSaving] = useState(false);
+
   const sessionRef = useRef<RealtimeSession | null>(null);
   const promptRef = useRef<string>('');
   // Stored prompt inputs so the system prompt can be rebuilt when the base
@@ -188,6 +193,7 @@ export default function AvatarPage() {
       if (settingsRes.ok) {
         const s = await settingsRes.json();
         if (isBaseLanguageUse(s.baseLanguageUse)) level = s.baseLanguageUse;
+        setCaptionsEnabled(Boolean(s.captionsEnabled));
       }
 
       // Dedup vocab (a 'both' deck has two cards per item).
@@ -493,6 +499,34 @@ export default function AvatarPage() {
     }
   }
 
+  // Captions toggle (§4c): pure client show/hide of the overlay, persisted
+  // through the same settings PATCH so it mirrors the settings page.
+  async function onToggleCaptions(next: boolean) {
+    const prev = captionsEnabled;
+    setCaptionsEnabled(next);
+    setCaptionsSaving(true);
+    try {
+      const res = await fetch(withBase('/api/settings'), {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ captionsEnabled: next }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d?.error ?? 'Save failed');
+      }
+      toast.success(`Captions ${next ? 'on' : 'off'}`);
+    } catch (e) {
+      setCaptionsEnabled(prev);
+      toast.error(e instanceof Error ? e.message : 'Save failed');
+    } finally {
+      setCaptionsSaving(false);
+    }
+  }
+
+  // Latest transcript line for the caption overlay (most recent turn).
+  const latestCaption = transcript.length > 0 ? transcript[transcript.length - 1] : null;
+
   // ---- render ----------------------------------------------------------
 
   if (phase === 'no-key') {
@@ -565,8 +599,19 @@ export default function AvatarPage() {
       ) : (
         <div className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-4 overflow-hidden">
           {/* Avatar */}
-          <div className="flex shrink-0 items-center justify-center pt-2" style={{ height: '40vh' }}>
+          <div className="relative flex shrink-0 items-center justify-center pt-2" style={{ height: '40vh' }}>
             <KruuBingo state={avatarState} size={220} />
+            {/* YouTube-style caption overlay — target-language transcript (§4b). */}
+            {captionsEnabled && started && latestCaption && (
+              <div className="pointer-events-none absolute inset-x-0 bottom-2 flex justify-center px-4">
+                <div className="max-w-[90%] rounded-md bg-black/75 px-3 py-1.5 text-center text-sm leading-snug text-white sm:text-base">
+                  <span className="mr-1 text-[10px] uppercase tracking-wide text-white/60">
+                    {latestCaption.role === 'user' ? 'You' : 'Kruu Bingo'}
+                  </span>
+                  <span className="break-words">{latestCaption.text}</span>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Transcript */}
@@ -618,8 +663,8 @@ export default function AvatarPage() {
             </Button>
           </form>
 
-          {/* Base language use — auto-saves and applies to the live session. */}
-          <div className="shrink-0 rounded-md border bg-muted/20 px-3 py-2">
+          {/* Controls — base language use (live-applied) + captions toggle. */}
+          <div className="shrink-0 space-y-3 rounded-md border bg-muted/20 px-3 py-2">
             <BaseLanguageUseControl
               value={baseLanguageUse}
               onChange={onBaseLanguageChange}
@@ -627,6 +672,14 @@ export default function AvatarPage() {
               baseLanguage={baseName}
               disabled={blSaving}
             />
+            <div className="flex items-center justify-between gap-2 border-t pt-3">
+              <span className="text-sm font-medium">Captions</span>
+              <CaptionsToggle
+                enabled={captionsEnabled}
+                onToggle={onToggleCaptions}
+                disabled={captionsSaving}
+              />
+            </div>
           </div>
 
           {/* Mic + End */}
