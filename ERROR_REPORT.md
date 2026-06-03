@@ -1249,3 +1249,33 @@ Code-only, no migration. Pushed project repo (`f131171`), bumped submodule
 (`3394ed9`), rebuilt + force-recreated the container. Verified: `HTTP/2 200`,
 POST `/api/avatar/token` → 401 (route live, not 404), `/api/avatar/session-config`
 → 401, zero error lines after restart.
+
+## 2026-06-03 — Avatar inactivity timeout (feature, clean run)
+**Context**: Added a configurable inactivity timeout to the Kruu Bingo avatar
+session (CLAUDE_CODE_INSTRUCTIONS.md). After a superuser-configured idle period
+a "Continue session?" popup warns the user with a 30s countdown; user input
+(speech or text) dismisses it with a green-checkmark acknowledgment, the
+buttons let the user continue or end, and countdown expiry auto-ends. The
+timeout is a single GLOBAL value (all users), so it lives in a new singleton
+`app_settings` table rather than per-user `user_settings`.
+**No bugs encountered** — lint, 75 tests, and `pnpm build` ("Compiled
+successfully" + TypeScript finished; the usual page-data/DB hang is unrelated)
+all passed on the first full run.
+**Notes / non-obvious choices**:
+- New `app_settings` table (id=1 singleton, seeded in migration `0012` via
+  `INSERT … ON CONFLICT DO NOTHING`). `GET /api/settings/avatar` falls back to
+  120s if the row is missing; `PATCH` is superuser-gated (`canManageRoles`) and
+  validates a 30s multiple in 30–1800s.
+- The warning popup is a non-modal overlay (pointer-events-none dimmer) rather
+  than the modal Dialog/AlertDialog primitive, so the user can still speak or
+  send text "underneath" it to dismiss — the spec requires text-send while the
+  popup is visible to trigger the checkmark animation, which a focus-trapping
+  modal would block.
+- Inactivity timer is paused while Kruu Bingo speaks (`onSpeaking` clears it)
+  and reset-to-zero when it goes idle (`onIdle`); user speech (`onListening`)
+  and text-send both reset it. All three end paths (manual button, popup
+  button, auto-expiry) route through one shared `endSession()` handler.
+- Live voice behaviour (mic + OpenAI Realtime) remains unverifiable by the
+  local gates; timer/popup logic itself is plain client state and is exercised
+  only via build/lint/type-check here. **Action for user: smoke-test a live
+  session per the §11 checklist.**

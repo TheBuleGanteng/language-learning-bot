@@ -44,6 +44,7 @@ import { useFieldAutoSave, SaveStatus } from '@/components/save-status';
 import { withBase } from '@/lib/base-path';
 import { ProfileSection } from '@/components/settings/profile-section';
 import { RoleManagementSection } from '@/components/settings/role-management-section';
+import { AvatarSettingsSection } from '@/components/settings/avatar-settings-section';
 
 interface KeyInfo {
   masked: string;
@@ -725,6 +726,7 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
       <RoleManagementSection />
+      <AvatarSettingsSection />
     </div>
   );
 }

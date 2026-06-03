@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Mic, Square } from 'lucide-react';
+import { ArrowLeft, Mic, Square, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -37,6 +37,50 @@ interface Completion {
   turnCount: number;
 }
 
+// Seconds the warning popup counts down before auto-ending the session.
+const WARNING_COUNTDOWN_SECONDS = 30;
+// Fallback inactivity timeout if the settings fetch fails (matches the schema
+// default).
+const DEFAULT_INACTIVITY_TIMEOUT_SECONDS = 120;
+// How long the green "input detected" checkmark animation holds before the
+// popup dismisses and the session resumes.
+const INPUT_DETECTED_HOLD_MS = 800;
+
+/** Circular countdown indicator with the remaining seconds shown in the centre. */
+function CountdownRing({ seconds, total }: { seconds: number; total: number }) {
+  const r = 28;
+  const circ = 2 * Math.PI * r;
+  const frac = Math.max(0, Math.min(1, seconds / total));
+  return (
+    <div className="relative h-[72px] w-[72px]">
+      <svg width="72" height="72" viewBox="0 0 72 72" className="-rotate-90">
+        <circle
+          cx="36"
+          cy="36"
+          r={r}
+          fill="none"
+          strokeWidth="6"
+          className="stroke-muted"
+        />
+        <circle
+          cx="36"
+          cy="36"
+          r={r}
+          fill="none"
+          strokeWidth="6"
+          strokeLinecap="round"
+          strokeDasharray={circ}
+          strokeDashoffset={circ * (1 - frac)}
+          className="stroke-primary transition-[stroke-dashoffset] duration-1000 ease-linear"
+        />
+      </svg>
+      <span className="absolute inset-0 flex items-center justify-center text-lg font-semibold tabular-nums">
+        {seconds}
+      </span>
+    </div>
+  );
+}
+
 export default function AvatarPage() {
   const params = useParams<{ lang: string; deckId: string }>();
   const router = useRouter();
@@ -51,10 +95,25 @@ export default function AvatarPage() {
   const [endOpen, setEndOpen] = useState(false);
   const [completion, setCompletion] = useState<Completion | null>(null);
 
+  // Inactivity warning popup state.
+  const [warnOpen, setWarnOpen] = useState(false);
+  const [countdown, setCountdown] = useState(WARNING_COUNTDOWN_SECONDS);
+  const [inputDetected, setInputDetected] = useState(false);
+
   const sessionRef = useRef<RealtimeSession | null>(null);
   const promptRef = useRef<string>('');
   const transcriptEndRef = useRef<HTMLDivElement | null>(null);
   const savedRef = useRef(false);
+
+  // Inactivity timer handles + the configured (global) timeout, mirrored in a
+  // ref so the RealtimeSession callbacks read the latest value without being
+  // re-created.
+  const inactivityTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const countdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const timeoutSecondsRef = useRef(DEFAULT_INACTIVITY_TIMEOUT_SECONDS);
+  // Mirrors warnOpen / inputDetected for reads inside timer callbacks.
+  const warnOpenRef = useRef(false);
+  const inputDetectedRef = useRef(false);
 
   // §14a load sequence: config gate, then build the system prompt.
   useEffect(() => {
@@ -86,14 +145,21 @@ export default function AvatarPage() {
         );
       }
 
-      // Fetch deck vocab + the user's languages for the system prompt.
-      const [studyRes, meRes] = await Promise.all([
+      // Fetch deck vocab + the user's languages for the system prompt, plus the
+      // global avatar inactivity timeout (§5a).
+      const [studyRes, meRes, avatarRes] = await Promise.all([
         fetch(withBase(`/api/decks/${deckId}/study?limit=999&ahead=true`)),
         fetch(withBase('/api/me')),
+        fetch(withBase('/api/settings/avatar')),
       ]);
       if (cancelled) return;
       const study = studyRes.ok ? await studyRes.json() : { cards: [] };
       const me = meRes.ok ? await meRes.json() : { targetLanguage: lang, nativeLanguage: 'en' };
+      if (avatarRes.ok) {
+        const av = await avatarRes.json();
+        timeoutSecondsRef.current =
+          Number(av.avatarInactivityTimeoutSeconds) || DEFAULT_INACTIVITY_TIMEOUT_SECONDS;
+      }
 
       // Dedup vocab (a 'both' deck has two cards per item).
       const seen = new Set<string>();
@@ -123,10 +189,13 @@ export default function AvatarPage() {
     transcriptEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [transcript]);
 
-  // Tear down on unmount.
+  // Tear down on unmount — stop the session and clear any pending timers so we
+  // don't leak handles or fire callbacks after the component is gone.
   useEffect(() => {
     return () => {
       void sessionRef.current?.stop();
+      if (inactivityTimerRef.current) clearTimeout(inactivityTimerRef.current);
+      if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
     };
   }, []);
 
@@ -153,6 +222,106 @@ export default function AvatarPage() {
     },
     [deckId],
   );
+
+  // ---- inactivity timer + warning popup -------------------------------------
+
+  const clearInactivityTimer = useCallback(() => {
+    if (inactivityTimerRef.current) {
+      clearTimeout(inactivityTimerRef.current);
+      inactivityTimerRef.current = null;
+    }
+  }, []);
+
+  const clearCountdown = useCallback(() => {
+    if (countdownTimerRef.current) {
+      clearInterval(countdownTimerRef.current);
+      countdownTimerRef.current = null;
+    }
+  }, []);
+
+  // Single shared end path (§5f): used by the manual "End session" button, the
+  // popup's "End session" button, and the countdown auto-expiry. Saves the
+  // session record, then shows the completion screen.
+  const endSession = useCallback(async () => {
+    clearInactivityTimer();
+    clearCountdown();
+    warnOpenRef.current = false;
+    inputDetectedRef.current = false;
+    setWarnOpen(false);
+    setInputDetected(false);
+    setEndOpen(false);
+
+    const session = sessionRef.current;
+    if (!session) {
+      setCompletion({ durationSeconds: 0, costUsd: 0, turnCount: 0 });
+      setPhase('completed');
+      return;
+    }
+    const result = await saveSession(session);
+    await session.stop();
+    sessionRef.current = null;
+    setCompletion(result);
+    setPhase('completed');
+  }, [saveSession, clearInactivityTimer, clearCountdown]);
+
+  // Show the warning popup and run the 30s countdown; auto-end at zero (§5c/§5e).
+  const fireInactivityWarning = useCallback(() => {
+    warnOpenRef.current = true;
+    inputDetectedRef.current = false;
+    setInputDetected(false);
+    setWarnOpen(true);
+    setCountdown(WARNING_COUNTDOWN_SECONDS);
+    clearCountdown();
+    countdownTimerRef.current = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearCountdown();
+          void endSession();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  }, [clearCountdown, endSession]);
+
+  // (Re)start the idle timer from zero. Called when Kruu Bingo goes idle and on
+  // any user input while the popup is closed.
+  const startInactivityTimer = useCallback(() => {
+    clearInactivityTimer();
+    inactivityTimerRef.current = setTimeout(() => {
+      fireInactivityWarning();
+    }, timeoutSecondsRef.current * 1000);
+  }, [clearInactivityTimer, fireInactivityWarning]);
+
+  // User input detected (speech or text). If the popup is up, play the green
+  // checkmark acknowledgment (§5d) then resume; otherwise just reset the timer.
+  const handleUserActivity = useCallback(() => {
+    if (warnOpenRef.current) {
+      if (inputDetectedRef.current) return; // already acknowledging
+      inputDetectedRef.current = true;
+      setInputDetected(true);
+      clearCountdown();
+      setTimeout(() => {
+        warnOpenRef.current = false;
+        inputDetectedRef.current = false;
+        setWarnOpen(false);
+        setInputDetected(false);
+        startInactivityTimer();
+      }, INPUT_DETECTED_HOLD_MS);
+    } else {
+      startInactivityTimer();
+    }
+  }, [clearCountdown, startInactivityTimer]);
+
+  // "Continue session" button — dismiss immediately, no checkmark animation.
+  const continueSession = useCallback(() => {
+    warnOpenRef.current = false;
+    inputDetectedRef.current = false;
+    setWarnOpen(false);
+    setInputDetected(false);
+    clearCountdown();
+    startInactivityTimer();
+  }, [clearCountdown, startInactivityTimer]);
 
   async function startSession() {
     if (started) return;
@@ -189,9 +358,22 @@ export default function AvatarPage() {
     const session = new RealtimeSession({
       ephemeralToken,
       systemPrompt: promptRef.current,
-      onSpeaking: () => setAvatarState('speaking'),
-      onListening: () => setAvatarState('listening'),
-      onIdle: () => setAvatarState('idle'),
+      onSpeaking: () => {
+        setAvatarState('speaking');
+        // Kruu Bingo is talking — pause the inactivity timer entirely (§5b).
+        clearInactivityTimer();
+      },
+      onListening: () => {
+        setAvatarState('listening');
+        // User speech detected — counts as input (§5b/§5d).
+        handleUserActivity();
+      },
+      onIdle: () => {
+        setAvatarState('idle');
+        // Kruu Bingo finished its turn — it's the user's turn, so start the
+        // idle timer from zero. Don't disturb an open warning popup.
+        if (!warnOpenRef.current) startInactivityTimer();
+      },
       onTranscript: (text, role) => setTranscript((prev) => [...prev, { role, text }]),
       onError: (err) => {
         toast.error(err.message);
@@ -208,29 +390,22 @@ export default function AvatarPage() {
     }
   }
 
-  async function confirmEnd() {
-    setEndOpen(false);
-    const session = sessionRef.current;
-    if (!session) {
-      setCompletion({ durationSeconds: 0, costUsd: 0, turnCount: 0 });
-      setPhase('completed');
-      return;
-    }
-    const result = await saveSession(session);
-    await session.stop();
-    sessionRef.current = null;
-    setCompletion(result);
-    setPhase('completed');
-  }
-
   function sendText() {
     const t = textInput.trim();
     if (!t || !sessionRef.current) return;
     sessionRef.current.sendTextMessage(t);
     setTextInput('');
+    // Sending a text message counts as user input (§5b/§5d).
+    handleUserActivity();
   }
 
   function restart() {
+    clearInactivityTimer();
+    clearCountdown();
+    warnOpenRef.current = false;
+    inputDetectedRef.current = false;
+    setWarnOpen(false);
+    setInputDetected(false);
     savedRef.current = false;
     setCompletion(null);
     setTranscript([]);
@@ -395,10 +570,53 @@ export default function AvatarPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Keep going</AlertDialogCancel>
-            <Button onClick={confirmEnd}>End session</Button>
+            <Button onClick={endSession}>End session</Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Inactivity warning popup (§5c–§5e). Rendered as a non-modal overlay so
+          the user can still speak or send text underneath to dismiss it; the
+          dimmer is pointer-events-none and only the card captures clicks. */}
+      {warnOpen && (
+        <div
+          role="alertdialog"
+          aria-modal="false"
+          aria-label="Continue session?"
+          className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+        >
+          <div className="absolute inset-0 bg-black/40 pointer-events-none" aria-hidden />
+          <div className="relative w-full max-w-sm rounded-xl bg-popover p-6 text-popover-foreground shadow-lg ring-1 ring-foreground/10">
+            {inputDetected ? (
+              <div className="flex flex-col items-center gap-3 py-6 animate-in fade-in zoom-in-95 duration-300">
+                <CheckCircle2 className="h-14 w-14 text-green-600" />
+                <p className="text-sm font-medium">User input detected</p>
+              </div>
+            ) : (
+              <>
+                <h2 className="text-center text-lg font-semibold">Continue session?</h2>
+                <p className="mt-2 text-center text-sm text-muted-foreground">
+                  You&apos;ve been quiet for a while. The session will end soon.
+                </p>
+                <div className="my-5 flex flex-col items-center gap-2">
+                  <CountdownRing seconds={countdown} total={WARNING_COUNTDOWN_SECONDS} />
+                  <p className="text-sm text-muted-foreground" aria-live="polite">
+                    Ending in {countdown}s…
+                  </p>
+                </div>
+                <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
+                  <Button onClick={continueSession} className="w-full">
+                    Continue session
+                  </Button>
+                  <Button variant="outline" onClick={endSession} className="w-full">
+                    End session
+                  </Button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

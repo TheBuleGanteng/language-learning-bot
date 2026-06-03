@@ -541,6 +541,21 @@ export const avatarSessions = pgTable('avatar_sessions', {
 });
 
 // =============================================================================
+// app_settings (global, superuser-controlled — singleton row id=1)
+// =============================================================================
+
+export const appSettings = pgTable('app_settings', {
+  // Enforce a single row via id=1 (seeded in migration + read path).
+  id: integer('id').primaryKey().default(1),
+  // Inactivity timeout for avatar sessions, in seconds. Default 120s (2 min).
+  // Configurable in 30s increments by superuser (30–1800s).
+  avatarInactivityTimeoutSeconds: integer('avatar_inactivity_timeout_seconds')
+    .notNull()
+    .default(120),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+// =============================================================================
 // types
 // =============================================================================
 
@@ -572,3 +587,5 @@ export type CardReview = typeof cardReviews.$inferSelect;
 export type NewCardReview = typeof cardReviews.$inferInsert;
 export type StudySession = typeof studySessions.$inferSelect;
 export type NewStudySession = typeof studySessions.$inferInsert;
+export type AppSettings = typeof appSettings.$inferSelect;
+export type NewAppSettings = typeof appSettings.$inferInsert;
