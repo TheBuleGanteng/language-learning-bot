@@ -1279,3 +1279,25 @@ all passed on the first full run.
   local gates; timer/popup logic itself is plain client state and is exercised
   only via build/lint/type-check here. **Action for user: smoke-test a live
   session per the §11 checklist.**
+
+## 2026-06-03 — Timeout popup buttons overflow the card
+**Symptom**: The "Continue session" / "End session" buttons in the avatar
+inactivity-timeout popup rendered outside the white popup card, spilling into
+the gray backdrop on desktop and laptop widths.
+**Root cause**: The button row used `flex flex-col gap-2 sm:flex-row` with each
+`<Button>` set to `w-full`. The shared Button base class includes `shrink-0`,
+so at the `sm` breakpoint and up the two `width:100%` buttons could not shrink
+to share the row — they summed to ~200% of the card's content width and
+overflowed past the `p-6` padding into the backdrop. (Measured: at 1280px the
+buttons extended ~172px beyond each edge of the 336px content box.) On mobile
+the row was `flex-col`, so each `w-full` button stacked correctly and the bug
+was invisible there.
+**Fix**: Contained the button row inside the card's padded content area with a
+full-width flex row whose buttons share it evenly: container
+`flex w-full flex-col gap-3 sm:flex-row`, each button `w-full sm:flex-1
+sm:min-w-0`. `flex-1` gives a `flex-basis: 0%`, so the buttons grow to an equal
+half-share of the row and `shrink-0` no longer forces overflow; `min-w-0` lets
+them shrink below intrinsic content width. Verified with a Tailwind-rendered
+geometry check that both buttons sit fully inside the card content box at
+1280px and 1024px (each ~162px, evenly split), while the old markup overflowed.
+Labels, order (Continue primary, End secondary), and click handlers unchanged.

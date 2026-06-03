@@ -604,11 +604,15 @@ export default function AvatarPage() {
                     Ending in {countdown}s…
                   </p>
                 </div>
-                <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
-                  <Button onClick={continueSession} className="w-full">
+                <div className="flex w-full flex-col gap-3 sm:flex-row">
+                  <Button onClick={continueSession} className="w-full sm:flex-1 sm:min-w-0">
                     Continue session
                   </Button>
-                  <Button variant="outline" onClick={endSession} className="w-full">
+                  <Button
+                    variant="outline"
+                    onClick={endSession}
+                    className="w-full sm:flex-1 sm:min-w-0"
+                  >
                     End session
                   </Button>
                 </div>
