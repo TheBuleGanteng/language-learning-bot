@@ -6,8 +6,7 @@
 // runtime behaviour against the live API is not verified in this environment.
 // See ERROR_REPORT.md.
 
-const REALTIME_MODEL = 'gpt-4o-realtime-preview';
-const REALTIME_URL = 'https://api.openai.com/v1/realtime';
+const REALTIME_URL = 'https://api.openai.com/v1/realtime/calls';
 // Rough estimate: ~$0.06/min audio in + ~$0.24/min audio out (spec §9).
 const APPROX_USD_PER_MINUTE = 0.3;
 
@@ -68,7 +67,7 @@ export class RealtimeSession {
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
 
-      const res = await fetch(`${REALTIME_URL}?model=${encodeURIComponent(REALTIME_MODEL)}`, {
+      const res = await fetch(REALTIME_URL, {
         method: 'POST',
         body: offer.sdp,
         headers: {
@@ -101,9 +100,14 @@ export class RealtimeSession {
     this.send({
       type: 'session.update',
       session: {
+        type: 'realtime',
         instructions: this.config.systemPrompt,
-        input_audio_transcription: { model: 'whisper-1' },
-        turn_detection: { type: 'server_vad' },
+        audio: {
+          input: {
+            transcription: { model: 'whisper-1' },
+            turn_detection: { type: 'server_vad' },
+          },
+        },
       },
     });
     // Kick off the greeting.
@@ -145,9 +149,12 @@ export class RealtimeSession {
       case 'response.done':
         this.config.onIdle?.();
         break;
-      case 'error':
-        this.config.onError(new Error('Realtime API error'));
+      case 'error': {
+        const detail = (evt as { error?: { message?: string } }).error?.message ?? 'Realtime API error';
+        console.error('Realtime API error event:', JSON.stringify(evt));
+        this.config.onError(new Error(detail));
         break;
+      }
     }
   }
 

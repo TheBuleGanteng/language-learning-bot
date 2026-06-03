@@ -6,7 +6,7 @@ import { auth } from '@/lib/auth';
 import { decryptString } from '@/lib/crypto';
 import { checkSpendLimits } from '@/lib/cost-tracking';
 
-const REALTIME_MODEL = 'gpt-4o-realtime-preview';
+const REALTIME_MODEL = 'gpt-realtime';
 const VOICE = 'alloy';
 
 /**
@@ -64,7 +64,7 @@ export async function POST() {
     }
 
     const data = await tokenRes.json();
-    const ephemeralToken = data?.client_secret?.value;
+    const ephemeralToken = data?.value;
     if (!ephemeralToken) {
       return NextResponse.json({ error: 'no_token' }, { status: 502 });
     }
