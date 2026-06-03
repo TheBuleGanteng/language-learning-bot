@@ -1,0 +1,1 @@
+ALTER TABLE "user_settings" ADD COLUMN "base_language_use" varchar(16) DEFAULT 'moderate' NOT NULL;

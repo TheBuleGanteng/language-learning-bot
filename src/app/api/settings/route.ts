@@ -28,6 +28,7 @@ import {
   type ExtractionProvider,
 } from '@/lib/extraction/catalog';
 import { isVoiceModel } from '@/lib/voice-models';
+import { isBaseLanguageUse } from '@/lib/base-language-use';
 
 const LANGUAGE_CODES = LANGUAGES.map((l) => l.code) as [string, ...string[]];
 
@@ -92,6 +93,7 @@ export async function GET(req: Request) {
     extractionProvider: s.extractionProvider,
     extractionModel: s.extractionModel,
     voiceModel: s.voiceModel,
+    baseLanguageUse: s.baseLanguageUse,
     aiSpendReminderUsd: Number(s.aiSpendReminderUsd ?? 25),
     aiSpendHardStopUsd: Number(s.aiSpendHardStopUsd ?? 100),
     keys: {
@@ -112,6 +114,7 @@ const patchSchema = z.object({
     .optional(),
   extractionModel: z.string().min(1).max(100).optional(),
   voiceModel: z.string().min(1).max(64).optional(),
+  baseLanguageUse: z.string().min(1).max(16).optional(),
   aiSpendReminderUsd: z.number().min(1).max(99999).optional(),
   aiSpendHardStopUsd: z.number().min(1).max(99999).optional(),
   targetLanguage: z.enum(LANGUAGE_CODES).optional(),
@@ -215,6 +218,16 @@ export async function PATCH(req: Request) {
       );
     }
     updates.voiceModel = parsed.data.voiceModel;
+  }
+
+  if (parsed.data.baseLanguageUse !== undefined) {
+    if (!isBaseLanguageUse(parsed.data.baseLanguageUse)) {
+      return NextResponse.json(
+        { error: `Invalid base language use level: ${parsed.data.baseLanguageUse}` },
+        { status: 400 },
+      );
+    }
+    updates.baseLanguageUse = parsed.data.baseLanguageUse;
   }
 
   if (parsed.data.aiSpendReminderUsd !== undefined) {

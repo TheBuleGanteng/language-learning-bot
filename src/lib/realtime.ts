@@ -172,6 +172,23 @@ export class RealtimeSession {
     }
   }
 
+  /**
+   * Re-apply the persona/instruction text to the live session without tearing
+   * down the connection — used when the user changes "Base language use"
+   * mid-conversation. No-op until the data channel is open.
+   */
+  updateInstructions(newSystemPrompt: string): void {
+    if (!this.dc || this.dc.readyState !== 'open') return;
+    this.config.systemPrompt = newSystemPrompt;
+    this.send({
+      type: 'session.update',
+      session: {
+        type: 'realtime',
+        instructions: newSystemPrompt,
+      },
+    });
+  }
+
   /** Send a typed message (fallback for noisy environments / accessibility). */
   sendTextMessage(text: string): void {
     const trimmed = text.trim();

@@ -1,12 +1,25 @@
+import {
+  baseLanguageUseDirective,
+  defaultBaseLanguageUse,
+  type BaseLanguageUse,
+} from '@/lib/base-language-use';
+
 export function buildKruuBingoPrompt(params: {
   targetLanguage: string;
   nativeLanguage: string;
+  /** How much base language to mix in. Defaults to 'moderate' if omitted. */
+  baseLanguageUse?: BaseLanguageUse;
   vocabItems: Array<{
     targetText: string;
     nativeText: string;
     transliteration?: string | null;
   }>;
 }): string {
+  const directive = baseLanguageUseDirective(
+    params.baseLanguageUse ?? defaultBaseLanguageUse(),
+    { target: params.targetLanguage, base: params.nativeLanguage },
+  );
+
   const vocabList = params.vocabItems
     .map(
       (v) =>
@@ -21,8 +34,9 @@ student who is learning ${params.targetLanguage}.
 
 CRITICAL LANGUAGE RULE:
 - Speak ONLY in ${params.targetLanguage} and ${params.nativeLanguage}. Never use any other language.
-- Have a natural conversation in a mix of ${params.nativeLanguage} and ${params.targetLanguage},
-  gradually increasing the proportion of ${params.targetLanguage} as the conversation flows.
+
+BASE LANGUAGE USE (how much ${params.nativeLanguage} to mix in):
+${directive}
 
 FOCUS OF THIS CONVERSATION — the deck vocabulary:
 Here is the vocabulary on which you should focus for this conversation:

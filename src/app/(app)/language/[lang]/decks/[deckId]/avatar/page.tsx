@@ -25,6 +25,12 @@ import { HardStopDialog } from '@/components/avatar/hard-stop-dialog';
 import { RealtimeSession } from '@/lib/realtime';
 import { buildKruuBingoPrompt } from '@/lib/kruu-bingo-prompt';
 import { voiceModelCostPerMinute } from '@/lib/voice-models';
+import { BaseLanguageUseControl } from '@/components/settings/base-language-use-control';
+import {
+  defaultBaseLanguageUse,
+  isBaseLanguageUse,
+  type BaseLanguageUse,
+} from '@/lib/base-language-use';
 
 type Phase = 'loading' | 'no-key' | 'hard-stop' | 'ready' | 'completed';
 type AvatarState = 'idle' | 'speaking' | 'listening';
@@ -101,8 +107,23 @@ export default function AvatarPage() {
   const [countdown, setCountdown] = useState(WARNING_COUNTDOWN_SECONDS);
   const [inputDetected, setInputDetected] = useState(false);
 
+  // "Base language use" — per-user, editable live during the session (§7).
+  const [baseLanguageUse, setBaseLanguageUse] = useState<BaseLanguageUse>(
+    defaultBaseLanguageUse(),
+  );
+  const [targetName, setTargetName] = useState('the target language');
+  const [baseName, setBaseName] = useState('your base language');
+  const [blSaving, setBlSaving] = useState(false);
+
   const sessionRef = useRef<RealtimeSession | null>(null);
   const promptRef = useRef<string>('');
+  // Stored prompt inputs so the system prompt can be rebuilt when the base
+  // language level changes mid-session (§7).
+  const promptInputsRef = useRef<{
+    targetLanguage: string;
+    nativeLanguage: string;
+    vocabItems: { targetText: string; nativeText: string; transliteration?: string | null }[];
+  }>({ targetLanguage: 'the target language', nativeLanguage: 'English', vocabItems: [] });
   const transcriptEndRef = useRef<HTMLDivElement | null>(null);
   const savedRef = useRef(false);
 
@@ -146,12 +167,14 @@ export default function AvatarPage() {
         );
       }
 
-      // Fetch deck vocab + the user's languages for the system prompt, plus the
-      // global avatar inactivity timeout (§5a).
-      const [studyRes, meRes, avatarRes] = await Promise.all([
+      // Fetch deck vocab + the user's languages for the system prompt, the
+      // global avatar inactivity timeout (§5a), and the user's base-language
+      // level (§7).
+      const [studyRes, meRes, avatarRes, settingsRes] = await Promise.all([
         fetch(withBase(`/api/decks/${deckId}/study?limit=999&ahead=true`)),
         fetch(withBase('/api/me')),
         fetch(withBase('/api/settings/avatar')),
+        fetch(withBase('/api/settings')),
       ]);
       if (cancelled) return;
       const study = studyRes.ok ? await studyRes.json() : { cards: [] };
@@ -160,6 +183,11 @@ export default function AvatarPage() {
         const av = await avatarRes.json();
         timeoutSecondsRef.current =
           Number(av.avatarInactivityTimeoutSeconds) || DEFAULT_INACTIVITY_TIMEOUT_SECONDS;
+      }
+      let level = defaultBaseLanguageUse();
+      if (settingsRes.ok) {
+        const s = await settingsRes.json();
+        if (isBaseLanguageUse(s.baseLanguageUse)) level = s.baseLanguageUse;
       }
 
       // Dedup vocab (a 'both' deck has two cards per item).
@@ -174,9 +202,16 @@ export default function AvatarPage() {
           transliteration: c.transliteration,
         });
       }
+      const tName = languageName(me.targetLanguage ?? lang) || 'the target language';
+      const bName = languageName(me.nativeLanguage ?? 'en') || 'English';
+      promptInputsRef.current = { targetLanguage: tName, nativeLanguage: bName, vocabItems };
+      setTargetName(tName);
+      setBaseName(bName);
+      setBaseLanguageUse(level);
       promptRef.current = buildKruuBingoPrompt({
-        targetLanguage: languageName(me.targetLanguage ?? lang) || 'the target language',
-        nativeLanguage: languageName(me.nativeLanguage ?? 'en') || 'English',
+        targetLanguage: tName,
+        nativeLanguage: bName,
+        baseLanguageUse: level,
         vocabItems,
       });
       setPhase('ready');
@@ -420,6 +455,44 @@ export default function AvatarPage() {
     setPhase('ready');
   }
 
+  // Base language use changed on the voice page (§7): apply to the live session
+  // immediately (rebuild the prompt + push via updateInstructions), and persist
+  // through the same settings PATCH so it stays in sync with the settings page.
+  async function onBaseLanguageChange(level: BaseLanguageUse) {
+    const prev = baseLanguageUse;
+    setBaseLanguageUse(level);
+
+    const { targetLanguage, nativeLanguage, vocabItems } = promptInputsRef.current;
+    const newPrompt = buildKruuBingoPrompt({
+      targetLanguage,
+      nativeLanguage,
+      baseLanguageUse: level,
+      vocabItems,
+    });
+    promptRef.current = newPrompt;
+    // No-ops if no session is connected yet; the value is used when it starts.
+    sessionRef.current?.updateInstructions(newPrompt);
+
+    setBlSaving(true);
+    try {
+      const res = await fetch(withBase('/api/settings'), {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ baseLanguageUse: level }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d?.error ?? 'Save failed');
+      }
+      toast.success('Base language use saved');
+    } catch (e) {
+      setBaseLanguageUse(prev);
+      toast.error(e instanceof Error ? e.message : 'Save failed');
+    } finally {
+      setBlSaving(false);
+    }
+  }
+
   // ---- render ----------------------------------------------------------
 
   if (phase === 'no-key') {
@@ -544,6 +617,17 @@ export default function AvatarPage() {
               Send
             </Button>
           </form>
+
+          {/* Base language use — auto-saves and applies to the live session. */}
+          <div className="shrink-0 rounded-md border bg-muted/20 px-3 py-2">
+            <BaseLanguageUseControl
+              value={baseLanguageUse}
+              onChange={onBaseLanguageChange}
+              targetLanguage={targetName}
+              baseLanguage={baseName}
+              disabled={blSaving}
+            />
+          </div>
 
           {/* Mic + End */}
           <div className="flex shrink-0 flex-col gap-2 pb-2">

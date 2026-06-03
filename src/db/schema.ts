@@ -139,6 +139,12 @@ export const userSettings = pgTable('user_settings', {
   // AI Voice Chat (Kruu Bingo) realtime speech-to-speech model. Per-user, like
   // the image model. Must be a value from src/lib/voice-models.ts.
   voiceModel: varchar('voice_model', { length: 64 }).notNull().default('gpt-realtime'),
+  // How much the AI tutor mixes the user's base (native) language into the
+  // conversation. One of src/lib/base-language-use.ts levels:
+  // 'all' | 'frequent' | 'moderate' | 'rarely' | 'never'.
+  baseLanguageUse: varchar('base_language_use', { length: 16 })
+    .notNull()
+    .default('moderate'),
   // Feature C: spend caps now cover ALL AI features (image gen + avatar), not
   // just image generation.
   aiSpendReminderUsd: numeric('ai_spend_reminder_usd', { precision: 10, scale: 2 })

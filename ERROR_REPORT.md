@@ -1340,3 +1340,29 @@ OpenAI Realtime) and the authenticated settings UI remain unverifiable by the
 local gates; routes were confirmed to compile/serve (settings 307→login, APIs
 401), the timeout label formatter was unit-checked, and the voiceModel column +
 migration were applied and verified locally.
+
+## 2026-06-03 — "Base language use" control (feature, clean run)
+**Context**: Added a per-user "Base language use" setting (5 levels: All →
+Frequent → Moderate → Rarely → Never, default 'moderate') controlling how much
+the AI tutor mixes the user's base/native language into the conversation. New
+`user_settings.base_language_use` column (migration 0014, additive, applied
+locally). Shared `src/lib/base-language-use.ts` defines levels, labels, help
+text, validator, default, and the prompt directive per level;
+`buildKruuBingoPrompt` now injects the directive right after the CRITICAL
+LANGUAGE RULE. Settings GET/PATCH read+validate the value (single shared source
+of truth). A new shared `BaseLanguageUseControl` (discrete base-ui slider + an
+info popover using `PopoverTrigger openOnHover`, which keeps click behavior so
+it works on desktop hover/focus AND mobile tap) appears in two places: a new
+"AI Chat" settings section (which also absorbed the relocated, superuser-only
+inactivity-timeout dropdown — the old "Avatar session settings" section/component
+was deleted) and the voice chat page. On the voice page, changing it auto-saves
+through the same PATCH and applies live via a new
+`RealtimeSession.updateInstructions()` that re-sends `session.update` with the
+rebuilt prompt (guarded to no-op until the data channel is open).
+**No bugs encountered** — lint, tsc --noEmit, 75 tests, and `pnpm build`
+("Compiled successfully" + "Finished TypeScript") all passed; changed routes
+verified to compile/serve on the dev server (settings 307→login, settings APIs
+401). Live voice behaviour (mic + OpenAI Realtime) and the authenticated
+settings/voice UI remain unverifiable by the local gates — the §10 visual checks
+(slider auto-save, info popover on desktop+mobile, live "All"→repeat-both /
+"Never"→target-only mid-session) need a logged-in browser smoke test.
