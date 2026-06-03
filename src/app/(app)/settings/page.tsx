@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -138,9 +139,8 @@ export default function SettingsPage() {
     google: false,
   });
 
-  async function load(revealProvider?: Provider) {
-    const url = revealProvider ? withBase(`/api/settings?reveal=${revealProvider}`) : withBase('/api/settings');
-    const res = await fetch(url);
+  async function load() {
+    const res = await fetch(withBase('/api/settings'));
     if (!res.ok) {
       toast.error('Failed to load settings');
       return;
@@ -149,6 +149,13 @@ export default function SettingsPage() {
     setState(data);
     setReminderDraft(String(data.aiSpendReminderUsd ?? 25));
     setHardStopDraft(String(data.aiSpendHardStopUsd ?? 100));
+    // Seed each key field with the owner's stored (decrypted) key so it shows
+    // in the box, masked, with an eye toggle.
+    setKeyDrafts({
+      anthropic: data.keys.anthropic?.plaintext ?? '',
+      openai: data.keys.openai?.plaintext ?? '',
+      google: data.keys.google?.plaintext ?? '',
+    });
   }
 
   async function loadSpend() {
@@ -202,7 +209,6 @@ export default function SettingsPage() {
     const ok = await patchForKey({ apiKey: { provider, value } });
     if (ok) {
       toast.success(`${PROVIDER_LABELS[provider]} key saved`);
-      setKeyDrafts({ ...keyDrafts, [provider]: '' });
       await load();
     }
   }
@@ -215,18 +221,9 @@ export default function SettingsPage() {
     }
   }
 
-  async function toggleReveal(provider: Provider) {
-    if (reveal[provider]) {
-      setReveal({ ...reveal, [provider]: false });
-      return;
-    }
-    const res = await fetch(withBase(`/api/settings?reveal=${provider}`));
-    if (!res.ok) {
-      toast.error('Failed to fetch key');
-      return;
-    }
-    setState((await res.json()) as SettingsState);
-    setReveal({ ...reveal, [provider]: true });
+  function toggleReveal(provider: Provider) {
+    // The decrypted key is already loaded; the eye just flips input masking.
+    setReveal((r) => ({ ...r, [provider]: !r[provider] }));
   }
 
   function onTargetLanguageChange(code: LanguageCode) {
@@ -347,11 +344,35 @@ export default function SettingsPage() {
         <CardHeader>
           <CardTitle>Languages</CardTitle>
           <CardDescription>
-            Pick which language you&apos;re studying (target) and your home language (native).
+            Pick the language you already speak (base) and the language you&apos;re
+            studying (target).
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Label>Base language</Label>
+                <SaveStatus status={nativeSave.status} />
+              </div>
+              <Select
+                value={state.nativeLanguage}
+                onValueChange={(v) => v && onNativeLanguageChange(v as LanguageCode)}
+              >
+                <SelectTrigger>
+                  <SelectValue>
+                    {(value: string) => languageDisplayLabel(value)}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {LANGUAGES.map((l) => (
+                    <SelectItem key={l.code} value={l.code}>
+                      {languageDisplayLabel(l.code)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <Label>Target language</Label>
@@ -376,29 +397,6 @@ export default function SettingsPage() {
                       </SelectItem>
                     );
                   })}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <Label>Native language</Label>
-                <SaveStatus status={nativeSave.status} />
-              </div>
-              <Select
-                value={state.nativeLanguage}
-                onValueChange={(v) => v && onNativeLanguageChange(v as LanguageCode)}
-              >
-                <SelectTrigger>
-                  <SelectValue>
-                    {(value: string) => languageDisplayLabel(value)}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {LANGUAGES.map((l) => (
-                    <SelectItem key={l.code} value={l.code}>
-                      {languageDisplayLabel(l.code)}
-                    </SelectItem>
-                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -504,8 +502,67 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          {/* Photo analysis — renamed photo→vocab extraction (same setting). */}
+          {/* Image generation — existing image-gen model. */}
           <div className={rowCls}>
+            <div className="flex items-center gap-1.5">
+              <span className="text-sm font-medium">Image generation</span>
+              <InfoIcon label="About image generation">
+                Generates illustrations for your vocabulary.
+              </InfoIcon>
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground md:hidden">Provider</span>
+                <SaveStatus status={imageProviderSave.status} />
+              </div>
+              <Select
+                value={state.imageProvider}
+                onValueChange={(v) => v && onImageProviderChange(v as ImageProviderId)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {IMAGE_PROVIDERS.map((p) => (
+                    <SelectItem key={p} value={p}>
+                      {IMAGE_PROVIDER_LABELS[p]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground md:hidden">Model</span>
+                <SaveStatus status={imageModelSave.status} />
+              </div>
+              <Select value={state.imageModel} onValueChange={(v) => v && onImageModelChange(v)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {IMAGE_MODELS[state.imageProvider].map((m) => (
+                    <SelectItem key={m.id} value={m.id}>
+                      {m.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {!imageProviderHasKey && (
+                <p className="text-xs text-amber-700">
+                  No API key for {IMAGE_PROVIDER_LABELS[state.imageProvider]}. Add one
+                  below.
+                </p>
+              )}
+            </div>
+            <div className="space-y-1">
+              <span className="text-xs text-muted-foreground md:hidden">Est. Cost</span>
+              <p className="text-sm">${imageCostPerImage.toFixed(3)} per image</p>
+            </div>
+          </div>
+
+          {/* Photo analysis — renamed photo→vocab extraction (same setting). */}
+          <div className={`${rowCls} md:border-b-0 md:pb-0`}>
             <div className="flex items-center gap-1.5">
               <span className="text-sm font-medium">Photo analysis</span>
               <InfoIcon label="About photo analysis">
@@ -563,65 +620,6 @@ export default function SettingsPage() {
             <div className="space-y-1">
               <span className="text-xs text-muted-foreground md:hidden">Est. Cost</span>
               <p className="text-sm text-muted-foreground">—</p>
-            </div>
-          </div>
-
-          {/* Image generation — existing image-gen model. */}
-          <div className={`${rowCls} md:border-b-0 md:pb-0`}>
-            <div className="flex items-center gap-1.5">
-              <span className="text-sm font-medium">Image generation</span>
-              <InfoIcon label="About image generation">
-                Generates illustrations for your vocabulary.
-              </InfoIcon>
-            </div>
-            <div className="space-y-1">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground md:hidden">Provider</span>
-                <SaveStatus status={imageProviderSave.status} />
-              </div>
-              <Select
-                value={state.imageProvider}
-                onValueChange={(v) => v && onImageProviderChange(v as ImageProviderId)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {IMAGE_PROVIDERS.map((p) => (
-                    <SelectItem key={p} value={p}>
-                      {IMAGE_PROVIDER_LABELS[p]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground md:hidden">Model</span>
-                <SaveStatus status={imageModelSave.status} />
-              </div>
-              <Select value={state.imageModel} onValueChange={(v) => v && onImageModelChange(v)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {IMAGE_MODELS[state.imageProvider].map((m) => (
-                    <SelectItem key={m.id} value={m.id}>
-                      {m.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {!imageProviderHasKey && (
-                <p className="text-xs text-amber-700">
-                  No API key for {IMAGE_PROVIDER_LABELS[state.imageProvider]}. Add one
-                  below.
-                </p>
-              )}
-            </div>
-            <div className="space-y-1">
-              <span className="text-xs text-muted-foreground md:hidden">Est. Cost</span>
-              <p className="text-sm">${imageCostPerImage.toFixed(3)} per image</p>
             </div>
           </div>
 
@@ -709,59 +707,53 @@ export default function SettingsPage() {
         <CardHeader>
           <CardTitle>API keys</CardTitle>
           <CardDescription>
-            Stored encrypted at rest (AES-256-GCM). Reveal to copy; the plaintext is never
-            cached.
+            Stored encrypted at rest (AES-256-GCM). Use the eye icon to reveal a key.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {PROVIDERS.map((provider) => {
             const info = state.keys[provider];
-            const showPlain = reveal[provider] && info?.plaintext;
+            const revealed = reveal[provider];
             return (
               <div key={provider} className="space-y-2 border-b pb-4 last:border-b-0 last:pb-0">
-                <div className="flex items-center justify-between">
-                  <Label>{PROVIDER_LABELS[provider]} API key</Label>
-                  {info && (
-                    <span className="text-xs text-muted-foreground">
-                      {showPlain ? info.plaintext : info.masked}
-                    </span>
-                  )}
-                </div>
+                <Label>{PROVIDER_LABELS[provider]} API key</Label>
                 <div className="flex gap-2">
-                  <Input
-                    type="password"
-                    placeholder={info ? 'Replace existing key…' : 'Paste API key'}
-                    value={keyDrafts[provider]}
-                    onChange={(e) =>
-                      setKeyDrafts({ ...keyDrafts, [provider]: e.target.value })
-                    }
-                    autoComplete="off"
-                  />
+                  <div className="relative flex-1">
+                    <Input
+                      type={revealed ? 'text' : 'password'}
+                      placeholder="Paste API key"
+                      value={keyDrafts[provider]}
+                      onChange={(e) =>
+                        setKeyDrafts({ ...keyDrafts, [provider]: e.target.value })
+                      }
+                      autoComplete="off"
+                      className="pr-9"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => toggleReveal(provider)}
+                      aria-label={revealed ? 'Hide API key' : 'Reveal API key'}
+                      aria-pressed={revealed}
+                      className="absolute inset-y-0 right-0 flex w-9 items-center justify-center text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-r-md"
+                    >
+                      {revealed ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
                   <Button onClick={() => saveKey(provider)} disabled={busy}>
                     Save
                   </Button>
                 </div>
-                <div className="flex gap-2 text-xs">
-                  {info && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => toggleReveal(provider)}
-                        className="underline text-muted-foreground hover:text-foreground"
-                      >
-                        {showPlain ? 'Hide' : 'Reveal'}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => removeKey(provider)}
-                        className="underline text-destructive hover:opacity-80"
-                      >
-                        Remove
-                      </button>
-                    </>
-                  )}
-                  {!info && <span className="text-muted-foreground">Not configured</span>}
-                </div>
+                {info ? (
+                  <button
+                    type="button"
+                    onClick={() => removeKey(provider)}
+                    className="text-xs text-destructive underline hover:opacity-80"
+                  >
+                    Remove
+                  </button>
+                ) : (
+                  <span className="text-xs text-muted-foreground">Not configured</span>
+                )}
               </div>
             );
           })}

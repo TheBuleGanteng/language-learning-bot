@@ -1401,3 +1401,41 @@ compile/serve on the dev server (settings 307→login, settings APIs + PATCH 401
   unverifiable by local gates — the §8 visual checks (table layout at 1280px
   and 375–414px, info popovers on tap, captions overlay during a live exchange)
   need a logged-in browser smoke test.
+
+## 2026-06-03 — Caption fixes + settings polish (six fixes, clean run)
+**Context**: Six local fixes (CLAUDE_CODE_INSTRUCTIONS.md), no migration.
+**Captions (issues 1 + 2) — RENDERING bug, not a source bug**: By code
+inspection of `src/lib/realtime.ts`, the assistant transcript IS captured and
+forwarded — `response.audio_transcript.delta` accumulates and
+`response.audio_transcript.done` calls `onTranscript(text, 'assistant')` (user
+speech via `conversation.item.input_audio_transcription.completed` →
+`onTranscript(text,'user')`). (No live mic is available in this environment, so
+this was verified by reading the handler rather than a live log; no temporary
+logging was committed.) The real problems were in the avatar page: there were
+TWO renderers — an always-on transcript panel (showed the user's lines
+regardless of the captions toggle) plus a single-line caption overlay (showed
+only the most recent turn, so the tutor's line rarely persisted). Consolidated
+to ONE caption display fully gated by `captionsEnabled`: OFF renders nothing; ON
+renders the latest tutor line AND the latest user line in the same box, each
+attributed to its speaker. Removed the avatar overlay and the now-dead
+transcript-scroll ref/effect.
+**Settings polish**:
+- (3) "AI model selection" row order is now Text chat → Voice chat → Image
+  generation → Photo analysis (swapped the last two).
+- (4) API keys use an eye-icon reveal inside each field (masked by default,
+  toggles to plaintext); removed the separate stored-key text line and the
+  "Reveal" link. The settings GET now returns the authenticated owner's
+  DECRYPTED keys (owner-scoped only, never another user's, never logged) so the
+  field can display/reveal them; the old `?reveal=<provider>` query param was
+  removed.
+- (5) Captions tooltip reworded with no "YouTube" reference ("Show on-screen
+  captions of the conversation — both what you say and the tutor's replies").
+  Remaining "YouTube" strings are code comments / the unrelated lesson-links
+  feature.
+- (6) Languages section: "Native language" relabeled to "Base language" (wired
+  to the same `nativeLanguage`/base value) and moved to the LEFT of "Target
+  language".
+**No bugs encountered**; lint, tsc --noEmit, 75 tests, and build ("Compiled
+successfully" + "Finished TypeScript") all passed. Routes verified to
+compile/serve on the dev server (settings 307→login, /api/settings 401). The
+live caption behavior (mic) still needs a logged-in browser smoke test.

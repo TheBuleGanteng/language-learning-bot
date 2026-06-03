@@ -64,14 +64,10 @@ function formatKey(encrypted: string | null, includePlaintext: boolean) {
   }
 }
 
-export async function GET(req: Request) {
+export async function GET() {
   const session = await auth();
   const userId = (session?.user as { id?: string } | undefined)?.id;
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-  const url = new URL(req.url);
-  const revealParam = url.searchParams.get('reveal');
-  const reveal = revealParam && isProvider(revealParam) ? revealParam : null;
 
   const s = await getOrCreateSettings(userId);
   const [u] = await db
@@ -97,10 +93,13 @@ export async function GET(req: Request) {
     captionsEnabled: s.captionsEnabled,
     aiSpendReminderUsd: Number(s.aiSpendReminderUsd ?? 25),
     aiSpendHardStopUsd: Number(s.aiSpendHardStopUsd ?? 100),
+    // Owner-scoped: the authenticated user's own keys are returned decrypted so
+    // the settings page can show them in the field with an eye toggle. Never
+    // returned for any other user, never logged.
     keys: {
-      anthropic: formatKey(s.anthropicApiKeyEncrypted, reveal === 'anthropic'),
-      openai: formatKey(s.openaiApiKeyEncrypted, reveal === 'openai'),
-      google: formatKey(s.geminiApiKeyEncrypted, reveal === 'google'),
+      anthropic: formatKey(s.anthropicApiKeyEncrypted, true),
+      openai: formatKey(s.openaiApiKeyEncrypted, true),
+      google: formatKey(s.geminiApiKeyEncrypted, true),
     },
   });
 }

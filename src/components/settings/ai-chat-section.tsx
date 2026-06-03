@@ -199,8 +199,8 @@ export function AiChatSection() {
           <div className="flex items-center gap-1.5">
             <Label>Voice chat captions</Label>
             <InfoIcon label="About captions">
-              Show YouTube-style captions (target-language transcript) during AI voice
-              chat. Mirrors the CC button on the voice chat page.
+              Show on-screen captions of the conversation — both what you say and the
+              tutor&apos;s replies. Mirrors the CC button on the voice chat page.
             </InfoIcon>
           </div>
           <CaptionsToggle

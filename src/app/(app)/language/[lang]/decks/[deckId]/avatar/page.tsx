@@ -129,7 +129,6 @@ export default function AvatarPage() {
     nativeLanguage: string;
     vocabItems: { targetText: string; nativeText: string; transliteration?: string | null }[];
   }>({ targetLanguage: 'the target language', nativeLanguage: 'English', vocabItems: [] });
-  const transcriptEndRef = useRef<HTMLDivElement | null>(null);
   const savedRef = useRef(false);
 
   // Inactivity timer handles + the configured (global) timeout, mirrored in a
@@ -226,10 +225,6 @@ export default function AvatarPage() {
       cancelled = true;
     };
   }, [deckId, lang]);
-
-  useEffect(() => {
-    transcriptEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [transcript]);
 
   // Tear down on unmount — stop the session and clear any pending timers so we
   // don't leak handles or fire callbacks after the component is gone.
@@ -524,8 +519,11 @@ export default function AvatarPage() {
     }
   }
 
-  // Latest transcript line for the caption overlay (most recent turn).
-  const latestCaption = transcript.length > 0 ? transcript[transcript.length - 1] : null;
+  // Latest caption line per speaker. The single caption display (gated entirely
+  // by captionsEnabled) shows both the tutor's and the user's most recent line.
+  const latestAssistant = [...transcript].reverse().find((t) => t.role === 'assistant') ?? null;
+  const latestUser = [...transcript].reverse().find((t) => t.role === 'user') ?? null;
+  const hasCaptions = latestAssistant !== null || latestUser !== null;
 
   // ---- render ----------------------------------------------------------
 
@@ -599,50 +597,48 @@ export default function AvatarPage() {
       ) : (
         <div className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-4 overflow-hidden">
           {/* Avatar */}
-          <div className="relative flex shrink-0 items-center justify-center pt-2" style={{ height: '40vh' }}>
+          <div className="flex shrink-0 items-center justify-center pt-2" style={{ height: '40vh' }}>
             <KruuBingo state={avatarState} size={220} />
-            {/* YouTube-style caption overlay — target-language transcript (§4b). */}
-            {captionsEnabled && started && latestCaption && (
-              <div className="pointer-events-none absolute inset-x-0 bottom-2 flex justify-center px-4">
-                <div className="max-w-[90%] rounded-md bg-black/75 px-3 py-1.5 text-center text-sm leading-snug text-white sm:text-base">
-                  <span className="mr-1 text-[10px] uppercase tracking-wide text-white/60">
-                    {latestCaption.role === 'user' ? 'You' : 'Kruu Bingo'}
-                  </span>
-                  <span className="break-words">{latestCaption.text}</span>
-                </div>
-              </div>
-            )}
           </div>
 
-          {/* Transcript */}
-          <div className="flex-1 overflow-y-auto rounded-md border bg-muted/20 p-3 space-y-2">
-            {transcript.length === 0 ? (
-              <p className="text-center text-sm text-muted-foreground">
-                {started
-                  ? 'Say hello to Kruu Bingo!'
-                  : 'Tap the mic to start your conversation.'}
-              </p>
-            ) : (
-              transcript.map((t, i) => (
-                <div
-                  key={i}
-                  className={cn('flex', t.role === 'user' ? 'justify-end' : 'justify-start')}
-                >
-                  <span
-                    className={cn(
-                      'inline-block max-w-[80%] rounded-2xl px-3 py-1.5 text-sm',
-                      t.role === 'user'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-background border',
-                    )}
-                  >
-                    {t.text}
-                  </span>
-                </div>
-              ))
-            )}
-            <div ref={transcriptEndRef} />
-          </div>
+          {/* Captions — the ONE caption display, gated entirely by captionsEnabled.
+              OFF → nothing rendered. ON → latest tutor + latest user line in the
+              same box, each attributed to its speaker. */}
+          {captionsEnabled ? (
+            <div className="flex-1 space-y-2 overflow-y-auto rounded-md border bg-muted/20 p-3">
+              {hasCaptions ? (
+                <>
+                  {latestAssistant && (
+                    <div className="flex justify-start">
+                      <span className="inline-block max-w-[80%] rounded-2xl border bg-background px-3 py-1.5 text-sm">
+                        <span className="mr-1 text-[10px] uppercase tracking-wide text-muted-foreground">
+                          Kruu Bingo
+                        </span>
+                        {latestAssistant.text}
+                      </span>
+                    </div>
+                  )}
+                  {latestUser && (
+                    <div className="flex justify-end">
+                      <span className="inline-block max-w-[80%] rounded-2xl bg-primary px-3 py-1.5 text-sm text-primary-foreground">
+                        <span className="mr-1 text-[10px] uppercase tracking-wide text-primary-foreground/70">
+                          You
+                        </span>
+                        {latestUser.text}
+                      </span>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <p className="text-center text-sm text-muted-foreground">
+                  Captions will appear here as you talk.
+                </p>
+              )}
+            </div>
+          ) : (
+            // Captions off: render nothing, just keep the layout spacer.
+            <div className="flex-1" />
+          )}
 
           {/* Text input */}
           <form
