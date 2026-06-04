@@ -273,7 +273,10 @@
     "saving": "저장 중…",
     "saved": "{n}개 항목을 저장했습니다.",
     "noneFound": "해당 사진에서 어휘를 찾지 못했습니다.",
-    "failed": "사진을 분석할 수 없습니다. 다시 시도하세요."
+    "failed": "사진을 분석할 수 없습니다. 다시 시도하세요.",
+    "selectedOf": "{total}개 중 {count}개 선택됨",
+    "selectAll": "모두 선택",
+    "unselectAll": "모두 선택 해제"
   },
   "email": {
     "verify": {
@@ -388,5 +391,26 @@
     "turnOff": "자막 끄기",
     "captionLanguage": "자막 언어",
     "romanizedSuffix": "{name} (로마자)"
+  },
+  "bulkSelect": {
+    "selectAll": "모두 선택",
+    "selected": "{count}개 선택됨",
+    "clear": "지우기",
+    "clearSelection": "선택 해제",
+    "createDeck": "덱 만들기",
+    "generateImages": "이미지 생성",
+    "shareUnshare": "공유 / 공유 해제",
+    "addToDeck": "덱에 추가",
+    "updateVisibility": "공개 설정 변경",
+    "visibilityDesc": "직접 만들지 않은 항목은 자동으로 건너뜁니다.",
+    "shareItems": "선택 항목 공유",
+    "unshareItems": "선택 항목 공유 해제",
+    "confirm": "확인",
+    "hardStop": "지출 한도에 도달했습니다.",
+    "generateFailed": "일괄 생성에 실패했습니다.",
+    "started": "{count, plural, other {이미지 #개 생성을 시작했습니다.}}",
+    "updated": "{count}개 항목을 업데이트했습니다.",
+    "updatedSkipped": "{updated}개 항목을 업데이트했습니다. {skipped}개 건너뜀(내 콘텐츠 아님).",
+    "genericError": "문제가 발생했습니다. 다시 시도하세요."
   }
 }

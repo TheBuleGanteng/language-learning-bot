@@ -273,7 +273,10 @@
     "saving": "Saving…",
     "saved": "Saved {n} items.",
     "noneFound": "No vocabulary was found in those photos.",
-    "failed": "Could not analyze the photos. Please try again."
+    "failed": "Could not analyze the photos. Please try again.",
+    "selectedOf": "{count} of {total} selected",
+    "selectAll": "Select all",
+    "unselectAll": "Unselect all"
   },
   "email": {
     "verify": {
@@ -388,5 +391,26 @@
     "turnOff": "Turn captions off",
     "captionLanguage": "Caption language",
     "romanizedSuffix": "{name} (romanized)"
+  },
+  "bulkSelect": {
+    "selectAll": "Select all",
+    "selected": "{count} selected",
+    "clear": "Clear",
+    "clearSelection": "Clear selection",
+    "createDeck": "Create deck",
+    "generateImages": "Generate Images",
+    "shareUnshare": "Share / Unshare",
+    "addToDeck": "Add to deck",
+    "updateVisibility": "Update visibility",
+    "visibilityDesc": "Items you didn't create are skipped automatically.",
+    "shareItems": "Share selected items",
+    "unshareItems": "Unshare selected items",
+    "confirm": "Confirm",
+    "hardStop": "Hard stop reached.",
+    "generateFailed": "Bulk generate failed.",
+    "started": "{count, plural, one {Started generating # image.} other {Started generating # images.}}",
+    "updated": "Updated {count} items.",
+    "updatedSkipped": "Updated {updated} items. {skipped} skipped (not your content).",
+    "genericError": "Something went wrong. Please try again."
   }
 }

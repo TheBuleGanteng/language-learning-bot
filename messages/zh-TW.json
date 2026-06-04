@@ -273,7 +273,10 @@
     "saving": "儲存中…",
     "saved": "已儲存 {n} 項。",
     "noneFound": "在這些照片中找不到詞彙。",
-    "failed": "無法分析照片，請重試。"
+    "failed": "無法分析照片，請重試。",
+    "selectedOf": "已選 {count} / {total}",
+    "selectAll": "全選",
+    "unselectAll": "取消全選"
   },
   "email": {
     "verify": {
@@ -388,5 +391,26 @@
     "turnOff": "關閉字幕",
     "captionLanguage": "字幕語言",
     "romanizedSuffix": "{name}（羅馬拼音）"
+  },
+  "bulkSelect": {
+    "selectAll": "全選",
+    "selected": "已選 {count}",
+    "clear": "清除",
+    "clearSelection": "清除選擇",
+    "createDeck": "建立卡組",
+    "generateImages": "生成圖片",
+    "shareUnshare": "分享 / 取消分享",
+    "addToDeck": "新增到卡組",
+    "updateVisibility": "更新可見性",
+    "visibilityDesc": "不是你建立的項目會被自動跳過。",
+    "shareItems": "分享所選項目",
+    "unshareItems": "取消分享所選項目",
+    "confirm": "確認",
+    "hardStop": "已達到硬性上限。",
+    "generateFailed": "批次生成失敗。",
+    "started": "{count, plural, other {已開始生成 # 張圖片。}}",
+    "updated": "已更新 {count} 個項目。",
+    "updatedSkipped": "已更新 {updated} 個項目。跳過 {skipped} 個（非你的內容）。",
+    "genericError": "發生錯誤，請重試。"
   }
 }

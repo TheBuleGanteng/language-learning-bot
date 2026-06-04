@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -73,6 +74,8 @@ export function BulkSelectBar({
   onGenerateConfirm,
   onShareDone,
 }: BulkSelectBarProps) {
+  const t = useTranslations('bulkSelect');
+  const tc = useTranslations('common');
   const [genOpen, setGenOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [deckOpen, setDeckOpen] = useState(false);
@@ -99,16 +102,16 @@ export function BulkSelectBar({
     });
     if (res.status === 402) {
       const data = await res.json().catch(() => ({}));
-      toast.error(data?.message ?? 'Hard stop reached.');
+      toast.error(data?.message ?? t('hardStop'));
       throw new Error('hard-stop');
     }
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      toast.error(data?.error ?? 'Bulk generate failed.');
+      toast.error(data?.error ?? t('generateFailed'));
       throw new Error('generate-failed');
     }
     const data = (await res.json()) as { total: number };
-    toast.success(`Started generating ${data.total} image${data.total === 1 ? '' : 's'}.`);
+    toast.success(t('started', { count: data.total }));
     // Nudge the global BatchWatcher to poll immediately.
     window.dispatchEvent(new CustomEvent('batch-started'));
   }
@@ -136,12 +139,12 @@ export function BulkSelectBar({
       const skipped = d.skipped ?? 0;
       toast.success(
         skipped > 0
-          ? `Updated ${updated} items. ${skipped} skipped (not your content).`
-          : `Updated ${updated} items.`,
+          ? t('updatedSkipped', { updated, skipped })
+          : t('updated', { count: updated }),
       );
       onShareDone?.();
     } catch {
-      toast.error('Something went wrong. Please try again.');
+      toast.error(t('genericError'));
     } finally {
       setShareBusy(false);
       // After confirm (success or error): clear selection (§2b).
@@ -159,18 +162,18 @@ export function BulkSelectBar({
           checked={allSelected}
           indeterminate={indeterminate}
           onCheckedChange={onHeaderToggle}
-          aria-label={allSelected ? 'Clear selection' : 'Select all'}
+          aria-label={allSelected ? t('clearSelection') : t('selectAll')}
         />
         {hasSelection ? (
-          <span className="font-medium">{selectedCount.toLocaleString()} selected</span>
+          <span className="font-medium">{t('selected', { count: selectedCount })}</span>
         ) : (
-          <span>Select all</span>
+          <span>{t('selectAll')}</span>
         )}
       </label>
 
       {hasSelection && (
         <Button size="xs" variant="ghost" onClick={onClearSelection}>
-          Clear
+          {t('clear')}
         </Button>
       )}
 
@@ -178,25 +181,25 @@ export function BulkSelectBar({
         <div className="ml-auto flex items-center gap-2 flex-wrap">
           {deckBuilderMode ? (
             <Button size="xs" onClick={() => setDeckOpen(true)}>
-              Create deck
+              {t('createDeck')}
             </Button>
           ) : (
             <>
               {showGenerateImages && (
                 <Button size="xs" onClick={() => setGenOpen(true)}>
-                  Generate Images
+                  {t('generateImages')}
                 </Button>
               )}
               {showShareButton && (
                 <DisplayNameGate userDisplayName={userDisplayName}>
                   <Button size="xs" variant="outline" onClick={() => setShareOpen(true)}>
-                    Share / Unshare
+                    {t('shareUnshare')}
                   </Button>
                 </DisplayNameGate>
               )}
               {/* All users can create decks — no role check (§8a). */}
               <Button size="xs" variant="outline" onClick={() => setDeckOpen(true)}>
-                Add to deck
+                {t('addToDeck')}
               </Button>
             </>
           )}
@@ -225,10 +228,8 @@ export function BulkSelectBar({
       <AlertDialog open={shareOpen} onOpenChange={(o) => !shareBusy && setShareOpen(o)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Update visibility</AlertDialogTitle>
-            <AlertDialogDescription>
-              Items you didn&apos;t create are skipped automatically.
-            </AlertDialogDescription>
+            <AlertDialogTitle>{t('updateVisibility')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('visibilityDesc')}</AlertDialogDescription>
           </AlertDialogHeader>
           <div className="space-y-2 py-1 text-sm">
             <label className="flex items-center gap-2 cursor-pointer">
@@ -238,7 +239,7 @@ export function BulkSelectBar({
                 checked={shareVisibility === 'shared'}
                 onChange={() => setShareVisibility('shared')}
               />
-              Share selected items
+              {t('shareItems')}
             </label>
             <label className="flex items-center gap-2 cursor-pointer">
               <input
@@ -247,13 +248,13 @@ export function BulkSelectBar({
                 checked={shareVisibility === 'private'}
                 onChange={() => setShareVisibility('private')}
               />
-              Unshare selected items
+              {t('unshareItems')}
             </label>
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={shareBusy}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={shareBusy}>{tc('cancel')}</AlertDialogCancel>
             <Button onClick={confirmShare} disabled={shareBusy || selectedCount === 0}>
-              {shareBusy ? 'Saving…' : 'Confirm'}
+              {shareBusy ? tc('saving') : t('confirm')}
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -273,7 +273,10 @@
     "saving": "Menyimpan…",
     "saved": "Menyimpan {n} item.",
     "noneFound": "Tidak ada kosakata yang ditemukan di foto tersebut.",
-    "failed": "Tidak dapat menganalisis foto. Silakan coba lagi."
+    "failed": "Tidak dapat menganalisis foto. Silakan coba lagi.",
+    "selectedOf": "{count} dari {total} dipilih",
+    "selectAll": "Pilih semua",
+    "unselectAll": "Batalkan semua"
   },
   "email": {
     "verify": {
@@ -388,5 +391,26 @@
     "turnOff": "Nonaktifkan teks",
     "captionLanguage": "Bahasa teks",
     "romanizedSuffix": "{name} (romanisasi)"
+  },
+  "bulkSelect": {
+    "selectAll": "Pilih semua",
+    "selected": "{count} dipilih",
+    "clear": "Hapus",
+    "clearSelection": "Hapus pilihan",
+    "createDeck": "Buat dek",
+    "generateImages": "Buat gambar",
+    "shareUnshare": "Bagikan / Batalkan",
+    "addToDeck": "Tambahkan ke dek",
+    "updateVisibility": "Perbarui visibilitas",
+    "visibilityDesc": "Item yang bukan buatan Anda otomatis dilewati.",
+    "shareItems": "Bagikan item terpilih",
+    "unshareItems": "Batalkan berbagi item terpilih",
+    "confirm": "Konfirmasi",
+    "hardStop": "Batas pengeluaran tercapai.",
+    "generateFailed": "Pembuatan massal gagal.",
+    "started": "{count, plural, other {Mulai membuat # gambar.}}",
+    "updated": "Memperbarui {count} item.",
+    "updatedSkipped": "Memperbarui {updated} item. {skipped} dilewati (bukan konten Anda).",
+    "genericError": "Terjadi kesalahan. Silakan coba lagi."
   }
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type KeyboardEvent } from 'react';
 import { useParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { AlertTriangle, Plus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -53,6 +54,7 @@ export function ExtractedVocabReview({
   onSaved,
   onCancel,
 }: Props) {
+  const t = useTranslations('extraction');
   const [rows, setRows] = useState<ReviewRow[]>(() =>
     initial.map((r) => ({
       id: crypto.randomUUID(),
@@ -220,13 +222,13 @@ export function ExtractedVocabReview({
     <div className="space-y-4">
       <div className="flex items-center gap-2 text-sm flex-wrap">
         <span className="font-medium">
-          {selectedCount} of {rows.length} selected
+          {t('selectedOf', { count: selectedCount, total: rows.length })}
         </span>
         <Button size="xs" variant="outline" onClick={selectAll}>
-          Select all
+          {t('selectAll')}
         </Button>
         <Button size="xs" variant="outline" onClick={unselectAll}>
-          Unselect all
+          {t('unselectAll')}
         </Button>
       </div>
 

@@ -1869,3 +1869,18 @@ New keys: `practice.micDenied/apiError/spendWarning` (connectionFailed reused).
 **Catalogs:** 322 keys, identical across all five locales (key-diff verified).
 **Quality gates:** lint clean, 75/75 tests, `tsc` clean, `pnpm build` completed
 ("Compiled successfully", exit 0). No schema change.
+
+## 2026-06-04 — Localize bulk-select bar ("Select all" etc.) + extraction review select-all
+**Bug:** the shared bulk-select bar (`bulk-select-bar.tsx`, used above both vocab
+tables — the `/vocab` page and the lesson-detail `vocab-table`) was almost
+entirely hardcoded English, so "Select all", the "{n} selected" count, "Clear",
+the action buttons (Create deck / Generate Images / Share-Unshare / Add to deck),
+the Update-visibility dialog, and its toasts stayed English in every locale.
+**Fix:** added a `bulkSelect` catalog namespace and routed every user-facing
+string through `t()` (count + plurals via ICU; reused `common.cancel`/`saving`).
+Also localized the photo-extraction review's own bulk controls ("{count} of
+{total} selected", "Select all", "Unselect all") since it's another bulk-select
+instance — new keys in the existing `extraction` namespace.
+**Catalogs:** 346 keys, identical across all five locales (key-diff verified).
+**Quality gates:** lint clean, 75/75 tests, `tsc` clean, `pnpm build` exit 0
+("Compiled successfully"). No schema change.
