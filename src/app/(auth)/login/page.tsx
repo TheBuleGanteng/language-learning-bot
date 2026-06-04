@@ -51,9 +51,7 @@ function LoginInner() {
     <Card>
       <CardHeader>
         <CardTitle>{t('title')}</CardTitle>
-        <CardDescription>
-          {verified ? 'Email verified. Sign in to continue.' : 'Welcome back.'}
-        </CardDescription>
+        <CardDescription>{verified ? t('verified') : t('welcome')}</CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={onSubmit} className="space-y-4">

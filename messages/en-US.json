@@ -151,7 +151,13 @@
     "both": "Both",
     "refreshDone": "Deck refreshed: {added} added, {removed} removed.",
     "deleted": "Deleted \"{name}\".",
-    "updated": "Deck updated."
+    "updated": "Deck updated.",
+    "srcManual": "Manual",
+    "srcTag": "Tag",
+    "srcLesson": "Lesson",
+    "dirForward": "Forward",
+    "dirReverse": "Reverse",
+    "dirBoth": "Both"
   },
   "flashcards": {
     "cardProgress": "Card {n} of {total}",
@@ -214,7 +220,35 @@
     "colActions": "",
     "deleteTitle": "Delete this word?",
     "deleteDesc": "This cannot be undone.",
-    "deleted": "Word deleted."
+    "deleted": "Word deleted.",
+    "filterAll": "ALL (AND)",
+    "filterAny": "ANY (OR)",
+    "clearFilters": "Clear filters",
+    "lessonsHeading": "Lessons",
+    "filterLessonsPlaceholder": "Filter lessons…",
+    "selectAll": "Select all",
+    "clearSelection": "Clear selection",
+    "addVocab": "Add vocab",
+    "importCsv": "Import CSV",
+    "addFromPhoto": "Add vocab from photo",
+    "newLesson": "New Lesson",
+    "filterPlaceholder": "Filter {name}…",
+    "themesHeading": "Themes",
+    "createdByHeading": "Created by",
+    "noLessons": "No lessons yet.",
+    "noTags": "No tags yet.",
+    "noCreators": "No creators to filter by yet.",
+    "searchBtn": "Search",
+    "imageStatus": "Image status:",
+    "imgAll": "All",
+    "imgHas": "Has image",
+    "imgNone": "No image",
+    "imgFailed": "Failed/refused",
+    "showLabel": "Show:",
+    "showingAll": "Showing all {total} items",
+    "showingOf": "Showing {n} of {total} items",
+    "sortLessons": "Lessons",
+    "sortTags": "Tags"
   },
   "extraction": {
     "title": "Extract vocabulary from photos",
@@ -246,5 +280,17 @@
     "generic": "Something went wrong. Please try again.",
     "saveFailed": "Save failed",
     "loadFailed": "Failed to load"
+  },
+  "footer": {
+    "createdBy": "Created by",
+    "and": "and",
+    "contact": "Contact"
+  },
+  "deckBuilder": {
+    "title": "Building a deck",
+    "desc": "Select vocabulary to add to your new deck.",
+    "selected": "{count} selected",
+    "done": "Done",
+    "exit": "Exit deck builder"
   }
 }

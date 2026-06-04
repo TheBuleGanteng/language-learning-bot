@@ -30,6 +30,7 @@ import { cn } from '@/lib/utils';
 import { vocabPath, lessonPath } from '@/lib/routes';
 import { languageName } from '@/lib/languages';
 import { localeEnglishName } from '@/lib/locales';
+import { useTranslations } from 'next-intl';
 import {
   Table,
   TableBody,
@@ -61,6 +62,7 @@ interface VocabItem {
   id: string;
   targetText: string;
   nativeText: string;
+  nativeMachine?: boolean;
   transliteration: string | null;
   lessons: { id: string; name: string }[];
   tags: { id: string; name: string }[];
@@ -117,6 +119,8 @@ export function VocabTable({
 
   const targetLabel = languageName(me?.targetLanguage ?? lang) || 'Target';
   const nativeLabel = localeEnglishName(me?.nativeLanguage) || 'Native';
+  const t = useTranslations('vocab');
+  const tc = useTranslations('common');
 
   const SORT_COLS: { id: SortCol; label: string }[] = [
     { id: 'thai', label: targetLabel },
@@ -293,7 +297,7 @@ export function VocabTable({
           <TableHeader>
             <TableRow className="bg-muted border-b-2">
               {enableBulkSelect && <TableHead className="w-10" />}
-              <TableHead className="w-14 font-semibold">Image</TableHead>
+              <TableHead className="w-14 font-semibold">{t('colImage')}</TableHead>
               {SORT_COLS.map((c) => (
                 <TableHead
                   key={c.id}
@@ -304,7 +308,7 @@ export function VocabTable({
                   {sortIcon(c.id)}
                 </TableHead>
               ))}
-              <TableHead className="w-32 text-right font-semibold">Actions</TableHead>
+              <TableHead className="w-32 text-right font-semibold">{tc('edit')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -338,6 +342,14 @@ export function VocabTable({
                 </TableCell>
                 <TableCell className="whitespace-normal break-words align-top">
                   {i.nativeText}
+                  {i.nativeMachine && (
+                    <span
+                      className="ml-1 align-middle text-[10px] uppercase tracking-wide text-muted-foreground"
+                      title={tc('autoTranslated')}
+                    >
+                      · {tc('autoTranslated')}
+                    </span>
+                  )}
                 </TableCell>
                 <TableCell className="align-top">
                   <div className="flex flex-wrap gap-1">

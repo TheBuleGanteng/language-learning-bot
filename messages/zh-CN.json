@@ -151,7 +151,13 @@
     "both": "双向",
     "refreshDone": "卡组已刷新：添加 {added} 项，移除 {removed} 项。",
     "deleted": "已删除“{name}”。",
-    "updated": "卡组已更新。"
+    "updated": "卡组已更新。",
+    "srcManual": "手动",
+    "srcTag": "标签",
+    "srcLesson": "课程",
+    "dirForward": "正向",
+    "dirReverse": "反向",
+    "dirBoth": "双向"
   },
   "flashcards": {
     "cardProgress": "第 {n} 张，共 {total} 张",
@@ -214,7 +220,35 @@
     "colActions": "",
     "deleteTitle": "删除这个单词？",
     "deleteDesc": "此操作无法撤销。",
-    "deleted": "单词已删除。"
+    "deleted": "单词已删除。",
+    "filterAll": "全部（且）",
+    "filterAny": "任一（或）",
+    "clearFilters": "清除筛选",
+    "lessonsHeading": "课程",
+    "filterLessonsPlaceholder": "筛选课程…",
+    "selectAll": "全选",
+    "clearSelection": "清除选择",
+    "addVocab": "添加词汇",
+    "importCsv": "导入 CSV",
+    "addFromPhoto": "从照片添加词汇",
+    "newLesson": "新建课程",
+    "filterPlaceholder": "筛选{name}…",
+    "themesHeading": "主题",
+    "createdByHeading": "创建者",
+    "noLessons": "还没有课程。",
+    "noTags": "还没有标签。",
+    "noCreators": "暂无可筛选的创建者。",
+    "searchBtn": "搜索",
+    "imageStatus": "图片状态：",
+    "imgAll": "全部",
+    "imgHas": "有图片",
+    "imgNone": "无图片",
+    "imgFailed": "失败/拒绝",
+    "showLabel": "显示：",
+    "showingAll": "显示全部 {total} 项",
+    "showingOf": "显示 {total} 项中的 {n} 项",
+    "sortLessons": "课程",
+    "sortTags": "标签"
   },
   "extraction": {
     "title": "从照片提取词汇",
@@ -246,5 +280,17 @@
     "generic": "出错了，请重试。",
     "saveFailed": "保存失败",
     "loadFailed": "加载失败"
+  },
+  "footer": {
+    "createdBy": "创建者：",
+    "and": "和",
+    "contact": "联系我们"
+  },
+  "deckBuilder": {
+    "title": "正在创建卡组",
+    "desc": "选择要添加到新卡组的词汇。",
+    "selected": "已选 {count}",
+    "done": "完成",
+    "exit": "退出卡组创建"
   }
 }

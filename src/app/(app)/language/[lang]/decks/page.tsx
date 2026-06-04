@@ -237,8 +237,22 @@ export default function FlashcardsPage() {
                     <Link href={deckHubPath(lang, deck.id)} className="block hover:underline">
                       {deck.name}
                     </Link>
-                    <span className="text-xs text-muted-foreground capitalize">
-                      {deck.source} · {deck.direction}
+                    <span className="text-xs text-muted-foreground">
+                      {t(
+                        deck.source === 'manual'
+                          ? 'srcManual'
+                          : deck.source === 'tag'
+                            ? 'srcTag'
+                            : 'srcLesson',
+                      )}{' '}
+                      ·{' '}
+                      {t(
+                        deck.direction === 'forward'
+                          ? 'dirForward'
+                          : deck.direction === 'reverse'
+                            ? 'dirReverse'
+                            : 'dirBoth',
+                      )}
                     </span>
                   </TableCell>
                   <TableCell className="text-right tabular-nums align-middle">

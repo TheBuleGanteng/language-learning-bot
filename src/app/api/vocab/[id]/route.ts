@@ -7,6 +7,8 @@ import { auth } from '@/lib/auth';
 import { storage } from '@/lib/storage';
 import { normalizeText } from '@/lib/text-normalize';
 import { vocabVisibleSql } from '@/lib/visibility';
+import { normalizeLocale } from '@/lib/locales';
+import { glossFor } from '@/lib/glosses';
 
 async function getUserId() {
   const session = await auth();
@@ -14,8 +16,12 @@ async function getUserId() {
 }
 
 export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
-  const userId = await getUserId();
+  const session = await auth();
+  const userId = (session?.user as { id?: string } | undefined)?.id ?? null;
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const userBase = normalizeLocale(
+    (session?.user as { nativeLanguage?: string } | undefined)?.nativeLanguage,
+  );
   const { id } = await ctx.params;
 
   const [item] = await db
@@ -24,6 +30,12 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
     .where(and(eq(vocabItems.id, id), vocabVisibleSql(userId)))
     .limit(1);
   if (!item) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+
+  // Resolve the native meaning into the viewer's base language (gloss layer).
+  const gloss = await glossFor(
+    { id: item.id, nativeText: item.nativeText, nativeLanguage: item.nativeLanguage },
+    userBase,
+  );
 
   const itemLessons = await db
     .select({ id: lessons.id, name: lessons.name })
@@ -42,6 +54,8 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
 
   return NextResponse.json({
     ...item,
+    nativeText: gloss.text,
+    nativeMachine: gloss.machine,
     lessons: itemLessons,
     tags: itemTags,
     imageUrl,

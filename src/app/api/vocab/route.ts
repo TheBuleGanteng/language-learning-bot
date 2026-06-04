@@ -16,6 +16,7 @@ import { storage } from '@/lib/storage';
 import { escapeRegex, normalizeText } from '@/lib/text-normalize';
 import { vocabVisibleSql } from '@/lib/visibility';
 import { normalizeLocale } from '@/lib/locales';
+import { glossesFor } from '@/lib/glosses';
 
 const DEFAULT_PAGE_SIZE = 100;
 const ALLOWED_PAGE_SIZES = new Set([25, 50, 100]);
@@ -203,18 +204,34 @@ export async function GET(req: Request) {
     : [];
   const creatorMap = new Map(creators.map((c) => [c.id, c.displayName ?? c.email]));
 
+  // Resolve the native meaning into the viewer's base language (gloss layer),
+  // mirroring the deck study route. Batch one call for the page of items.
+  const userBase = normalizeLocale(
+    (session?.user as { nativeLanguage?: string } | undefined)?.nativeLanguage,
+  );
+  const glossMap = await glossesFor(
+    items.map((i) => ({ id: i.id, nativeText: i.nativeText, nativeLanguage: i.nativeLanguage })),
+    userBase,
+  );
+
   const store = storage();
   // Vocab images are public (written via putPublic), so resolve them to their
   // stable public URL. This is synchronous and cannot throw — unlike per-row
   // signed-URL generation, which on the GCS driver could fail or time out and
   // take the whole list response (and thus the table) down with it.
-  const itemsWithUrls = items.map((i) => ({
-    ...i,
-    lessons: lessonMap.get(i.id) ?? [],
-    tags: tagMap.get(i.id) ?? [],
-    createdByDisplayName: i.createdBy ? (creatorMap.get(i.createdBy) ?? null) : null,
-    imageUrl: i.imageStorageKey ? store.publicUrl(i.imageStorageKey) : null,
-  }));
+  const itemsWithUrls = items.map((i) => {
+    const g = glossMap.get(i.id);
+    return {
+      ...i,
+      // Show the viewer's-base-language gloss; flag machine translations.
+      nativeText: g?.text ?? i.nativeText,
+      nativeMachine: g?.machine ?? false,
+      lessons: lessonMap.get(i.id) ?? [],
+      tags: tagMap.get(i.id) ?? [],
+      createdByDisplayName: i.createdBy ? (creatorMap.get(i.createdBy) ?? null) : null,
+      imageUrl: i.imageStorageKey ? store.publicUrl(i.imageStorageKey) : null,
+    };
+  });
 
   return NextResponse.json({
     items: itemsWithUrls,

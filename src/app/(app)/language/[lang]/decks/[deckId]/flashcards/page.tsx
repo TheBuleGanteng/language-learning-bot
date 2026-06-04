@@ -292,7 +292,6 @@ export default function StudyPage() {
             <span>
               {t('cardProgress', { n: Math.min(progressDone + 1, progressTotal), total: progressTotal })}
             </span>
-            <span className="hidden sm:inline">{ahead ? 'Studying ahead' : 'Due cards'}</span>
           </div>
           <div className="h-1.5 w-full rounded-full bg-muted">
             <div

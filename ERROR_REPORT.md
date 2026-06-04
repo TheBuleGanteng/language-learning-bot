@@ -1758,3 +1758,43 @@ they are NOT yet translated. This is the main outstanding i18n gap.
 **No DB migration.** **Quality gates:** lint clean (fixed two exhaustive-deps
 warnings by adding the stable `t` to effect deps), 75/75 tests, `tsc` clean,
 production build compiled successfully.
+
+## 2026-06-04 — Finish i18n coverage + vocab-table glosses + deck-builder banner
+**PART 1:** Removed the "Due cards / Studying ahead" status element from the
+flashcard progress row (removed, not translated).
+**PART 2c — gloss resolver wired into vocab read paths** (no schema change;
+reused `glossesFor`/`glossFor` exactly like the deck study route): the vocab LIST
+(`GET /api/vocab`) now batch-resolves each page's native meaning into the
+viewer's base language and returns a `nativeMachine` flag; vocab DETAIL
+(`GET /api/vocab/[id]`) resolves via `glossFor`. The vocab page's inline table
+and the `vocab-table` component show a subtle "· Auto-translated" badge when the
+meaning is a machine gloss; items already in the user's base language show the
+original, un-badged. Invalidation-on-edit untouched.
+**PART 2a — UI localization (now 248 keys, identical across all five locales,
+verified by key-diff):** newly localized this pass —
+- Vocab page: action buttons (Add vocab / Import CSV / Add vocab from photo /
+  New Lesson), filter mode (ALL (AND) / ANY (OR)), Clear filters, the
+  FilterAccordion (titles Lessons/Themes/Created by, the "Filter …" placeholder,
+  Select all, Clear selection, empty hints), search placeholder + button, the
+  image-status pills + label, the "Showing …/Show:" row, and the table headers.
+- Login "Welcome back." subtitle; decks "Manual · Forward" source/direction
+  enum labels; the global footer connectives (Created by / and / Contact) with
+  the proper nouns left intact.
+**PART 2b — user-content policy:** deck names and user-editable lesson names are
+stored user input and are left exactly as written (never sent through `t()` or
+the translator). The codebase has no app-generated default lesson-name pattern
+(lesson names are user-entered), so there was nothing to localize there.
+**PART 3 — deck-builder banner:** replaced the small inline notice with a
+prominent **sticky, full-width** banner (`sticky top-16 z-30`, 2px primary
+border, primary tint) shown only in deck-builder mode; states it's building a
+deck, shows the live selected count, and offers "Exit deck builder". z-30 keeps
+it below the sticky header (z-40) and the language dropdown (z-50); wraps on
+mobile. Localized in all five locales.
+**Known remaining English (still a gap, documented):** the lessons pages, the
+photo-extraction flow components, the vocab-import page, and some deep settings
+sub-sections were NOT localized in this pass. They render their English source
+via the missing-key fallback (no raw keys, no crashes). This is the outstanding
+i18n work.
+**Quality gates:** lint clean, 75/75 tests, `tsc` clean, `pnpm build`
+"Compiled successfully" with all 41 pages generated (the build-traces tail is
+the documented benign hang). No schema change.

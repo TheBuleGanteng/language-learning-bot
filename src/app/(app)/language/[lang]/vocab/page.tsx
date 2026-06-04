@@ -33,6 +33,7 @@ import { cn } from '@/lib/utils';
 import { vocabPath, lessonPath } from '@/lib/routes';
 import { languageName } from '@/lib/languages';
 import { localeEnglishName } from '@/lib/locales';
+import { useTranslations } from 'next-intl';
 import {
   Table,
   TableBody,
@@ -83,6 +84,7 @@ interface VocabItem {
   id: string;
   targetText: string;
   nativeText: string;
+  nativeMachine?: boolean;
   transliteration: string | null;
   lessons: { id: string; name: string }[];
   tags: { id: string; name: string }[];
@@ -126,6 +128,9 @@ function VocabInner() {
   const search = useSearchParams();
   const params = useParams<{ lang: string }>();
   const lang = params.lang;
+  const t = useTranslations('vocab');
+  const tc = useTranslations('common');
+  const tdb = useTranslations('deckBuilder');
 
   const [me, setMe] = useState<MeResponse | null>(null);
   const [lessons, setLessons] = useState<Lesson[]>([]);
@@ -168,8 +173,8 @@ function VocabInner() {
   const SORT_COLS: { id: SortCol; label: string }[] = [
     { id: 'thai', label: targetLabel || 'Target' },
     { id: 'english', label: nativeLabel || 'English' },
-    { id: 'lessons', label: 'Lessons' },
-    { id: 'tags', label: 'Tags' },
+    { id: 'lessons', label: t('sortLessons') },
+    { id: 'tags', label: t('sortTags') },
   ];
 
   // Distinct creators among the currently-visible vocab — powers the
@@ -528,10 +533,10 @@ function VocabInner() {
       <aside className="space-y-4">
         <div className="flex gap-2 flex-wrap">
           <Button asChild size="sm">
-            <Link href={vocabPath(lang, '/new')}>Add vocab</Link>
+            <Link href={vocabPath(lang, '/new')}>{t('addVocab')}</Link>
           </Button>
           <Button asChild size="sm" variant="outline">
-            <Link href={vocabPath(lang, '/import')}>Import CSV</Link>
+            <Link href={vocabPath(lang, '/import')}>{t('importCsv')}</Link>
           </Button>
           <Button
             size="sm"
@@ -540,7 +545,7 @@ function VocabInner() {
             className="gap-1.5"
           >
             <Camera className="h-3.5 w-3.5" />
-            Add vocab from photo
+            {t('addFromPhoto')}
           </Button>
           <Button
             size="sm"
@@ -549,7 +554,7 @@ function VocabInner() {
             className="gap-1.5"
           >
             <Plus className="h-3.5 w-3.5" />
-            New Lesson
+            {t('newLesson')}
           </Button>
         </div>
 
@@ -562,7 +567,7 @@ function VocabInner() {
                 checked={mode === 'and'}
                 onChange={() => setMode('and')}
               />
-              ALL (AND)
+              {t('filterAll')}
             </label>
             <label className="flex items-center gap-1.5">
               <input
@@ -571,58 +576,58 @@ function VocabInner() {
                 checked={mode === 'or'}
                 onChange={() => setMode('or')}
               />
-              ANY (OR)
+              {t('filterAny')}
             </label>
           </div>
           <Button size="xs" variant="outline" onClick={clearFilters}>
-            Clear filters
+            {t('clearFilters')}
           </Button>
         </div>
 
         <FilterAccordion
-          title="Lessons"
+          title={t('lessonsHeading')}
           slug="lessons"
           options={lessons}
           selected={selectedLessons}
           onChange={setSelectedLessons}
           swatch={(o) => colorForLesson(o.name)}
-          emptyHint="No lessons yet."
+          emptyHint={t('noLessons')}
         />
 
         <FilterAccordion
-          title="Themes"
+          title={t('themesHeading')}
           slug="themes"
           options={tags}
           selected={selectedTags}
           onChange={setSelectedTags}
           swatch={(o) => colorForTag(o.name)}
-          emptyHint="No tags yet."
+          emptyHint={t('noTags')}
         />
 
         <FilterAccordion
-          title="Created by"
+          title={t('createdByHeading')}
           slug="created-by"
           options={creatorOptions}
           selected={selectedCreatedBy}
           onChange={setSelectedCreatedBy}
-          emptyHint="No creators to filter by yet."
+          emptyHint={t('noCreators')}
         />
       </aside>
 
       <section className="space-y-4">
         <form onSubmit={submitSearch} className="flex gap-2">
           <SpecialInput
-            placeholder={`Search ${targetLabel || 'target'} or ${nativeLabel || 'native'} text…`}
+            placeholder={t('searchPlaceholder')}
             value={searchInput}
             onChange={(val) => setSearchInput(val)}
           />
           <Button type="submit" variant="outline">
-            Search
+            {t('searchBtn')}
           </Button>
         </form>
 
         <div className="flex items-center gap-2 text-xs flex-wrap">
-          <span className="text-muted-foreground">Image status:</span>
+          <span className="text-muted-foreground">{t('imageStatus')}</span>
           {(['all', 'has', 'none', 'failed'] as const).map((opt) => (
             <button
               key={opt}
@@ -636,12 +641,12 @@ function VocabInner() {
               )}
             >
               {opt === 'all'
-                ? 'All'
+                ? t('imgAll')
                 : opt === 'has'
-                  ? 'Has image'
+                  ? t('imgHas')
                   : opt === 'none'
-                    ? 'No image'
-                    : 'Failed/refused'}
+                    ? t('imgNone')
+                    : t('imgFailed')}
             </button>
           ))}
         </div>
@@ -663,13 +668,13 @@ function VocabInner() {
         <div className="flex items-center justify-between gap-3 flex-wrap text-xs">
           <p className="text-muted-foreground">
             {loading && items.length === 0
-              ? 'Loading…'
+              ? tc('loading')
               : pageSize === 'all'
-                ? `Showing all ${total} items`
-                : `Showing ${items.length} of ${total} items`}
+                ? t('showingAll', { total })
+                : t('showingOf', { n: items.length, total })}
           </p>
           <div className="flex items-center gap-2">
-            <span className="text-muted-foreground">Show:</span>
+            <span className="text-muted-foreground">{t('showLabel')}</span>
             <Select
               value={pageSize}
               onValueChange={(v) => v && setPageSize(v as PageSizeOption)}
@@ -689,8 +694,18 @@ function VocabInner() {
         </div>
 
         {deckBuilderMode && (
-          <div className="rounded-md border border-primary/40 bg-primary/5 px-3 py-2 text-sm">
-            Deck builder mode — select vocab items, then click &quot;Create deck&quot;.
+          <div className="sticky top-16 z-30 -mx-px rounded-md border-2 border-primary bg-primary/10 px-4 py-2.5 shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-primary">{tdb('title')}</p>
+                <p className="text-xs text-muted-foreground">
+                  {tdb('desc')} · {tdb('selected', { count: selectedIds.size })}
+                </p>
+              </div>
+              <Button size="sm" variant="outline" onClick={() => router.push(vocabPath(lang))}>
+                {tdb('exit')}
+              </Button>
+            </div>
           </div>
         )}
 
@@ -759,7 +774,17 @@ function VocabInner() {
                       </span>
                     )}
                   </TableCell>
-                  <TableCell className="whitespace-normal break-words align-top">{i.nativeText}</TableCell>
+                  <TableCell className="whitespace-normal break-words align-top">
+                    {i.nativeText}
+                    {i.nativeMachine && (
+                      <span
+                        className="ml-1 align-middle text-[10px] uppercase tracking-wide text-muted-foreground"
+                        title={tc('autoTranslated')}
+                      >
+                        · {tc('autoTranslated')}
+                      </span>
+                    )}
+                  </TableCell>
                   <TableCell className="align-top">
                     <div className="flex flex-wrap gap-1">
                       {i.lessons.map((l) => {

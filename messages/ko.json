@@ -151,7 +151,13 @@
     "both": "양방향",
     "refreshDone": "덱을 새로고침했습니다: {added}개 추가, {removed}개 제거.",
     "deleted": "\"{name}\"을(를) 삭제했습니다.",
-    "updated": "덱이 업데이트되었습니다."
+    "updated": "덱이 업데이트되었습니다.",
+    "srcManual": "수동",
+    "srcTag": "태그",
+    "srcLesson": "수업",
+    "dirForward": "정방향",
+    "dirReverse": "역방향",
+    "dirBoth": "양방향"
   },
   "flashcards": {
     "cardProgress": "{total}장 중 {n}장",
@@ -214,7 +220,35 @@
     "colActions": "",
     "deleteTitle": "이 단어를 삭제할까요?",
     "deleteDesc": "이 작업은 되돌릴 수 없습니다.",
-    "deleted": "단어가 삭제되었습니다."
+    "deleted": "단어가 삭제되었습니다.",
+    "filterAll": "모두 (AND)",
+    "filterAny": "아무거나 (OR)",
+    "clearFilters": "필터 지우기",
+    "lessonsHeading": "수업",
+    "filterLessonsPlaceholder": "수업 필터…",
+    "selectAll": "모두 선택",
+    "clearSelection": "선택 해제",
+    "addVocab": "어휘 추가",
+    "importCsv": "CSV 가져오기",
+    "addFromPhoto": "사진에서 어휘 추가",
+    "newLesson": "새 수업",
+    "filterPlaceholder": "{name} 필터…",
+    "themesHeading": "테마",
+    "createdByHeading": "작성자",
+    "noLessons": "아직 수업이 없습니다.",
+    "noTags": "아직 태그가 없습니다.",
+    "noCreators": "필터할 작성자가 없습니다.",
+    "searchBtn": "검색",
+    "imageStatus": "이미지 상태:",
+    "imgAll": "전체",
+    "imgHas": "이미지 있음",
+    "imgNone": "이미지 없음",
+    "imgFailed": "실패/거부",
+    "showLabel": "표시:",
+    "showingAll": "전체 {total}개 표시 중",
+    "showingOf": "{total}개 중 {n}개 표시 중",
+    "sortLessons": "수업",
+    "sortTags": "태그"
   },
   "extraction": {
     "title": "사진에서 어휘 추출",
@@ -246,5 +280,17 @@
     "generic": "문제가 발생했습니다. 다시 시도하세요.",
     "saveFailed": "저장 실패",
     "loadFailed": "불러오기 실패"
+  },
+  "footer": {
+    "createdBy": "제작:",
+    "and": "및",
+    "contact": "문의"
+  },
+  "deckBuilder": {
+    "title": "덱 만드는 중",
+    "desc": "새 덱에 추가할 어휘를 선택하세요.",
+    "selected": "{count}개 선택됨",
+    "done": "완료",
+    "exit": "덱 빌더 종료"
   }
 }

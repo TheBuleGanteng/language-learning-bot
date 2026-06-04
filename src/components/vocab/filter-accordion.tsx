@@ -11,6 +11,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
+import { useTranslations } from 'next-intl';
 
 export interface FilterOption {
   id: string;
@@ -41,6 +42,7 @@ export function FilterAccordion({
   swatch,
   emptyHint,
 }: Props) {
+  const t = useTranslations('vocab');
   const lsKey = `${LS_OPEN_PREFIX}${slug}.open`;
   // Default expanded. Hydrate from localStorage on mount.
   const [openValue, setOpenValue] = useState<string[]>([slug]);
@@ -115,7 +117,7 @@ export function FilterAccordion({
                   type="text"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder={`Filter ${title.toLowerCase()}…`}
+                  placeholder={t('filterPlaceholder', { name: title })}
                   className="pr-8 h-8 text-sm"
                 />
                 {search && (
@@ -136,7 +138,7 @@ export function FilterAccordion({
                   title="Selects all visible options"
                   className="underline text-muted-foreground hover:text-foreground"
                 >
-                  Select all
+                  {t('selectAll')}
                 </button>
                 <span className="text-muted-foreground">·</span>
                 <button
@@ -144,7 +146,7 @@ export function FilterAccordion({
                   onClick={clearSelection}
                   className="underline text-muted-foreground hover:text-foreground"
                 >
-                  Clear selection
+                  {t('clearSelection')}
                 </button>
               </div>
               {filtered.length === 0 ? (

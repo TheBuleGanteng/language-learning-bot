@@ -151,7 +151,13 @@
     "both": "Keduanya",
     "refreshDone": "Dek disegarkan: {added} ditambahkan, {removed} dihapus.",
     "deleted": "Menghapus \"{name}\".",
-    "updated": "Dek diperbarui."
+    "updated": "Dek diperbarui.",
+    "srcManual": "Manual",
+    "srcTag": "Tag",
+    "srcLesson": "Pelajaran",
+    "dirForward": "Maju",
+    "dirReverse": "Mundur",
+    "dirBoth": "Keduanya"
   },
   "flashcards": {
     "cardProgress": "Kartu {n} dari {total}",
@@ -214,7 +220,35 @@
     "colActions": "",
     "deleteTitle": "Hapus kata ini?",
     "deleteDesc": "Tindakan ini tidak dapat dibatalkan.",
-    "deleted": "Kata dihapus."
+    "deleted": "Kata dihapus.",
+    "filterAll": "SEMUA (DAN)",
+    "filterAny": "APA SAJA (ATAU)",
+    "clearFilters": "Hapus filter",
+    "lessonsHeading": "Pelajaran",
+    "filterLessonsPlaceholder": "Filter pelajaran…",
+    "selectAll": "Pilih semua",
+    "clearSelection": "Hapus pilihan",
+    "addVocab": "Tambah kosakata",
+    "importCsv": "Impor CSV",
+    "addFromPhoto": "Tambah kosakata dari foto",
+    "newLesson": "Pelajaran baru",
+    "filterPlaceholder": "Filter {name}…",
+    "themesHeading": "Tema",
+    "createdByHeading": "Dibuat oleh",
+    "noLessons": "Belum ada pelajaran.",
+    "noTags": "Belum ada tag.",
+    "noCreators": "Belum ada pembuat untuk difilter.",
+    "searchBtn": "Cari",
+    "imageStatus": "Status gambar:",
+    "imgAll": "Semua",
+    "imgHas": "Ada gambar",
+    "imgNone": "Tanpa gambar",
+    "imgFailed": "Gagal/ditolak",
+    "showLabel": "Tampilkan:",
+    "showingAll": "Menampilkan semua {total} item",
+    "showingOf": "Menampilkan {n} dari {total} item",
+    "sortLessons": "Pelajaran",
+    "sortTags": "Tag"
   },
   "extraction": {
     "title": "Ekstrak kosakata dari foto",
@@ -246,5 +280,17 @@
     "generic": "Terjadi kesalahan. Silakan coba lagi.",
     "saveFailed": "Gagal menyimpan",
     "loadFailed": "Gagal memuat"
+  },
+  "footer": {
+    "createdBy": "Dibuat oleh",
+    "and": "dan",
+    "contact": "Kontak"
+  },
+  "deckBuilder": {
+    "title": "Membuat dek",
+    "desc": "Pilih kosakata untuk ditambahkan ke dek baru Anda.",
+    "selected": "{count} dipilih",
+    "done": "Selesai",
+    "exit": "Keluar dari pembuat dek"
   }
 }
