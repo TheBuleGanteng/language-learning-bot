@@ -1534,3 +1534,30 @@ cold cache, as documented — benign). No schema change was needed.
 each cell of the §3 table per §6, and — for the romanized path — confirm their
 romanization model's provider matches a stored API key (otherwise the route
 returns `no_key`, now visible in the console instead of silently masked).
+
+## 2026-06-04 — Captions: single-line overwrite → rolling scrollable transcript
+**Change (not a bug)**: the caption box rendered only the latest turn per
+speaker (`latestAssistant` / `latestUser`), so each new turn visually erased the
+previous one — even though `transcript` already accumulated every turn in state.
+Converted it to a rolling, scrollable transcript in the same panel.
+**Implementation** (client-only, `avatar/page.tsx`; no schema change):
+- `Turn` now carries `{ id, role, rawText }` (id = monotonic ref for stable
+  keys; `rawText` = the untransformed transcript text). The render maps the full
+  ordered `transcript` list into the existing bubble style (Kruu Bingo left / You
+  right) inside one scroll container; the prior single-line overlay is gone.
+- The transform effect now iterates the WHOLE transcript (most-recent first) for
+  the current mode rather than just the latest two lines, reusing the
+  `speaker+mode+rawText` cache. On a CC mode change the effect re-runs over the
+  whole history: each turn shows its raw text immediately and swaps in the
+  transformed text as it resolves; cached turns (e.g. switching back to a
+  previously-used mode) make no new calls and incur no re-billing. Tutor lines in
+  target-script mode remain a free passthrough.
+- Polite auto-scroll: a scroll listener tracks "at/near bottom" (≤40px); a new
+  appended turn smooth-scrolls to the bottom only when already near it, never
+  yanking a user who scrolled up. A round `ChevronDown` scroll-to-bottom button
+  (bottom-right of the panel) appears only when scrolled up and hides at bottom.
+**Quality gates**: lint, 75 tests, `tsc --noEmit`, and webpack "Compiled
+successfully" all pass (full local build hangs at the trace/TS tail, documented
+as benign). **Live confirmation**: NOT performed (no browser) — the user should
+verify accumulation, polite auto-scroll, the button, and full-history re-render
+on mode change per §6.

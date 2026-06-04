@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Mic, Square, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Mic, Square, CheckCircle2, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -40,8 +40,11 @@ import {
 type Phase = 'loading' | 'no-key' | 'hard-stop' | 'ready' | 'completed';
 type AvatarState = 'idle' | 'speaking' | 'listening';
 interface Turn {
+  id: number;
   role: 'user' | 'assistant';
-  text: string;
+  // The transcript text exactly as emitted, before any caption transform. The
+  // displayed text is derived from this per the current caption mode.
+  rawText: string;
 }
 interface Completion {
   durationSeconds: number;
@@ -126,10 +129,18 @@ export default function AvatarPage() {
   const [captionLanguage, setCaptionLanguage] = useState<CaptionLanguage>('target');
   const [captionLangSaving, setCaptionLangSaving] = useState(false);
   const [targetCode, setTargetCode] = useState<LanguageCode>('th');
-  // Cache of transformed caption lines, keyed by `${mode}::${rawText}`.
+  // Cache of transformed caption lines, keyed by `${speaker}::${mode}::${rawText}`.
   const [captionCache, setCaptionCache] = useState<Record<string, string>>({});
   // Keys currently being transformed, to avoid duplicate in-flight requests.
   const transformInFlightRef = useRef<Set<string>>(new Set());
+  // Monotonic id for transcript turns (stable React keys; only ever appended).
+  const turnIdRef = useRef(0);
+
+  // Rolling-transcript scroll: container ref + whether the user is at/near the
+  // bottom (drives polite auto-scroll and the scroll-to-bottom button).
+  const transcriptRef = useRef<HTMLDivElement>(null);
+  const [atBottom, setAtBottom] = useState(true);
+  const atBottomRef = useRef(true);
 
   const sessionRef = useRef<RealtimeSession | null>(null);
   const promptRef = useRef<string>('');
@@ -430,7 +441,8 @@ export default function AvatarPage() {
         // idle timer from zero. Don't disturb an open warning popup.
         if (!warnOpenRef.current) startInactivityTimer();
       },
-      onTranscript: (text, role) => setTranscript((prev) => [...prev, { role, text }]),
+      onTranscript: (text, role) =>
+        setTranscript((prev) => [...prev, { id: turnIdRef.current++, role, rawText: text }]),
       onError: (err) => {
         toast.error(err.message);
       },
@@ -558,30 +570,24 @@ export default function AvatarPage() {
     }
   }
 
-  // Latest caption line per speaker. The single caption display (gated entirely
-  // by captionsEnabled) shows both the tutor's and the user's most recent line.
-  const latestAssistant = [...transcript].reverse().find((t) => t.role === 'assistant') ?? null;
-  const latestUser = [...transcript].reverse().find((t) => t.role === 'user') ?? null;
-  const hasCaptions = latestAssistant !== null || latestUser !== null;
-
   // Resolve the effective mode defensively (§8): a stored 'target_romanized'
   // degrades to 'target' if the target language is roman-script.
   const captionMode = resolveCaptionLanguage(captionLanguage, targetCode);
 
-  // Transform each finalized line server-side per (speaker, mode) and swap it in
-  // once ready (raw text shows until then). The ONLY no-call case is the tutor's
-  // line in 'target' mode (a pure passthrough); every other (speaker, mode) is
-  // transformed. Cache by speaker+mode+text so repeats don't re-call the API.
+  // Transform EVERY transcript turn server-side per (speaker, mode) and swap each
+  // in once ready (raw text shows until then). The ONLY no-call case is the
+  // tutor's line in 'target' mode (a pure passthrough). Cache by
+  // speaker+mode+rawText so repeats — and switching back to a previously-used
+  // mode — never re-call (and never re-bill). On a mode change this effect
+  // re-runs for the whole history; most-recent turns are dispatched first so a
+  // long history doesn't make the newest lines wait.
   useEffect(() => {
     if (!captionsEnabled) return;
-    const lines: { speaker: 'tutor' | 'user'; text: string }[] = [];
-    if (latestAssistant?.text?.trim() && captionMode !== 'target') {
-      lines.push({ speaker: 'tutor', text: latestAssistant.text });
-    }
-    if (latestUser?.text?.trim()) {
-      lines.push({ speaker: 'user', text: latestUser.text });
-    }
-    for (const { speaker, text } of lines) {
+    for (const turn of [...transcript].reverse()) {
+      const speaker = turn.role === 'assistant' ? 'tutor' : 'user';
+      const text = turn.rawText;
+      if (!text?.trim()) continue;
+      if (captionMode === 'target' && speaker === 'tutor') continue; // passthrough
       const key = `${speaker}::${captionMode}::${text}`;
       if (captionCache[key] !== undefined || transformInFlightRef.current.has(key)) continue;
       transformInFlightRef.current.add(key);
@@ -612,15 +618,40 @@ export default function AvatarPage() {
         }
       })();
     }
-  }, [captionsEnabled, captionMode, latestAssistant?.text, latestUser?.text, captionCache]);
+  }, [captionsEnabled, captionMode, transcript, captionCache]);
 
-  // Display text for a caption line under the current (speaker, mode). The
-  // tutor's line in 'target' mode renders as-is (passthrough); everything else
-  // shows the transformed text once ready, raw until then.
+  // Display text for a turn under the current (speaker, mode). The tutor's line
+  // in 'target' mode renders as-is (passthrough); everything else shows the
+  // transformed text once ready, raw until then.
   function captionText(text: string, speaker: 'tutor' | 'user'): string {
     if (captionMode === 'target' && speaker === 'tutor') return text;
     return captionCache[`${speaker}::${captionMode}::${text}`] ?? text;
   }
+
+  // ---- rolling-transcript scroll ----------------------------------------
+
+  // Re-evaluate "at bottom" on every scroll (drives polite auto-scroll + button).
+  const handleTranscriptScroll = useCallback(() => {
+    const el = transcriptRef.current;
+    if (!el) return;
+    const distFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    const near = distFromBottom <= 40;
+    atBottomRef.current = near;
+    setAtBottom(near);
+  }, []);
+
+  const scrollTranscriptToBottom = useCallback((behavior: ScrollBehavior = 'smooth') => {
+    const el = transcriptRef.current;
+    if (!el) return;
+    el.scrollTo({ top: el.scrollHeight, behavior });
+  }, []);
+
+  // Polite auto-scroll: when a new turn is appended, follow it to the bottom ONLY
+  // if the user was already at/near the bottom; never yank them down if they've
+  // scrolled up to read history.
+  useEffect(() => {
+    if (atBottomRef.current) scrollTranscriptToBottom('smooth');
+  }, [transcript.length, scrollTranscriptToBottom]);
 
   // ---- render ----------------------------------------------------------
 
@@ -699,37 +730,55 @@ export default function AvatarPage() {
           </div>
 
           {/* Captions — the ONE caption display, gated entirely by captionsEnabled.
-              OFF → nothing rendered. ON → latest tutor + latest user line in the
-              same box, each attributed to its speaker. */}
+              OFF → nothing rendered. ON → a rolling, scrollable transcript: every
+              finalized turn (tutor left / user right) accumulates in order; the
+              displayed text follows the current caption mode. */}
           {captionsEnabled ? (
-            <div className="flex-1 space-y-2 overflow-y-auto rounded-md border bg-muted/20 p-3">
-              {hasCaptions ? (
-                <>
-                  {latestAssistant && (
-                    <div className="flex justify-start">
-                      <span className="inline-block max-w-[80%] rounded-2xl border bg-background px-3 py-1.5 text-sm">
-                        <span className="mr-1 text-[10px] uppercase tracking-wide text-muted-foreground">
-                          Kruu Bingo
+            <div className="relative flex-1 overflow-hidden">
+              <div
+                ref={transcriptRef}
+                onScroll={handleTranscriptScroll}
+                className="h-full space-y-2 overflow-y-auto rounded-md border bg-muted/20 p-3"
+              >
+                {transcript.length > 0 ? (
+                  transcript.map((turn) =>
+                    turn.role === 'assistant' ? (
+                      <div key={turn.id} className="flex justify-start">
+                        <span className="inline-block max-w-[80%] rounded-2xl border bg-background px-3 py-1.5 text-sm">
+                          <span className="mr-1 text-[10px] uppercase tracking-wide text-muted-foreground">
+                            Kruu Bingo
+                          </span>
+                          {captionText(turn.rawText, 'tutor')}
                         </span>
-                        {captionText(latestAssistant.text, 'tutor')}
-                      </span>
-                    </div>
-                  )}
-                  {latestUser && (
-                    <div className="flex justify-end">
-                      <span className="inline-block max-w-[80%] rounded-2xl bg-primary px-3 py-1.5 text-sm text-primary-foreground">
-                        <span className="mr-1 text-[10px] uppercase tracking-wide text-primary-foreground/70">
-                          You
+                      </div>
+                    ) : (
+                      <div key={turn.id} className="flex justify-end">
+                        <span className="inline-block max-w-[80%] rounded-2xl bg-primary px-3 py-1.5 text-sm text-primary-foreground">
+                          <span className="mr-1 text-[10px] uppercase tracking-wide text-primary-foreground/70">
+                            You
+                          </span>
+                          {captionText(turn.rawText, 'user')}
                         </span>
-                        {captionText(latestUser.text, 'user')}
-                      </span>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <p className="text-center text-sm text-muted-foreground">
-                  Captions will appear here as you talk.
-                </p>
+                      </div>
+                    ),
+                  )
+                ) : (
+                  <p className="text-center text-sm text-muted-foreground">
+                    Captions will appear here as you talk.
+                  </p>
+                )}
+              </div>
+
+              {/* Scroll-to-bottom button — shown only when scrolled up. */}
+              {!atBottom && transcript.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => scrollTranscriptToBottom('smooth')}
+                  aria-label="Scroll to latest captions"
+                  className="absolute bottom-3 right-3 z-10 inline-flex h-9 w-9 items-center justify-center rounded-full border bg-background text-foreground shadow-md transition-colors hover:bg-accent"
+                >
+                  <ChevronDown className="h-5 w-5" />
+                </button>
               )}
             </div>
           ) : (
