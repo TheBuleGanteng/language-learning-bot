@@ -734,7 +734,11 @@ export default function AvatarPage() {
               finalized turn (tutor left / user right) accumulates in order; the
               displayed text follows the current caption mode. */}
           {captionsEnabled ? (
-            <div className="relative flex-1 overflow-hidden">
+            // Bounded height so the box scrolls internally instead of growing the
+            // page: capped at 45vh, with a min height so it never collapses, and
+            // free to shrink below the cap when vertical space is tight (mobile).
+            // The scroll-to-bottom button is pinned within this relative box.
+            <div className="relative flex-1 min-h-32 max-h-[45vh] overflow-hidden">
               <div
                 ref={transcriptRef}
                 onScroll={handleTranscriptScroll}

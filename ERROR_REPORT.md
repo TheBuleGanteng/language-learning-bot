@@ -1561,3 +1561,29 @@ successfully" all pass (full local build hangs at the trace/TS tail, documented
 as benign). **Live confirmation**: NOT performed (no browser) — the user should
 verify accumulation, polite auto-scroll, the button, and full-history re-render
 on mode change per §6.
+
+## 2026-06-04 — Captions: cap transcript box height so it scrolls internally
+**Change (not a bug)**: the rolling caption transcript accumulated turns
+correctly and the polite-auto-scroll + scroll-to-bottom logic was already wired,
+but the scroll container (`avatar/page.tsx`) had `overflow-hidden` with **no
+height bound**, so it grew taller with every turn instead of scrolling — pushing
+the message input, Base-language slider, CC controls, and mic button down the
+page. With nothing to overflow against, the auto-scroll/button logic had no
+effect.
+**Implementation** (client-only, `avatar/page.tsx`; no schema change):
+- Bounded the relative scroll container: `min-h-32 max-h-[45vh]` added alongside
+  the existing `flex-1 overflow-hidden`. The `45vh` cap keeps the box a fixed,
+  responsive footprint that comfortably shows ~3–5 turns; `min-h-32` stops it
+  collapsing when nearly empty; `flex-1` still lets it shrink below the cap when
+  vertical space is tight (mobile). The inner `transcriptRef` element keeps
+  `overflow-y-auto`, so content now scrolls internally instead of growing the
+  page. The scroll-to-bottom button stays absolutely pinned within this relative
+  box.
+- No other styling, ordering, transform, auto-scroll, or button behaviour
+  changed — this was purely the missing height cap.
+**Quality gates**: `pnpm lint` clean, `pnpm test` 75/75 pass, `pnpm build`
+"Compiled successfully in 115s" and ran to the full route table (no hang this
+run). **Live confirmation**: NOT performed (no browser) — the user should verify
+per §4 that the box holds a fixed height, scrolls internally with newest at the
+bottom, the scroll-to-bottom button engages, and the controls below no longer
+shift as turns accumulate (desktop + mobile touch).
