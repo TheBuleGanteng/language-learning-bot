@@ -1,11 +1,13 @@
 import { redirect } from 'next/navigation';
 import { eq } from 'drizzle-orm';
+import { getLocale } from 'next-intl/server';
 import { auth } from '@/lib/auth';
 import { db } from '@/db';
 import { users } from '@/db/schema';
 import { AppNav } from '@/components/app-nav';
 import { UserMenu } from '@/components/user-menu';
 import { AppFooter } from '@/components/app-footer';
+import { LanguageSelector } from '@/components/language-selector';
 import { BatchWatcher } from '@/components/batch-watcher';
 import { normalizeLanguageCode } from '@/lib/languages';
 
@@ -24,13 +26,17 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       .limit(1);
     if (row) lang = normalizeLanguageCode(row.target);
   }
+  const locale = await getLocale();
   return (
     <div className="min-h-svh flex flex-col">
       {/* Sticky header (§5) — stays visible while scrolling long pages. */}
       <header className="sticky top-0 z-40 border-b bg-background">
         <div className="container mx-auto flex items-center justify-between px-4 py-3">
           <AppNav lang={lang} />
-          <UserMenu email={session.user.email} />
+          <div className="flex items-center gap-1">
+            <LanguageSelector currentLocale={locale} authenticated />
+            <UserMenu email={session.user.email} />
+          </div>
         </div>
       </header>
       {/* Scrollable content. Extra bottom padding so the sticky footer never

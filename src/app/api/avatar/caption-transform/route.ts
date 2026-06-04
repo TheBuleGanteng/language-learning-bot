@@ -6,6 +6,7 @@ import { users, userSettings } from '@/db/schema';
 import { auth } from '@/lib/auth';
 import { decryptString } from '@/lib/crypto';
 import { normalizeLanguageCode, languageName } from '@/lib/languages';
+import { localeToTranslateCode } from '@/lib/locales';
 import { translateText } from '@/lib/translation';
 import { romanizeText } from '@/lib/romanize';
 import {
@@ -71,7 +72,8 @@ export async function POST(req: Request) {
     .where(eq(users.id, userId))
     .limit(1);
   const targetCode = normalizeLanguageCode(u?.targetLanguage);
-  const baseCode = normalizeLanguageCode(u?.nativeLanguage);
+  // Base language is a UI locale now → map to a Google translate code.
+  const baseCode = localeToTranslateCode(u?.nativeLanguage);
 
   // --- Google translation only (no spend tracking): 'base' for either speaker,
   // and 'target' for the user (the tutor's 'target' line is a client-side

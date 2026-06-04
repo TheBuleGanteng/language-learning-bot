@@ -13,6 +13,7 @@ import {
 } from '@/lib/models';
 import { encryptString, decryptString, maskKey } from '@/lib/crypto';
 import { LANGUAGES, normalizeLanguageCode } from '@/lib/languages';
+import { isLocale, normalizeLocale } from '@/lib/locales';
 import {
   IMAGE_PROVIDERS,
   defaultImageModel,
@@ -85,7 +86,8 @@ export async function GET() {
     llmProvider: s.llmProvider,
     llmModel: s.llmModel,
     targetLanguage: normalizeLanguageCode(u?.targetLanguage),
-    nativeLanguage: normalizeLanguageCode(u?.nativeLanguage),
+    // Base language is now a UI locale (en-US/zh-CN/zh-TW/ko/id).
+    nativeLanguage: normalizeLocale(u?.nativeLanguage),
     imageProvider: s.imageProvider,
     imageModel: s.imageModel,
     extractionProvider: s.extractionProvider,
@@ -127,7 +129,8 @@ const patchSchema = z.object({
   aiSpendReminderUsd: z.number().min(1).max(99999).optional(),
   aiSpendHardStopUsd: z.number().min(1).max(99999).optional(),
   targetLanguage: z.enum(LANGUAGE_CODES).optional(),
-  nativeLanguage: z.enum(LANGUAGE_CODES).optional(),
+  // Base language is a UI locale (validated against the locale set below).
+  nativeLanguage: z.string().min(2).max(8).optional(),
   apiKey: z
     .object({
       provider: z.enum(PROVIDERS),
@@ -308,7 +311,15 @@ export async function PATCH(req: Request) {
 
   const userUpdates: Record<string, unknown> = {};
   if (parsed.data.targetLanguage) userUpdates.targetLanguage = parsed.data.targetLanguage;
-  if (parsed.data.nativeLanguage) userUpdates.nativeLanguage = parsed.data.nativeLanguage;
+  if (parsed.data.nativeLanguage !== undefined) {
+    if (!isLocale(parsed.data.nativeLanguage)) {
+      return NextResponse.json(
+        { error: `Invalid base language: ${parsed.data.nativeLanguage}` },
+        { status: 400 },
+      );
+    }
+    userUpdates.nativeLanguage = parsed.data.nativeLanguage;
+  }
   if (Object.keys(userUpdates).length > 0) {
     userUpdates.updatedAt = new Date();
     await db.update(users).set(userUpdates).where(eq(users.id, userId));

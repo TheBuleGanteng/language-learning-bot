@@ -5,6 +5,7 @@ import { cardReviews, vocabItems } from '@/db/schema';
 import { apiUser } from '@/lib/api-auth';
 import { requireDeckOwner } from '@/lib/decks';
 import { storage } from '@/lib/storage';
+import { glossesFor } from '@/lib/glosses';
 
 /**
  * GET /api/decks/[id]/study — cards to study, ordered by due date.
@@ -62,6 +63,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
       vocabItemId: vocabItems.id,
       targetText: vocabItems.targetText,
       nativeText: vocabItems.nativeText,
+      nativeLanguage: vocabItems.nativeLanguage,
       transliteration: vocabItems.transliteration,
       imageStorageKey: vocabItems.imageStorageKey,
     })
@@ -72,20 +74,36 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     .limit(limit)
     .offset((page - 1) * limit);
 
+  // C2: batch-resolve each card's native meaning into the user's base language
+  // (one Google call per source language for the misses) so flashcards show a
+  // gloss the learner can actually read. `nativeMachine` flags auto-translations.
+  const glosses = await glossesFor(
+    rows.map((r) => ({
+      id: r.vocabItemId,
+      nativeText: r.nativeText,
+      nativeLanguage: r.nativeLanguage,
+    })),
+    user.baseLanguage,
+  );
+
   const store = storage();
-  const cards = rows.map((r) => ({
-    cardReviewId: r.cardReviewId,
-    direction: r.direction,
-    state: r.state,
-    dueAt: r.dueAt,
-    reps: r.reps,
-    lapses: r.lapses,
-    vocabItemId: r.vocabItemId,
-    targetText: r.targetText,
-    nativeText: r.nativeText,
-    transliteration: r.transliteration,
-    imageUrl: r.imageStorageKey ? store.publicUrl(r.imageStorageKey) : null,
-  }));
+  const cards = rows.map((r) => {
+    const g = glosses.get(r.vocabItemId);
+    return {
+      cardReviewId: r.cardReviewId,
+      direction: r.direction,
+      state: r.state,
+      dueAt: r.dueAt,
+      reps: r.reps,
+      lapses: r.lapses,
+      vocabItemId: r.vocabItemId,
+      targetText: r.targetText,
+      nativeText: g?.text ?? r.nativeText,
+      nativeMachine: g?.machine ?? false,
+      transliteration: r.transliteration,
+      imageUrl: r.imageStorageKey ? store.publicUrl(r.imageStorageKey) : null,
+    };
+  });
 
   const hasMore = (page - 1) * limit + cards.length < total;
 

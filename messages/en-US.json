@@ -1,0 +1,70 @@
+{
+  "common": {
+    "appName": "Kaojai",
+    "loading": "Loading…",
+    "save": "Save",
+    "cancel": "Cancel",
+    "comingSoon": "Coming soon",
+    "signOut": "Sign out",
+    "settings": "Settings",
+    "autoTranslated": "Auto-translated"
+  },
+  "nav": {
+    "vocab": "Vocab",
+    "lessons": "Lessons",
+    "learn": "Learn",
+    "flashcards": "Flashcards",
+    "practice": "Practice with Kruu Bingo"
+  },
+  "home": {
+    "welcome": "Welcome back",
+    "subtitle": "What would you like to do today?",
+    "practiceTitle": "Practice {language}",
+    "practiceSubtitle": "Study your decks with flashcards or talk with Kruu Bingo.",
+    "updateTitle": "Update vocabulary",
+    "updateSubtitle": "Add, edit, and organize the words you're learning."
+  },
+  "auth": {
+    "login": {
+      "title": "Log in",
+      "email": "Email",
+      "password": "Password",
+      "submit": "Log in",
+      "submitting": "Logging in…",
+      "forgot": "Forgot password?",
+      "noAccount": "Don't have an account?",
+      "signupLink": "Sign up"
+    },
+    "signup": {
+      "title": "Create your account",
+      "email": "Email",
+      "password": "Password",
+      "submit": "Sign up",
+      "submitting": "Creating account…",
+      "haveAccount": "Already have an account?",
+      "loginLink": "Log in"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "languages": "Languages",
+    "languagesDesc": "Pick the language you already speak (base) and the language you're studying (target).",
+    "baseLanguage": "Base language",
+    "targetLanguage": "Target language",
+    "aiModels": "AI model selection",
+    "apiKeys": "API keys",
+    "aiChat": "AI Chat",
+    "models": {
+      "textChat": "Text chat",
+      "voiceChat": "Voice chat",
+      "captions": "Captions",
+      "imageGen": "Image generation",
+      "photoAnalysis": "Photo analysis"
+    }
+  },
+  "vocab": {},
+  "decks": {},
+  "flashcards": {},
+  "errors": {},
+  "email": {}
+}

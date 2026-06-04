@@ -1,0 +1,70 @@
+{
+  "common": {
+    "appName": "Kaojai",
+    "loading": "Memuat…",
+    "save": "Simpan",
+    "cancel": "Batal",
+    "comingSoon": "Segera hadir",
+    "signOut": "Keluar",
+    "settings": "Pengaturan",
+    "autoTranslated": "Diterjemahkan otomatis"
+  },
+  "nav": {
+    "vocab": "Kosakata",
+    "lessons": "Pelajaran",
+    "learn": "Belajar",
+    "flashcards": "Kartu hafalan",
+    "practice": "Berlatih dengan Kruu Bingo"
+  },
+  "home": {
+    "welcome": "Selamat datang kembali",
+    "subtitle": "Apa yang ingin Anda lakukan hari ini?",
+    "practiceTitle": "Berlatih {language}",
+    "practiceSubtitle": "Pelajari dek Anda dengan kartu hafalan atau mengobrol dengan Kruu Bingo.",
+    "updateTitle": "Perbarui kosakata",
+    "updateSubtitle": "Tambah, edit, dan atur kata-kata yang sedang Anda pelajari."
+  },
+  "auth": {
+    "login": {
+      "title": "Masuk",
+      "email": "Email",
+      "password": "Kata sandi",
+      "submit": "Masuk",
+      "submitting": "Sedang masuk…",
+      "forgot": "Lupa kata sandi?",
+      "noAccount": "Belum punya akun?",
+      "signupLink": "Daftar"
+    },
+    "signup": {
+      "title": "Buat akun Anda",
+      "email": "Email",
+      "password": "Kata sandi",
+      "submit": "Daftar",
+      "submitting": "Membuat akun…",
+      "haveAccount": "Sudah punya akun?",
+      "loginLink": "Masuk"
+    }
+  },
+  "settings": {
+    "title": "Pengaturan",
+    "languages": "Bahasa",
+    "languagesDesc": "Pilih bahasa yang sudah Anda kuasai (dasar) dan bahasa yang sedang Anda pelajari (target).",
+    "baseLanguage": "Bahasa dasar",
+    "targetLanguage": "Bahasa target",
+    "aiModels": "Pemilihan model AI",
+    "apiKeys": "Kunci API",
+    "aiChat": "Obrolan AI",
+    "models": {
+      "textChat": "Obrolan teks",
+      "voiceChat": "Obrolan suara",
+      "captions": "Teks",
+      "imageGen": "Pembuatan gambar",
+      "photoAnalysis": "Analisis foto"
+    }
+  },
+  "vocab": {},
+  "decks": {},
+  "flashcards": {},
+  "errors": {},
+  "email": {}
+}

@@ -2,6 +2,7 @@
 
 import { Suspense, useState } from 'react';
 import { signIn } from 'next-auth/react';
+import { useTranslations } from 'next-intl';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -17,6 +18,7 @@ import {
 
 function LoginInner() {
   const router = useRouter();
+  const t = useTranslations('auth.login');
   const search = useSearchParams();
   const verified = search.get('verified') === '1';
   const [email, setEmail] = useState('');
@@ -48,7 +50,7 @@ function LoginInner() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Log in</CardTitle>
+        <CardTitle>{t('title')}</CardTitle>
         <CardDescription>
           {verified ? 'Email verified. Sign in to continue.' : 'Welcome back.'}
         </CardDescription>
@@ -56,7 +58,7 @@ function LoginInner() {
       <CardContent>
         <form onSubmit={onSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">{t('email')}</Label>
             <Input
               id="email"
               type="email"
@@ -67,7 +69,7 @@ function LoginInner() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password">{t('password')}</Label>
             <Input
               id="password"
               type="password"
@@ -79,14 +81,14 @@ function LoginInner() {
           </div>
           {error && <p className="text-sm text-destructive">{error}</p>}
           <Button type="submit" disabled={busy} className="w-full">
-            {busy ? 'Signing in…' : 'Log in'}
+            {busy ? t('submitting') : t('submit')}
           </Button>
           <div className="flex items-center justify-between text-sm text-muted-foreground">
             <Link href="/forgot-password" className="underline">
-              Forgot password?
+              {t('forgot')}
             </Link>
             <Link href="/signup" className="underline">
-              Create account
+              {t('signupLink')}
             </Link>
           </div>
         </form>

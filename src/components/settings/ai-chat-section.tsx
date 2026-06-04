@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import {
   Card,
@@ -28,6 +29,7 @@ import {
 import { InfoIcon } from '@/components/ui/info-icon';
 import { withBase } from '@/lib/base-path';
 import { languageName, normalizeLanguageCode, type LanguageCode } from '@/lib/languages';
+import { localeEnglishName } from '@/lib/locales';
 import {
   defaultBaseLanguageUse,
   isBaseLanguageUse,
@@ -65,6 +67,7 @@ function formatDuration(seconds: number): string {
  * here; superuser-only). Both auto-save on change.
  */
 export function AiChatSection() {
+  const t = useTranslations('settings');
   const [role, setRole] = useState<Role | null>(null);
   const [targetName, setTargetName] = useState('the target language');
   const [baseName, setBaseName] = useState('your base language');
@@ -102,7 +105,7 @@ export function AiChatSection() {
         code = normalizeLanguageCode(me.targetLanguage);
         setTargetCode(code);
         setTargetName(languageName(me.targetLanguage) || 'the target language');
-        setBaseName(languageName(me.nativeLanguage) || 'your base language');
+        setBaseName(localeEnglishName(me.nativeLanguage) || 'your base language');
       }
       if (settingsRes.ok) {
         const s = await settingsRes.json();
@@ -239,7 +242,7 @@ export function AiChatSection() {
   return (
     <Card id="ai-chat">
       <CardHeader>
-        <CardTitle>AI Chat</CardTitle>
+        <CardTitle>{t('aiChat')}</CardTitle>
         <CardDescription>
           Settings for the AI tutor conversation (text and Kruu Bingo voice chat).
         </CardDescription>
@@ -266,22 +269,22 @@ export function AiChatSection() {
           )}
         </div>
 
-        {/* Voice chat captions on/off (per-user, mirrors the voice page). */}
-        <div className="space-y-2 border-t pt-6">
-          <div className="flex items-center gap-1.5">
-            <Label>Voice chat captions</Label>
-            <InfoIcon label="About captions">
-              Show on-screen captions of the conversation — both what you say and the
-              tutor&apos;s replies. Mirrors the CC button on the voice chat page.
-            </InfoIcon>
+        {/* Voice chat captions (per-user, mirrors the voice page). A3: the CC
+            on/off block and the Caption-language selector sit side by side on
+            wide screens and stack on narrow ones. */}
+        <div className="flex flex-col gap-6 border-t pt-6 sm:flex-row sm:gap-8">
+          <div className="space-y-2">
+            <div className="flex items-center gap-1.5">
+              <Label>Voice chat captions</Label>
+            </div>
+            <CaptionsToggle
+              enabled={captionsEnabled}
+              onToggle={saveCaptions}
+              disabled={captionsSaving}
+            />
           </div>
-          <CaptionsToggle
-            enabled={captionsEnabled}
-            onToggle={saveCaptions}
-            disabled={captionsSaving}
-          />
 
-          <div className="max-w-xs space-y-1.5 pt-1">
+          <div className="max-w-xs space-y-1.5">
             <div className="flex items-center gap-1.5">
               <Label>Caption language</Label>
               <InfoIcon label="About caption language">

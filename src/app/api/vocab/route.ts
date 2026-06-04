@@ -15,6 +15,7 @@ import { buildOrderBy } from '@/lib/vocab';
 import { storage } from '@/lib/storage';
 import { escapeRegex, normalizeText } from '@/lib/text-normalize';
 import { vocabVisibleSql } from '@/lib/visibility';
+import { normalizeLocale } from '@/lib/locales';
 
 const DEFAULT_PAGE_SIZE = 100;
 const ALLOWED_PAGE_SIZES = new Set([25, 50, 100]);
@@ -257,6 +258,10 @@ export async function POST(req: Request) {
     );
   }
   const d = parsed.data;
+  // C2: pin the native/meaning language to the creator's base language.
+  const creatorBase = normalizeLocale(
+    (session?.user as { nativeLanguage?: string } | undefined)?.nativeLanguage,
+  );
 
   const newId = await db.transaction(async (tx) => {
     const [inserted] = await tx
@@ -267,6 +272,7 @@ export async function POST(req: Request) {
         // visibility defaults to 'private' (new content is private by default)
         targetText: d.targetText,
         nativeText: d.nativeText,
+        nativeLanguage: creatorBase,
         targetTextNormalized: normalizeText(d.targetText),
         nativeTextNormalized: normalizeText(d.nativeText),
         transliteration: d.transliteration ?? null,

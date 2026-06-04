@@ -4,6 +4,7 @@ import { db } from '@/db';
 import { users } from '@/db/schema';
 import { auth } from '@/lib/auth';
 import { normalizeLanguageCode } from '@/lib/languages';
+import { normalizeLocale } from '@/lib/locales';
 
 /**
  * Returns the authenticated user's profile fields the client needs to render
@@ -33,7 +34,7 @@ export async function GET() {
     id: row.id,
     email: row.email,
     targetLanguage: normalizeLanguageCode(row.targetLanguage),
-    nativeLanguage: normalizeLanguageCode(row.nativeLanguage),
+    nativeLanguage: normalizeLocale(row.nativeLanguage),
     role: row.role,
     displayName: row.displayName,
   });

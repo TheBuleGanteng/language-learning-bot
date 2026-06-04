@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { and, eq, inArray } from 'drizzle-orm';
 import { db } from '@/db';
-import { vocabItems, vocabTags, vocabLessons, lessons, tags } from '@/db/schema';
+import { vocabItems, vocabTags, vocabLessons, lessons, tags, vocabItemGlosses } from '@/db/schema';
 import { auth } from '@/lib/auth';
 import { storage } from '@/lib/storage';
 import { normalizeText } from '@/lib/text-normalize';
@@ -118,6 +118,12 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     if (d.notes !== undefined) updates.notes = d.notes;
     if (Object.keys(updates).length > 1) {
       await tx.update(vocabItems).set(updates).where(eq(vocabItems.id, id));
+    }
+
+    // C2 invalidation: if the meaning or the target word changed, drop all
+    // cached per-language glosses so they regenerate from the new wording.
+    if (d.nativeText !== undefined || d.targetText !== undefined) {
+      await tx.delete(vocabItemGlosses).where(eq(vocabItemGlosses.vocabItemId, id));
     }
 
     if (d.lessonIds !== undefined) {

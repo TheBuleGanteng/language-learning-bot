@@ -18,6 +18,7 @@ import { cn } from '@/lib/utils';
 import { withBase } from '@/lib/base-path';
 import { decksPath, deckFlashcardsPath, vocabPath } from '@/lib/routes';
 import { languageName, normalizeLanguageCode, type LanguageCode } from '@/lib/languages';
+import { localeEnglishName } from '@/lib/locales';
 import { KruuBingo } from '@/components/avatar/kruu-bingo';
 import { NoKeyDialog } from '@/components/avatar/no-key-dialog';
 import { HardStopDialog } from '@/components/avatar/hard-stop-dialog';
@@ -270,7 +271,7 @@ export function VoiceChat({ mode, lang, deckId }: VoiceChatProps) {
         });
       }
       const tName = languageName(me.targetLanguage ?? lang) || 'the target language';
-      const bName = languageName(me.nativeLanguage ?? 'en') || 'English';
+      const bName = localeEnglishName(me.nativeLanguage) || 'English';
       promptInputsRef.current = { targetLanguage: tName, nativeLanguage: bName, vocabItems };
       setTargetName(tName);
       setBaseName(bName);

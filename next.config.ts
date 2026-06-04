@@ -1,8 +1,13 @@
 import type { NextConfig } from 'next';
 import withPWAInit from '@ducanh2912/next-pwa';
+import createNextIntlPlugin from 'next-intl/plugin';
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
 const isDev = process.env.NODE_ENV === 'development';
+
+// next-intl (App Router, no i18n routing) — points at the request config that
+// resolves the locale per request.
+const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 
 const nextConfig: NextConfig = {
   basePath: basePath || undefined,
@@ -26,4 +31,4 @@ const withPWA = withPWAInit({
   },
 });
 
-export default isDev ? nextConfig : withPWA(nextConfig);
+export default isDev ? withNextIntl(nextConfig) : withNextIntl(withPWA(nextConfig));

@@ -1,0 +1,70 @@
+{
+  "common": {
+    "appName": "Kaojai",
+    "loading": "載入中…",
+    "save": "儲存",
+    "cancel": "取消",
+    "comingSoon": "即將推出",
+    "signOut": "登出",
+    "settings": "設定",
+    "autoTranslated": "自動翻譯"
+  },
+  "nav": {
+    "vocab": "詞彙",
+    "lessons": "課程",
+    "learn": "學習",
+    "flashcards": "字卡",
+    "practice": "和 Kruu Bingo 練習"
+  },
+  "home": {
+    "welcome": "歡迎回來",
+    "subtitle": "今天想做什麼？",
+    "practiceTitle": "練習{language}",
+    "practiceSubtitle": "用字卡學習，或與 Kruu Bingo 對話。",
+    "updateTitle": "更新詞彙",
+    "updateSubtitle": "新增、編輯和整理你正在學習的單字。"
+  },
+  "auth": {
+    "login": {
+      "title": "登入",
+      "email": "電子郵件",
+      "password": "密碼",
+      "submit": "登入",
+      "submitting": "登入中…",
+      "forgot": "忘記密碼？",
+      "noAccount": "還沒有帳號？",
+      "signupLink": "註冊"
+    },
+    "signup": {
+      "title": "建立帳號",
+      "email": "電子郵件",
+      "password": "密碼",
+      "submit": "註冊",
+      "submitting": "建立帳號中…",
+      "haveAccount": "已經有帳號？",
+      "loginLink": "登入"
+    }
+  },
+  "settings": {
+    "title": "設定",
+    "languages": "語言",
+    "languagesDesc": "選擇你已經會說的語言（母語）和你正在學習的語言（目標語言）。",
+    "baseLanguage": "母語",
+    "targetLanguage": "目標語言",
+    "aiModels": "AI 模型選擇",
+    "apiKeys": "API 金鑰",
+    "aiChat": "AI 對話",
+    "models": {
+      "textChat": "文字對話",
+      "voiceChat": "語音對話",
+      "captions": "字幕",
+      "imageGen": "圖片生成",
+      "photoAnalysis": "照片分析"
+    }
+  },
+  "vocab": {},
+  "decks": {},
+  "flashcards": {},
+  "errors": {},
+  "email": {}
+}

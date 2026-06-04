@@ -41,3 +41,35 @@ export async function translateText(
   });
   return translated;
 }
+
+/**
+ * Translate many strings in ONE Google batch call (same source + target).
+ * Returns translations positionally aligned with `texts`. Used to resolve all
+ * missing vocab glosses for a deck in a single call rather than one per card
+ * (C2 performance). Empty strings pass through untouched.
+ */
+export async function translateBatch(
+  texts: string[],
+  targetLangCode: string,
+  sourceLangCode?: string | null,
+): Promise<string[]> {
+  if (texts.length === 0) return [];
+  if (sourceLangCode && sourceLangCode === targetLangCode) return [...texts];
+  // Preserve blanks; only send non-empty strings to the API.
+  const indexed = texts.map((t, i) => ({ t, i })).filter((x) => x.t.trim());
+  if (indexed.length === 0) return [...texts];
+  const [translated] = await client().translate(
+    indexed.map((x) => x.t),
+    {
+      ...(sourceLangCode ? { from: sourceLangCode } : {}),
+      to: targetLangCode,
+      format: 'text',
+    },
+  );
+  const out = [...texts];
+  const arr = Array.isArray(translated) ? translated : [translated];
+  indexed.forEach((x, k) => {
+    out[x.i] = arr[k] ?? x.t;
+  });
+  return out;
+}

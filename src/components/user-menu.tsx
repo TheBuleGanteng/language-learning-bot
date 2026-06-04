@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { signOut } from 'next-auth/react';
+import { useTranslations } from 'next-intl';
 import { ChevronDown, LogOut, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -17,6 +18,7 @@ interface Props {
 }
 
 export function UserMenu({ email }: Props) {
+  const t = useTranslations('common');
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -32,7 +34,7 @@ export function UserMenu({ email }: Props) {
           render={
             <Link href="/settings">
               <Settings className="mr-2 h-4 w-4" />
-              Settings
+              {t('settings')}
             </Link>
           }
         />
@@ -45,7 +47,7 @@ export function UserMenu({ email }: Props) {
           }}
         >
           <LogOut className="mr-2 h-4 w-4" />
-          Sign out
+          {t('signOut')}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { ChevronDown, GraduationCap, MessagesSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { homePath, vocabPath, lessonsPath, decksPath } from '@/lib/routes';
@@ -18,12 +19,13 @@ interface Props {
 
 export function AppNav({ lang }: Props) {
   const pathname = usePathname();
+  const t = useTranslations('nav');
   const langPrefix = `/language/${lang}`;
   const isActive = (target: string) => pathname.startsWith(target);
 
   const items = [
-    { label: 'Vocab', href: vocabPath(lang), match: `${langPrefix}/vocab` },
-    { label: 'Lessons', href: lessonsPath(lang), match: `${langPrefix}/lessons` },
+    { label: t('vocab'), href: vocabPath(lang), match: `${langPrefix}/vocab` },
+    { label: t('lessons'), href: lessonsPath(lang), match: `${langPrefix}/lessons` },
   ];
 
   const learnActive = isActive(`${langPrefix}/flashcards`);
@@ -52,7 +54,7 @@ export function AppNav({ lang }: Props) {
         <DropdownMenuTrigger
           render={
             <button type="button" className={cn(navItemClass(learnActive), 'inline-flex items-center gap-1')}>
-              Learn
+              {t('learn')}
               <ChevronDown className="h-3.5 w-3.5" />
             </button>
           }
@@ -62,7 +64,7 @@ export function AppNav({ lang }: Props) {
             render={
               <Link href={decksPath(lang)}>
                 <GraduationCap className="mr-2 h-4 w-4" />
-                Flashcards
+                {t('flashcards')}
               </Link>
             }
           />
@@ -72,7 +74,7 @@ export function AppNav({ lang }: Props) {
             render={
               <Link href={decksPath(lang)}>
                 <MessagesSquare className="mr-2 h-4 w-4" />
-                Practice with Kruu Bingo
+                {t('practice')}
               </Link>
             }
           />

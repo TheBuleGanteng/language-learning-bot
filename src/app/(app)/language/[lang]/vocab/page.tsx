@@ -32,6 +32,7 @@ import { colorForLesson, colorForTag } from '@/lib/colors';
 import { cn } from '@/lib/utils';
 import { vocabPath, lessonPath } from '@/lib/routes';
 import { languageName } from '@/lib/languages';
+import { localeEnglishName } from '@/lib/locales';
 import {
   Table,
   TableBody,
@@ -162,7 +163,7 @@ function VocabInner() {
   const [searchInput, setSearchInput] = useState(searchTerm);
 
   const targetLabel = languageName(me?.targetLanguage ?? lang);
-  const nativeLabel = languageName(me?.nativeLanguage ?? 'en');
+  const nativeLabel = localeEnglishName(me?.nativeLanguage);
 
   const SORT_COLS: { id: SortCol; label: string }[] = [
     { id: 'thai', label: targetLabel || 'Target' },

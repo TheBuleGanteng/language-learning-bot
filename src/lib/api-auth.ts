@@ -1,10 +1,13 @@
 import { auth } from './auth';
 import type { UserRole } from './roles';
+import { normalizeLocale, type Locale } from './locales';
 
 export interface ApiUser {
   id: string;
   role: UserRole;
   displayName: string | null;
+  /** The user's base language / UI locale (for gloss resolution, etc.). */
+  baseLanguage: Locale;
 }
 
 /**
@@ -15,8 +18,13 @@ export interface ApiUser {
 export async function apiUser(): Promise<ApiUser | null> {
   const session = await auth();
   const u = session?.user as
-    | { id?: string; role?: UserRole; displayName?: string | null }
+    | { id?: string; role?: UserRole; displayName?: string | null; nativeLanguage?: string }
     | undefined;
   if (!u?.id) return null;
-  return { id: u.id, role: u.role ?? 'regular', displayName: u.displayName ?? null };
+  return {
+    id: u.id,
+    role: u.role ?? 'regular',
+    displayName: u.displayName ?? null,
+    baseLanguage: normalizeLocale(u.nativeLanguage),
+  };
 }

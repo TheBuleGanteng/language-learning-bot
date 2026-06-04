@@ -7,6 +7,7 @@ import { users } from '@/db/schema';
 import { z } from 'zod';
 import { env } from './env';
 import { normalizeLanguageCode } from './languages';
+import { normalizeLocale } from './locales';
 
 const credSchema = z.object({
   email: z.string().email(),
@@ -79,7 +80,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
         if (row) {
           token.targetLanguage = normalizeLanguageCode(row.target);
-          token.nativeLanguage = normalizeLanguageCode(row.native);
+          // Base language is now a UI locale (en-US/zh-CN/zh-TW/ko/id).
+          token.nativeLanguage = normalizeLocale(row.native);
           // Refreshed every request so role/displayName changes (role grants,
           // setting a display name) take effect without re-login.
           token.role = row.role ?? 'regular';

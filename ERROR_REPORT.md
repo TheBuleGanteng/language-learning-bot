@@ -1644,3 +1644,78 @@ instead.
 in the route table. **Live confirmation**: NOT performed (no browser/mic) — the
 user should verify §11 (esp. the live speech-speed change mid-session, the flag
 rendering on Windows, and that the footer never overlaps the mic/slider controls).
+
+## 2026-06-04 — Settings tweaks + multi-language (i18n) Phase 1 & 2 + README
+**Scope (PARTS A–D, one commit).** Large multi-part spec.
+
+**PART A — settings tweaks**
+- A1: normalized the AI-model-table ⓘ tooltips so the icon sits immediately
+  right of each function label on every row (Text chat's ⓘ moved before the
+  "Coming soon" pill).
+- A2: renamed the "Captions (romanization)" function label to "Captions"
+  (display only; function key/logging unchanged).
+- A3: the CC on/off block and the Caption-language selector now sit side by side
+  on wide screens (`flex-col` → `sm:flex-row`), stacked on narrow.
+
+**PART B — i18n foundation + first slice**
+- next-intl v4 (App Router, **no `[locale]` URL segment**); per-request locale
+  resolution in `src/i18n/locale.ts` (order: user base language → `NEXT_LOCALE`
+  cookie → `en-US`), request config in `src/i18n/request.ts` with a
+  missing-key fallback so partial catalogs never crash the build, plugin wired
+  in `next.config.ts` (composed with the PWA wrapper), provider in the root
+  layout. Locale catalog `src/lib/locales.ts` (5 locales, English+native names,
+  `languageWord`, flag country; zh-TW → null/no flag).
+- **DECISION (deviation from the spec's wording):** the spec assumed a
+  `users.base_language` column, but the codebase only has `users.native_language`
+  (field `nativeLanguage`) — that IS the base language. Rather than a risky
+  column rename across the app, the existing column was kept and **repurposed to
+  hold a locale**; migration 0018 normalizes/backfills legacy 2-letter values to
+  the locale set and sets the `en-US` default. All `nativeLanguage` consumers
+  were updated to be locale-aware: names via `localeEnglishName`, Google codes
+  via `localeToTranslateCode`, normalization via `normalizeLocale` (auth JWT,
+  /api/me, /api/settings GET+PATCH validation, caption-transform base target,
+  voice chat, AI-chat section, vocab "native" column labels). The settings Base
+  Language select now lists the 5 locales.
+- Header **language selector** (`language-selector.tsx`) with native+English
+  names + SVG flags (zh-TW: neutral glyph); trigger shows e.g. "언어 (Language)"
+  when not English. On change: PATCH base language (authed), set `NEXT_LOCALE`
+  cookie, `router.refresh()`, toast. Also rendered pre-auth on the auth layout.
+- B5: sign-up captures the `NEXT_LOCALE` cookie as the new account's base
+  language.
+- **Localized in PART B:** nav/header (AppNav, UserMenu), the language selector,
+  the home hub, the login and sign-up pages, and the settings page's card titles
+  + language labels + AI-model function names. Catalogs: `messages/{en-US,zh-CN,
+  zh-TW,ko,id}.json` (namespaces common/nav/home/auth/settings filled; vocab/
+  decks/flashcards/errors/email reserved).
+
+**PART C — Phase 2**
+- **C2 shared-vocab glosses (the real feature) — implemented fully:** migration
+  0019 adds `vocab_items.native_language` (backfilled from each creator's base
+  language) and the `vocab_item_glosses` table (UNIQUE `(item, base_language)`).
+  `src/lib/glosses.ts` provides `glossFor` (single) and `glossesFor` (batch: one
+  DB read + one Google batch call per source language) plus `invalidateGlosses`.
+  Resolver rule: same language → original; else cached gloss; else translate
+  FROM the item's `native_language` INTO the user's base language via Google
+  Cloud Translation, cache as `machine`, reuse across all users/sessions.
+  Creation hooks set `native_language` (manual create + photo extraction);
+  edit invalidates glosses when the meaning or target word changes. The deck
+  **study route batch-resolves** glosses for the user's base language; the
+  flashcard native face shows the resolved gloss with a subtle "Auto-translated"
+  flag. Cross-language SEARCH is intentionally out of scope (search still uses
+  the original native text).
+- **C1 (localize the remaining UI):** PARTIAL. The foundation + missing-key
+  fallback are in place, but the full localization of vocab/lessons/decks/
+  extraction screens, all toasts/modals, and the transactional emails was NOT
+  completed in this pass — those strings remain English (rendered safely via the
+  fallback, no missing-key crashes). Flagged here and in the summary as
+  follow-up.
+
+**PART D — README:** rewrote `README.md` to the current app state (stack,
+features incl. the i18n + glosses, local dev, DB overview, conceptual deploy);
+no secrets.
+
+**Migrations:** 0018 (base-language normalize/backfill) and 0019 (vocab
+`native_language` + `vocab_item_glosses`) generated and applied LOCALLY.
+**New deps:** `next-intl`. **Quality gates:** `pnpm lint` clean, `pnpm test`
+75/75, `tsc --noEmit` clean, `pnpm build` compiled successfully (full route
+table incl. `/home`, `/language/[lang]/practice`). Deploy NOT performed.

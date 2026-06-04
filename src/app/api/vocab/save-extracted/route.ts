@@ -11,6 +11,7 @@ import {
 } from '@/db/schema';
 import { auth } from '@/lib/auth';
 import { normalizeText } from '@/lib/text-normalize';
+import { normalizeLocale } from '@/lib/locales';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -37,6 +38,10 @@ export async function POST(req: Request) {
   const session = await auth();
   const userId = (session?.user as { id?: string } | undefined)?.id;
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  // C2: pin extracted items' native language to the creator's base language.
+  const creatorBase = normalizeLocale(
+    (session?.user as { nativeLanguage?: string } | undefined)?.nativeLanguage,
+  );
 
   let body: unknown;
   try {
@@ -135,6 +140,7 @@ export async function POST(req: Request) {
               // §3d: photo-extracted items are private by default (schema default).
               targetText: target,
               nativeText: native,
+              nativeLanguage: creatorBase,
               targetTextNormalized: normalizeText(target),
               nativeTextNormalized: normalizeText(native),
             })

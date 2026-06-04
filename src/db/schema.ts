@@ -35,7 +35,12 @@ export const users = pgTable('users', {
   passwordHash: text('password_hash').notNull(),
   emailVerifiedAt: timestamp('email_verified_at', { withTimezone: true }),
   targetLanguage: text('target_language').notNull().default('th'),
-  nativeLanguage: text('native_language').notNull().default('en'),
+  // Base language = the user's own language. Now holds one of the 5 UI locales
+  // (src/lib/locales.ts): 'en-US' | 'zh-CN' | 'zh-TW' | 'ko' | 'id'. Drives the
+  // UI locale, the captions "base" translation target, and per-base-language
+  // vocab glosses. (Field name kept as `nativeLanguage` to avoid a column
+  // rename; the migration backfills legacy 2-letter values.)
+  nativeLanguage: text('native_language').notNull().default('en-US'),
   // Role-based admin (Feature A). Display name is the public identity shown on
   // shared content; nullable until the user sets one, unique (case-insensitive
   // uniqueness is enforced in the API).
@@ -231,6 +236,10 @@ export const vocabItems = pgTable(
       .references(() => users.id, { onDelete: 'cascade' }),
     targetText: text('target_text').notNull(),
     nativeText: text('native_text').notNull(),
+    // C2: the LANGUAGE (base-language locale) the native/meaning text is written
+    // in — pinned from the creator's base language at creation. Translated
+    // glosses for OTHER base languages live in vocab_item_glosses.
+    nativeLanguage: text('native_language').notNull().default('en-US'),
     // Accent-agnostic search columns: targetText/nativeText run through
     // normalizeText() (strip diacritics, map IPA → Latin, lowercase).
     targetTextNormalized: text('target_text_normalized').notNull().default(''),
@@ -298,6 +307,31 @@ export const vocabLessons = pgTable(
       .references(() => lessons.id, { onDelete: 'cascade' }),
   },
   (t) => [primaryKey({ columns: [t.vocabItemId, t.lessonId] })],
+);
+
+// =============================================================================
+// vocab_item_glosses — per-base-language translations of a vocab item's native
+// meaning (C2). Keyed by (item, base_language), NOT by user, so a translation
+// is produced once per language and reused across all users/sessions.
+// =============================================================================
+
+export const glossSourceEnum = pgEnum('gloss_source', ['original', 'machine']);
+
+export const vocabItemGlosses = pgTable(
+  'vocab_item_glosses',
+  {
+    id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+    vocabItemId: uuid('vocab_item_id')
+      .notNull()
+      .references(() => vocabItems.id, { onDelete: 'cascade' }),
+    // The base-language locale this gloss is written in (e.g. 'ko', 'zh-CN').
+    baseLanguage: varchar('base_language', { length: 8 }).notNull(),
+    text: text('text').notNull(),
+    // 'original' = the creator's canonical meaning; 'machine' = auto-translated.
+    source: glossSourceEnum('source').notNull().default('machine'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [unique('vocab_item_glosses_item_lang_unique').on(t.vocabItemId, t.baseLanguage)],
 );
 
 // =============================================================================
@@ -592,6 +626,8 @@ export type Tag = typeof tags.$inferSelect;
 export type NewTag = typeof tags.$inferInsert;
 export type VocabItem = typeof vocabItems.$inferSelect;
 export type NewVocabItem = typeof vocabItems.$inferInsert;
+export type VocabItemGloss = typeof vocabItemGlosses.$inferSelect;
+export type NewVocabItemGloss = typeof vocabItemGlosses.$inferInsert;
 export type LessonFile = typeof lessonFiles.$inferSelect;
 export type NewLessonFile = typeof lessonFiles.$inferInsert;
 export type LessonLink = typeof lessonLinks.$inferSelect;

@@ -11,6 +11,7 @@ import { TagPicker } from '@/components/tag-picker';
 import { toast } from 'sonner';
 import { vocabPath } from '@/lib/routes';
 import { languageName } from '@/lib/languages';
+import { localeEnglishName } from '@/lib/locales';
 import { withBase } from '@/lib/base-path';
 
 interface NameId {
@@ -75,7 +76,7 @@ export function VocabForm({ initial, mode }: Props) {
     null,
   );
   const targetLabel = languageName(me?.targetLanguage ?? lang) || 'Target';
-  const nativeLabel = languageName(me?.nativeLanguage ?? 'en') || 'Native';
+  const nativeLabel = localeEnglishName(me?.nativeLanguage) || 'Native';
 
   useEffect(() => {
     fetch(withBase('/api/me'))

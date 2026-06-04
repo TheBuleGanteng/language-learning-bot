@@ -33,6 +33,7 @@ import {
   languageDisplayLabel,
   type LanguageCode,
 } from '@/lib/languages';
+import { LOCALE_CATALOG, LOCALE_LIST, normalizeLocale, type Locale } from '@/lib/locales';
 import {
   IMAGE_MODELS,
   IMAGE_PROVIDERS,
@@ -47,6 +48,7 @@ import {
   type ExtractionProvider,
 } from '@/lib/extraction/catalog';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useFieldAutoSave, SaveStatus } from '@/components/save-status';
 import { InfoIcon } from '@/components/ui/info-icon';
 import { withBase } from '@/lib/base-path';
@@ -63,7 +65,7 @@ interface SettingsState {
   llmProvider: Provider;
   llmModel: string;
   targetLanguage: LanguageCode;
-  nativeLanguage: LanguageCode;
+  nativeLanguage: Locale;
   imageProvider: ImageProviderId;
   imageModel: string;
   extractionProvider: ExtractionProvider;
@@ -169,6 +171,8 @@ const EXTRACTION_PROVIDER_KEY: Record<ExtractionProvider, Provider> = {
 
 export default function SettingsPage() {
   const router = useRouter();
+  const t = useTranslations('settings');
+  const tc = useTranslations('common');
   const [state, setState] = useState<SettingsState | null>(null);
   const [spend, setSpend] = useState<SpendSnapshot | null>(null);
   const [busy, setBusy] = useState(false);
@@ -313,7 +317,7 @@ export default function SettingsPage() {
     });
   }
 
-  function onNativeLanguageChange(code: LanguageCode) {
+  function onNativeLanguageChange(code: Locale) {
     if (!state || code === state.nativeLanguage) return;
     setState({ ...state, nativeLanguage: code });
     void nativeSave.run(async () => {
@@ -430,32 +434,29 @@ export default function SettingsPage() {
       <ProfileSection />
       <Card>
         <CardHeader>
-          <CardTitle>Languages</CardTitle>
-          <CardDescription>
-            Pick the language you already speak (base) and the language you&apos;re
-            studying (target).
-          </CardDescription>
+          <CardTitle>{t('languages')}</CardTitle>
+          <CardDescription>{t('languagesDesc')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <Label>Base language</Label>
+                <Label>{t('baseLanguage')}</Label>
                 <SaveStatus status={nativeSave.status} />
               </div>
               <Select
                 value={state.nativeLanguage}
-                onValueChange={(v) => v && onNativeLanguageChange(v as LanguageCode)}
+                onValueChange={(v) => v && onNativeLanguageChange(v as Locale)}
               >
                 <SelectTrigger>
                   <SelectValue>
-                    {(value: string) => languageDisplayLabel(value)}
+                    {(value: string) => LOCALE_CATALOG[normalizeLocale(value)].nativeName}
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  {LANGUAGES.map((l) => (
+                  {LOCALE_LIST.map((l) => (
                     <SelectItem key={l.code} value={l.code}>
-                      {languageDisplayLabel(l.code)}
+                      {l.nativeName} ({l.englishName})
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -463,7 +464,7 @@ export default function SettingsPage() {
             </div>
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <Label>Target language</Label>
+                <Label>{t('targetLanguage')}</Label>
                 <SaveStatus status={targetSave.status} />
               </div>
               <Select
@@ -494,7 +495,7 @@ export default function SettingsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>AI model selection</CardTitle>
+          <CardTitle>{t('aiModels')}</CardTitle>
           <CardDescription>Choose the models that power each AI feature.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -509,13 +510,13 @@ export default function SettingsPage() {
           {/* Text chat — greyed "Coming soon" (renamed former Chat row). */}
           <div className={`${rowCls} opacity-70 md:opacity-100`}>
             <div className="flex items-center gap-1.5">
-              <span className="text-sm font-medium">Text chat</span>
-              <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-                Coming soon
-              </span>
+              <span className="text-sm font-medium">{t('models.textChat')}</span>
               <InfoIcon label="About text chat">
                 Will let the text AI tutor use the model of your choice. Not yet active.
               </InfoIcon>
+              <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                {tc('comingSoon')}
+              </span>
             </div>
             <div className="space-y-1 md:opacity-60">
               <span className="text-xs text-muted-foreground md:hidden">Provider</span>
@@ -556,7 +557,7 @@ export default function SettingsPage() {
           {/* Voice chat — OpenAI realtime (provider is fixed). */}
           <div className={rowCls}>
             <div className="flex items-center gap-1.5">
-              <span className="text-sm font-medium">Voice chat</span>
+              <span className="text-sm font-medium">{t('models.voiceChat')}</span>
               <InfoIcon label="About voice chat">
                 The OpenAI realtime model that powers Kruu Bingo voice practice. Requires
                 an OpenAI API key.
@@ -593,7 +594,7 @@ export default function SettingsPage() {
           {/* Captions (romanization) — text model that transliterates captions. */}
           <div className={rowCls}>
             <div className="flex items-center gap-1.5">
-              <span className="text-sm font-medium">Captions (romanization)</span>
+              <span className="text-sm font-medium">{t('models.captions')}</span>
               <InfoIcon label="About caption romanization">
                 Powers romanized captions — transliterates the tutor&apos;s and your
                 lines into tone-marked Latin script. Only used when caption language is
@@ -634,7 +635,7 @@ export default function SettingsPage() {
           {/* Image generation — existing image-gen model. */}
           <div className={rowCls}>
             <div className="flex items-center gap-1.5">
-              <span className="text-sm font-medium">Image generation</span>
+              <span className="text-sm font-medium">{t('models.imageGen')}</span>
               <InfoIcon label="About image generation">
                 Generates illustrations for your vocabulary.
               </InfoIcon>
@@ -693,7 +694,7 @@ export default function SettingsPage() {
           {/* Photo analysis — renamed photo→vocab extraction (same setting). */}
           <div className={`${rowCls} md:border-b-0 md:pb-0`}>
             <div className="flex items-center gap-1.5">
-              <span className="text-sm font-medium">Photo analysis</span>
+              <span className="text-sm font-medium">{t('models.photoAnalysis')}</span>
               <InfoIcon label="About photo analysis">
                 Vision-capable model that extracts vocabulary from photos you upload.
               </InfoIcon>
@@ -835,7 +836,7 @@ export default function SettingsPage() {
       <Card id="api-keys">
         <CardHeader>
           <div className="flex items-center gap-1.5">
-            <CardTitle>API keys</CardTitle>
+            <CardTitle>{t('apiKeys')}</CardTitle>
             {/* §3a: plain-language "what is an API key" help. */}
             <InfoIcon label="What is an API key">
               An API key is like a password that lets this app use an AI provider on

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import { z } from 'zod';
 import { hash as argonHash } from '@node-rs/argon2';
 import { eq } from 'drizzle-orm';
@@ -8,6 +9,7 @@ import { generateToken } from '@/lib/crypto';
 import { sendVerificationEmail } from '@/lib/email';
 import { env } from '@/lib/env';
 import { checkRateLimit, ipFromRequest } from '@/lib/rate-limit';
+import { normalizeLocale, LOCALE_COOKIE } from '@/lib/locales';
 
 const schema = z.object({
   email: z.string().email().max(254),
@@ -53,10 +55,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true });
   }
 
+  // B5: capture the locale the sign-up UI was using as the new account's base
+  // language (from the NEXT_LOCALE cookie the selector set).
+  const cookieStore = await cookies();
+  const baseLanguage = normalizeLocale(cookieStore.get(LOCALE_COOKIE)?.value);
+
   const passwordHash = await argonHash(password);
   const [newUser] = await db
     .insert(users)
-    .values({ email: normEmail, passwordHash })
+    .values({ email: normEmail, passwordHash, nativeLanguage: baseLanguage })
     .returning({ id: users.id, email: users.email });
 
   // Default user_settings row

@@ -16,6 +16,8 @@ interface StudyCard {
   vocabItemId: string;
   targetText: string;
   nativeText: string;
+  /** C2: native meaning was auto-translated into the user's base language. */
+  nativeMachine?: boolean;
   transliteration: string | null;
   imageUrl: string | null;
 }
@@ -323,6 +325,7 @@ export default function StudyPage() {
                   transliteration={isForward ? null : card.transliteration}
                   imageUrl={isForward ? null : card.imageUrl}
                   prompt={isForward ? 'What is the target word for this?' : 'What does this mean?'}
+                  machine={isForward ? card.nativeMachine : false}
                 />
               </CardFace>
               {/* Back */}
@@ -332,6 +335,7 @@ export default function StudyPage() {
                   transliteration={isForward ? card.transliteration : null}
                   imageUrl={isForward ? card.imageUrl : null}
                   prompt={null}
+                  machine={isForward ? false : card.nativeMachine}
                 />
               </CardFace>
             </div>
@@ -391,11 +395,13 @@ function CardContent({
   transliteration,
   imageUrl,
   prompt,
+  machine,
 }: {
   primaryText: string;
   transliteration: string | null;
   imageUrl: string | null;
   prompt: string | null;
+  machine?: boolean;
 }) {
   return (
     <div className="flex flex-col items-center gap-3 text-center">
@@ -408,6 +414,12 @@ function CardContent({
         />
       )}
       <div className="text-2xl font-semibold break-words">{primaryText}</div>
+      {/* C2: subtle flag that this meaning was machine-translated. */}
+      {machine && (
+        <div className="text-[10px] uppercase tracking-wide text-muted-foreground" title="Auto-translated into your base language">
+          Auto-translated
+        </div>
+      )}
       {transliteration && (
         <div className="text-sm text-muted-foreground">{transliteration}</div>
       )}
