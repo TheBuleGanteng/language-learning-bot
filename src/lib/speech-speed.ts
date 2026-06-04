@@ -30,25 +30,27 @@ export function defaultSpeechSpeed(): SpeechSpeed {
 export function speechSpeedHelp(level: SpeechSpeed): string {
   switch (level) {
     case 'slow':
-      return 'Kruu Bingo speaks slowly and clearly, with small pauses — easiest for beginners.';
+      return 'About half the speed of natural native speech, with clear pauses — easiest for beginners.';
     case 'moderate':
-      return 'Kruu Bingo speaks at a relaxed, clear, learner-friendly pace.';
+      return 'About three-quarters the speed of natural native speech — slower, but still flowing.';
     case 'native':
-      return 'Kruu Bingo speaks at a natural, fluent native pace.';
+      return 'Full natural, fluent native pace.';
   }
 }
 
 /**
  * Pacing directive injected into the system prompt. This only changes the
- * SPEAKING PACE, never the wording.
+ * SPEAKING PACE, never the wording. The pace is expressed as an explicit
+ * percentage of the model's OWN normal, native cadence (a concrete relative
+ * anchor works better than vague adjectives like "slowly").
  */
 export function speechSpeedDirective(level: SpeechSpeed): string {
   switch (level) {
     case 'slow':
-      return 'Speak slowly and clearly, with small pauses between phrases, so a beginner can follow. Do not change your wording — only slow your pace.';
+      return 'Speak at roughly 50% of the cadence of normal, native speech — about half your natural speaking rate. Deliberately draw out each phrase and leave a clear pause between phrases and sentences, so a beginner can follow. This is a pace, not a wording change: do not simplify or shorten what you say — only slow down how fast you say it.';
     case 'moderate':
-      return 'Speak at a relaxed, clear, learner-friendly pace — not rushed.';
+      return 'Speak at roughly 75% of the cadence of normal, native speech — noticeably slower than a native speaker but still smooth and flowing, with small pauses between phrases. This is a pace, not a wording change: do not simplify or shorten what you say — only adjust how fast you say it.';
     case 'native':
-      return 'Speak at a natural, fluent native pace. Do not change your wording — just use a normal speaking speed.';
+      return 'Speak at 100% of the cadence of normal, native speech — your natural, fluent native pace. Do not change your wording — just use a normal speaking speed.';
   }
 }
