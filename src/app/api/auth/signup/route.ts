@@ -81,7 +81,7 @@ export async function POST(req: Request) {
   const link = `${env.APP_URL}/verify?token=${token}`;
   // Fire-and-forget so a slow Resend response doesn't block the user's signup.
   // sendVerificationEmail swallows its own errors and logs them.
-  void sendVerificationEmail(newUser.email, link);
+  void sendVerificationEmail(newUser.email, link, baseLanguage);
 
   return NextResponse.json({ ok: true });
 }

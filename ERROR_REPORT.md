@@ -1719,3 +1719,42 @@ no secrets.
 **New deps:** `next-intl`. **Quality gates:** `pnpm lint` clean, `pnpm test`
 75/75, `tsc --noEmit` clean, `pnpm build` compiled successfully (full route
 table incl. `/home`, `/language/[lang]/practice`). Deploy NOT performed.
+
+## 2026-06-04 — Language polish: all-locale flags, dropdown selector, expanded UI translations
+**§1 Flags for all locales:** `zh-TW` now uses the Taiwan (`TW`) flag; the
+`flagCountry: null` special-case is gone (type is now non-null). Fixed a latent
+bug: `FlagIcon` only imported a subset of flags, so the locale selector's
+en-US/ko/id flags were silently falling back to a neutral icon — added US, TW,
+KR, ID (plus the existing language-catalog flags). All five locales now render an
+SVG flag.
+**§2 Dropdown-styled selector:** the header language selector trigger was
+restyled as an obvious dropdown — border, rounded, padding, hover/focus ring,
+`cursor-pointer`, current flag + dual label, and a `ChevronDown` that rotates
+when open (`data-[popup-open]`). Menu items keep flag + native + English name +
+checkmark on the active locale. Behavior (PATCH base language, cookie,
+`router.refresh()`, pre-auth) unchanged.
+**§3 Expanded translations:** grew the catalogs from 5 namespaces to 12
+(common, nav, home, auth, settings, decks, flashcards, practice, vocab,
+extraction, email, errors) — **206 keys, identical across all five locales**
+(verified by a key-diff script). Newly localized & wired this pass:
+- **All auth pages** (login, sign-up, forgot-password, reset-password, verify,
+  verify-sent).
+- **Decks list** (title, buttons, table headers, empty state, pagination,
+  refresh/delete/settings dialogs, toasts).
+- **Flashcard study** (progress, prompts, Again/Hard/Good/Easy, show-answer,
+  nothing-due, completion screen, back button).
+- **Voice/practice** (mic labels, captions, end-session + inactivity dialogs,
+  completion screen incl. ICU plurals for minutes/exchanges).
+- **Transactional emails** — `email.ts` now takes the recipient's locale and
+  renders the verification/reset emails from the `email` catalog; sign-up passes
+  the new account's base language, forgot-password passes the user's.
+Already done previously: nav/header, home hub, settings card titles/labels/model
+names.
+**Known remaining English (documented, not yet wired):** the vocab list/detail/
+new/import pages, lessons pages, the photo-extraction flow components, and some
+deep settings sub-sections / secondary toasts. The next-intl missing-key
+fallback renders these as their English source (no raw keys, no crashes), but
+they are NOT yet translated. This is the main outstanding i18n gap.
+**No DB migration.** **Quality gates:** lint clean (fixed two exhaustive-deps
+warnings by adding the stable `t` to effect deps), 75/75 tests, `tsc` clean,
+production build compiled successfully.

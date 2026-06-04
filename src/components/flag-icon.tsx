@@ -1,9 +1,22 @@
 import { Languages } from 'lucide-react';
-import { TH, GB, CN, JP, ES, FR, DE, type FlagComponent } from 'country-flag-icons/react/3x2';
+import {
+  TH,
+  GB,
+  CN,
+  JP,
+  ES,
+  FR,
+  DE,
+  US,
+  TW,
+  KR,
+  ID,
+  type FlagComponent,
+} from 'country-flag-icons/react/3x2';
 
-// SVG flags (NOT emoji — emoji flags don't render on Windows). Keyed by the
-// ISO 3166-1 alpha-2 country code stored on each language in languages.ts. Only
-// the flags for our supported languages are imported, to keep the bundle small.
+// SVG flags (NOT emoji — emoji flags don't render on Windows). Keyed by ISO
+// 3166-1 alpha-2. Covers both the target-language catalog (languages.ts) and
+// the base-language locale catalog (locales.ts: US, CN, TW, KR, ID).
 const FLAGS: Record<string, FlagComponent> = {
   th: TH,
   gb: GB,
@@ -12,6 +25,10 @@ const FLAGS: Record<string, FlagComponent> = {
   es: ES,
   fr: FR,
   de: DE,
+  us: US,
+  tw: TW,
+  kr: KR,
+  id: ID,
 };
 
 /**

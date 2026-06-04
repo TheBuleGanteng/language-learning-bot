@@ -47,7 +47,7 @@ export async function POST(req: Request) {
     });
     const link = `${env.APP_URL}${env.NEXT_PUBLIC_BASE_PATH ?? ''}/reset-password?token=${token}`;
     // Fire-and-forget — never block the response on outbound mail.
-    void sendPasswordResetEmail(user.email, link);
+    void sendPasswordResetEmail(user.email, link, user.nativeLanguage);
   }
 
   return NextResponse.json({ ok: true });

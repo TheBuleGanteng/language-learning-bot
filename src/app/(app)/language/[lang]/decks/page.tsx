@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { MessagesSquare, RefreshCw, Settings2, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -95,6 +96,8 @@ export default function FlashcardsPage() {
   const router = useRouter();
   const params = useParams<{ lang: string }>();
   const lang = params.lang;
+  const t = useTranslations('decks');
+  const tc = useTranslations('common');
 
   const [decks, setDecks] = useState<DeckRow[]>([]);
   const [total, setTotal] = useState(0);
@@ -137,7 +140,7 @@ export default function FlashcardsPage() {
       const d = await res.json();
       if (!res.ok) throw new Error(d.error ?? 'Refresh failed');
       if ((d.added ?? 0) === 0 && (d.removed ?? 0) === 0) {
-        toast.message('Deck is already up to date.');
+        toast.message(t('upToDate'));
         return;
       }
       setRefreshState({ deck, added: d.added, removed: d.removed });
@@ -159,7 +162,7 @@ export default function FlashcardsPage() {
       });
       const d = await res.json();
       if (!res.ok) throw new Error(d.error ?? 'Refresh failed');
-      toast.success(`Deck refreshed: ${d.added} added, ${d.removed} removed.`);
+      toast.success(t('refreshDone', { added: d.added, removed: d.removed }));
       setRefreshState(null);
       void load(page);
     } catch (e) {
@@ -175,7 +178,7 @@ export default function FlashcardsPage() {
     try {
       const res = await fetch(withBase(`/api/decks/${deleteDeck.id}`), { method: 'DELETE' });
       if (!res.ok) throw new Error('Delete failed');
-      toast.success(`Deleted "${deleteDeck.name}".`);
+      toast.success(t('deleted', { name: deleteDeck.name }));
       setDecks((prev) => prev.filter((d) => d.id !== deleteDeck.id));
       setTotal((t) => Math.max(0, t - 1));
       setDeleteDeck(null);
@@ -191,10 +194,10 @@ export default function FlashcardsPage() {
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
       <div className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold">Flashcards</h1>
+        <h1 className="text-2xl font-bold">{t('title')}</h1>
         <div className="flex items-center gap-2">
           <Button onClick={() => router.push(`${vocabPath(lang)}?mode=deck-builder`)}>
-            Create new deck
+            {t('createDeck')}
           </Button>
           {/* Free conversation (§7): a deck-less Kruu Bingo voice chat. */}
           <Button
@@ -203,25 +206,25 @@ export default function FlashcardsPage() {
             onClick={() => router.push(practicePath(lang))}
           >
             <MessagesSquare className="h-4 w-4" />
-            Free conversation
+            {t('freeConversation')}
           </Button>
         </div>
       </div>
 
       {decks.length === 0 && !loading ? (
         <div className="rounded-md border bg-muted/30 p-8 text-center text-muted-foreground">
-          No decks yet. Create your first deck to get started.
+          {t('empty')}
         </div>
       ) : (
         <div className="w-full max-w-full border rounded-md overflow-x-auto">
           <Table className="w-full">
             <TableHeader>
               <TableRow className="bg-muted border-b-2">
-                <TableHead className="font-semibold">Deck</TableHead>
-                <TableHead className="w-16 text-right font-semibold">Cards</TableHead>
-                <TableHead className="w-16 text-right font-semibold">Due</TableHead>
-                <TableHead className="w-32 font-semibold">Last studied</TableHead>
-                <TableHead className="font-semibold">Last session</TableHead>
+                <TableHead className="font-semibold">{t('colDeck')}</TableHead>
+                <TableHead className="w-16 text-right font-semibold">{t('colCards')}</TableHead>
+                <TableHead className="w-16 text-right font-semibold">{t('colDue')}</TableHead>
+                <TableHead className="w-32 font-semibold">{t('colLastStudied')}</TableHead>
+                <TableHead className="font-semibold">{t('colLastSession')}</TableHead>
                 <TableHead className="w-28 font-semibold" />
                 <TableHead className="w-20 text-right font-semibold" />
               </TableRow>
@@ -249,7 +252,7 @@ export default function FlashcardsPage() {
                     )}
                   </TableCell>
                   <TableCell className="align-middle text-sm">
-                    {formatDate(deck.lastStudiedAt)}
+                    {deck.lastStudiedAt ? formatDate(deck.lastStudiedAt) : tc('never')}
                   </TableCell>
                   <TableCell className="align-middle">
                     <SessionPills s={deck.lastSession} />
@@ -262,8 +265,8 @@ export default function FlashcardsPage() {
                         disabled={deck.source === 'manual' || busy}
                         title={
                           deck.source === 'manual'
-                            ? 'Manual decks cannot be refreshed'
-                            : 'Refresh from source'
+                            ? t('manualNoRefresh')
+                            : t('refreshFromSource')
                         }
                         onClick={() => onRefreshClick(deck)}
                         aria-label="Refresh deck"
@@ -295,10 +298,10 @@ export default function FlashcardsPage() {
                     <div className="inline-flex items-center gap-1">
                       {/* Direct links bypass the mode chooser (§13). */}
                       <Button asChild size="xs">
-                        <Link href={deckFlashcardsPath(lang, deck.id)}>Flashcards</Link>
+                        <Link href={deckFlashcardsPath(lang, deck.id)}>{t('flashcardsBtn')}</Link>
                       </Button>
                       <Button asChild size="xs" variant="outline">
-                        <Link href={deckAvatarPath(lang, deck.id)}>AI Chat</Link>
+                        <Link href={deckAvatarPath(lang, deck.id)}>{t('aiChatBtn')}</Link>
                       </Button>
                     </div>
                   </TableCell>
@@ -317,10 +320,10 @@ export default function FlashcardsPage() {
             disabled={page <= 1 || loading}
             onClick={() => setPage((p) => Math.max(1, p - 1))}
           >
-            Previous
+            {tc('previous')}
           </Button>
           <span className="text-muted-foreground">
-            Page {page} of {totalPages}
+            {tc('pageOf', { page, total: totalPages })}
           </span>
           <Button
             variant="outline"
@@ -328,7 +331,7 @@ export default function FlashcardsPage() {
             disabled={page >= totalPages || loading}
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
           >
-            Next
+            {tc('next')}
           </Button>
         </div>
       )}
@@ -350,16 +353,15 @@ export default function FlashcardsPage() {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Refresh deck</AlertDialogTitle>
+            <AlertDialogTitle>{t('refreshDeck')}</AlertDialogTitle>
             <AlertDialogDescription>
-              This will add {refreshState?.added ?? 0} items and remove{' '}
-              {refreshState?.removed ?? 0} items. Continue?
+              {t('refreshConfirm', { added: refreshState?.added ?? 0, removed: refreshState?.removed ?? 0 })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={busy}>Cancel</AlertDialogCancel>
             <Button onClick={confirmRefresh} disabled={busy}>
-              {busy ? 'Refreshing…' : 'Continue'}
+              {busy ? t('refreshing') : tc('continue')}
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -368,8 +370,8 @@ export default function FlashcardsPage() {
       <AlertDialog open={!!deleteDeck} onOpenChange={(o) => !o && !busy && setDeleteDeck(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete deck &quot;{deleteDeck?.name}&quot;?</AlertDialogTitle>
-            <AlertDialogDescription>This cannot be undone.</AlertDialogDescription>
+            <AlertDialogTitle>{t('deleteTitle', { name: deleteDeck?.name ?? '' })}</AlertDialogTitle>
+            <AlertDialogDescription>{t('deleteDesc')}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={busy}>Cancel</AlertDialogCancel>
@@ -378,7 +380,7 @@ export default function FlashcardsPage() {
               disabled={busy}
               className="bg-red-600 hover:bg-red-700"
             >
-              {busy ? 'Deleting…' : 'Delete'}
+              {busy ? tc('deleting') : tc('delete')}
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -396,6 +398,8 @@ function DeckSettingsDialog({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const t = useTranslations('decks');
+  const tc = useTranslations('common');
   const [name, setName] = useState(deck.name);
   const [direction, setDirection] = useState<Direction>(deck.direction);
   const [saving, setSaving] = useState(false);
@@ -409,7 +413,7 @@ function DeckSettingsDialog({
         body: JSON.stringify({ name: name.trim(), direction }),
       });
       if (!res.ok) throw new Error('Save failed');
-      toast.success('Deck updated.');
+      toast.success(t('updated'));
       onSaved();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Save failed');
@@ -422,15 +426,15 @@ function DeckSettingsDialog({
     <Dialog open onOpenChange={(o) => !o && !saving && onClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Deck settings</DialogTitle>
+          <DialogTitle>{t('deckSettings')}</DialogTitle>
           <DialogDescription>
-            Changing direction adds or removes the matching cards.
+            {t('deckSettingsDesc')}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-1">
           <div className="space-y-1.5">
             <label className="text-sm font-medium" htmlFor="deck-name">
-              Deck name
+              {t('deckName')}
             </label>
             <Input
               id="deck-name"
@@ -440,12 +444,12 @@ function DeckSettingsDialog({
             />
           </div>
           <div className="space-y-2">
-            <span className="text-sm font-medium">Card direction</span>
+            <span className="text-sm font-medium">{t('cardDirection')}</span>
             {(
               [
-                { v: 'forward', label: 'Forward only' },
-                { v: 'reverse', label: 'Reverse only' },
-                { v: 'both', label: 'Both' },
+                { v: 'forward', label: t('forwardOnly') },
+                { v: 'reverse', label: t('reverseOnly') },
+                { v: 'both', label: t('both') },
               ] as const
             ).map((opt) => (
               <label key={opt.v} className="flex items-center gap-2 text-sm cursor-pointer">
@@ -462,10 +466,10 @@ function DeckSettingsDialog({
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={saving}>
-            Cancel
+            {tc('cancel')}
           </Button>
           <Button onClick={save} disabled={saving || !name.trim()}>
-            {saving ? 'Saving…' : 'Save'}
+            {saving ? tc('saving') : tc('save')}
           </Button>
         </DialogFooter>
       </DialogContent>

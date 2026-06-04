@@ -1,6 +1,7 @@
 'use client';
 
 import { Suspense, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -12,6 +13,7 @@ import { withBase } from '@/lib/base-path';
 function ResetInner() {
   const router = useRouter();
   const search = useSearchParams();
+  const t = useTranslations('auth.reset');
   const token = search.get('token') ?? '';
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -30,7 +32,7 @@ function ResetInner() {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setError(data?.error ?? 'Reset failed');
+        setError(data?.error ?? t('invalidLink'));
         return;
       }
       setDone(true);
@@ -44,12 +46,12 @@ function ResetInner() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Invalid link</CardTitle>
+          <CardTitle>{t('invalidTitle')}</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-destructive">Missing reset token.</p>
+          <p className="text-sm text-destructive">{t('missingToken')}</p>
           <Button asChild variant="outline" className="w-full mt-4">
-            <Link href="/forgot-password">Request a new link</Link>
+            <Link href="/forgot-password">{t('requestNew')}</Link>
           </Button>
         </CardContent>
       </Card>
@@ -59,20 +61,20 @@ function ResetInner() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Set a new password</CardTitle>
+        <CardTitle>{t('title')}</CardTitle>
         <CardDescription>
-          Existing sessions will be invalidated once you reset your password.
+          {t('sessionsNote')}
         </CardDescription>
       </CardHeader>
       <CardContent>
         {done ? (
           <p className="text-green-700 dark:text-green-400 text-sm">
-            Password updated. Redirecting to log in…
+            {t('redirecting')}
           </p>
         ) : (
           <form onSubmit={onSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="password">New password</Label>
+              <Label htmlFor="password">{t('password')}</Label>
               <Input
                 id="password"
                 type="password"
@@ -88,7 +90,7 @@ function ResetInner() {
             </div>
             {error && <p className="text-sm text-destructive">{error}</p>}
             <Button type="submit" disabled={busy} className="w-full">
-              {busy ? 'Updating…' : 'Update password'}
+              {busy ? t('submitting') : t('submit')}
             </Button>
           </form>
         )}

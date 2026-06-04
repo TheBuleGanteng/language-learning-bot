@@ -3,11 +3,25 @@
     "appName": "Kaojai",
     "loading": "加载中…",
     "save": "保存",
+    "saving": "保存中…",
     "cancel": "取消",
+    "delete": "删除",
+    "deleting": "删除中…",
+    "edit": "编辑",
+    "remove": "移除",
+    "back": "返回",
+    "retry": "重试",
+    "close": "关闭",
+    "continue": "继续",
+    "search": "搜索",
     "comingSoon": "即将推出",
     "signOut": "退出登录",
     "settings": "设置",
-    "autoTranslated": "自动翻译"
+    "autoTranslated": "自动翻译",
+    "never": "从未",
+    "previous": "上一页",
+    "next": "下一页",
+    "pageOf": "第 {page} 页，共 {total} 页"
   },
   "nav": {
     "vocab": "词汇",
@@ -27,22 +41,68 @@
   "auth": {
     "login": {
       "title": "登录",
+      "welcome": "欢迎回来。",
+      "verified": "邮箱已验证，请登录以继续。",
       "email": "邮箱",
       "password": "密码",
       "submit": "登录",
       "submitting": "正在登录…",
       "forgot": "忘记密码？",
-      "noAccount": "还没有账号？",
-      "signupLink": "注册"
+      "signupLink": "创建账号",
+      "invalid": "凭据无效或邮箱未验证。"
     },
     "signup": {
       "title": "创建账号",
+      "subtitle": "接下来你会收到一封验证邮件。",
       "email": "邮箱",
       "password": "密码",
+      "passwordHint": "至少 8 个字符，且包含至少一个字母和一个数字。",
       "submit": "注册",
       "submitting": "正在创建账号…",
       "haveAccount": "已有账号？",
-      "loginLink": "登录"
+      "loginLink": "登录",
+      "tooMany": "请求过于频繁，请稍后再试。",
+      "failed": "出错了"
+    },
+    "forgot": {
+      "title": "重置密码",
+      "subtitle": "输入你的邮箱，我们会发送重置链接。",
+      "email": "邮箱",
+      "submit": "发送重置链接",
+      "submitting": "发送中…",
+      "sent": "如果该邮箱存在，重置链接已发送。",
+      "backToLogin": "返回登录"
+    },
+    "reset": {
+      "title": "设置新密码",
+      "password": "新密码",
+      "confirm": "确认密码",
+      "submit": "更新密码",
+      "submitting": "更新中…",
+      "mismatch": "两次输入的密码不一致。",
+      "success": "密码已更新，现在可以登录了。",
+      "invalidLink": "此重置链接无效或已过期。",
+      "backToLogin": "返回登录",
+      "invalidTitle": "无效链接",
+      "missingToken": "缺少重置令牌。",
+      "requestNew": "申请新链接",
+      "sessionsNote": "重置密码后，现有的登录会话将全部失效。",
+      "redirecting": "密码已更新。正在跳转到登录…"
+    },
+    "verify": {
+      "verifying": "正在验证你的邮箱…",
+      "success": "邮箱已验证！现在可以登录了。",
+      "failed": "此验证链接无效或已过期。",
+      "toLogin": "前往登录",
+      "title": "邮箱验证",
+      "noToken": "网址中没有验证令牌。",
+      "backToSignup": "返回注册"
+    },
+    "verifySent": {
+      "title": "请查收邮件",
+      "body": "我们已向 {email} 发送了验证链接。点击链接以激活账号。",
+      "backToLogin": "返回登录",
+      "expires": "链接将在 24 小时后过期。如果几分钟内没有收到，请检查垃圾邮件文件夹。"
     }
   },
   "settings": {
@@ -62,9 +122,129 @@
       "photoAnalysis": "照片分析"
     }
   },
-  "vocab": {},
-  "decks": {},
-  "flashcards": {},
-  "errors": {},
-  "email": {}
+  "decks": {
+    "title": "抽认卡",
+    "createDeck": "新建卡组",
+    "freeConversation": "自由对话",
+    "colDeck": "卡组",
+    "colCards": "卡片",
+    "colDue": "待复习",
+    "colLastStudied": "上次学习",
+    "colLastSession": "上次会话",
+    "flashcardsBtn": "抽认卡",
+    "aiChatBtn": "AI 对话",
+    "empty": "还没有卡组。创建你的第一个卡组开始学习吧。",
+    "refreshDeck": "刷新卡组",
+    "refreshConfirm": "这将添加 {added} 项并移除 {removed} 项。是否继续？",
+    "refreshing": "刷新中…",
+    "upToDate": "卡组已是最新。",
+    "manualNoRefresh": "手动卡组无法刷新",
+    "refreshFromSource": "从来源刷新",
+    "deleteTitle": "删除卡组“{name}”？",
+    "deleteDesc": "此操作无法撤销。",
+    "deckSettings": "卡组设置",
+    "deckSettingsDesc": "更改方向会添加或移除相应的卡片。",
+    "deckName": "卡组名称",
+    "cardDirection": "卡片方向",
+    "forwardOnly": "仅正向",
+    "reverseOnly": "仅反向",
+    "both": "双向",
+    "refreshDone": "卡组已刷新：添加 {added} 项，移除 {removed} 项。",
+    "deleted": "已删除“{name}”。",
+    "updated": "卡组已更新。"
+  },
+  "flashcards": {
+    "cardProgress": "第 {n} 张，共 {total} 张",
+    "showAnswer": "显示答案",
+    "promptForward": "这个的目标语言单词是什么？",
+    "promptReverse": "这是什么意思？",
+    "again": "重来",
+    "hard": "困难",
+    "good": "良好",
+    "easy": "简单",
+    "nothingDue": "暂时没有需要复习的内容。",
+    "studyAhead": "提前学习",
+    "complete": "本次学习完成！",
+    "reviewedCount": "已复习 {n} 张卡片",
+    "continue": "继续学习",
+    "backToDecks": "返回卡组",
+    "loadFailed": "无法加载此卡组。",
+    "allCaught": "全部完成！",
+    "noCardsDue": "目前没有需要复习的卡片。",
+    "nextDue": "下一张卡片到期：{date}",
+    "chooseDeck": "选择其他卡组",
+    "returnVocab": "返回词汇",
+    "saveRatingFailed": "无法保存评分，请重试。"
+  },
+  "practice": {
+    "backToDecks": "返回卡组",
+    "title": "Kruu Bingo",
+    "freeTitle": "Kruu Bingo · 自由对话",
+    "preparing": "正在准备你的老师…",
+    "tapToSpeak": "点击说话",
+    "listening": "聆听中…",
+    "speaking": "正在与 Kruu Bingo 对话",
+    "captions": "字幕",
+    "captionsPlaceholder": "你说话时，字幕会显示在这里。",
+    "endSession": "结束会话",
+    "endConfirmTitle": "结束与 Kruu Bingo 的会话？",
+    "endConfirmDesc": "你的练习数据将被保存。",
+    "keepGoing": "继续",
+    "continueTitle": "继续会话？",
+    "continueBody": "你已经安静了一会儿。会话即将结束。",
+    "endingIn": "{n} 秒后结束…",
+    "continueSession": "继续会话",
+    "inputDetected": "检测到用户输入",
+    "greatSession": "很棒的练习！",
+    "duration": "时长",
+    "minutes": "{n, plural, other {# 分钟}}",
+    "estCost": "预计费用",
+    "exchanges": "{n, plural, other {# 次对话}}",
+    "practiceAgain": "再次练习",
+    "switchFlashcards": "切换到抽认卡",
+    "chooseDeck": "选择其他卡组",
+    "returnVocab": "返回词汇"
+  },
+  "vocab": {
+    "title": "词汇",
+    "add": "添加单词",
+    "searchPlaceholder": "搜索你的词汇…",
+    "empty": "还没有词汇。添加你的第一个单词开始吧。",
+    "colImage": "图片",
+    "colActions": "",
+    "deleteTitle": "删除这个单词？",
+    "deleteDesc": "此操作无法撤销。",
+    "deleted": "单词已删除。"
+  },
+  "extraction": {
+    "title": "从照片提取词汇",
+    "subtitle": "上传课本页面或笔记的照片，我们会为你提取词汇以供审阅。",
+    "dropzone": "将照片拖到此处，或点击选择",
+    "analyzing": "正在分析你的照片…",
+    "reviewTitle": "审阅提取的词汇",
+    "reviewSubtitle": "取消勾选你不需要的，然后保存。",
+    "saveSelected": "保存所选",
+    "saving": "保存中…",
+    "saved": "已保存 {n} 项。",
+    "noneFound": "在这些照片中未找到词汇。",
+    "failed": "无法分析照片，请重试。"
+  },
+  "email": {
+    "verify": {
+      "subject": "验证你的 Kaojai 邮箱",
+      "body": "点击下方验证你的邮箱地址：",
+      "cta": "验证邮箱"
+    },
+    "reset": {
+      "subject": "重置你的 Kaojai 密码",
+      "body": "点击下方重置你的密码：",
+      "cta": "重置密码",
+      "ignore": "如果不是你本人操作，可以忽略此邮件。"
+    }
+  },
+  "errors": {
+    "generic": "出错了，请重试。",
+    "saveFailed": "保存失败",
+    "loadFailed": "加载失败"
+  }
 }

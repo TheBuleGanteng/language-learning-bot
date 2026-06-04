@@ -1,5 +1,7 @@
 import { Resend } from 'resend';
+import { getTranslations } from 'next-intl/server';
 import { env } from './env';
+import { normalizeLocale } from './locales';
 
 // Lazily construct the Resend client so that an unset RESEND_API_KEY (e.g.,
 // in MOCK_EMAIL mode or in tests) doesn't blow up at import time.
@@ -26,20 +28,27 @@ function logMock(label: string, to: string, link: string) {
   );
 }
 
-export async function sendVerificationEmail(to: string, link: string): Promise<void> {
+// Transactional emails are sent in the recipient's base language (C1). The
+// caller passes the recipient's locale; we load that locale's `email` catalog.
+export async function sendVerificationEmail(
+  to: string,
+  link: string,
+  locale?: string | null,
+): Promise<void> {
   if (env.MOCK_EMAIL) {
     logMock('Verification', to, link);
     return;
   }
   try {
+    const t = await getTranslations({ locale: normalizeLocale(locale), namespace: 'email.verify' });
     await resend().emails.send({
       from: env.EMAIL_FROM,
       to,
-      subject: 'Verify your email for Language Learning Bot',
+      subject: t('subject'),
       html: [
-        `<p>Welcome! Click below to verify your email:</p>`,
-        `<p><a href="${link}">${link}</a></p>`,
-        `<p>This link expires in 24 hours. If you didn't sign up, ignore this email.</p>`,
+        `<p>${t('body')}</p>`,
+        `<p><a href="${link}">${t('cta')}</a></p>`,
+        `<p>${link}</p>`,
       ].join('\n'),
     });
   } catch (err) {
@@ -48,20 +57,26 @@ export async function sendVerificationEmail(to: string, link: string): Promise<v
   }
 }
 
-export async function sendPasswordResetEmail(to: string, link: string): Promise<void> {
+export async function sendPasswordResetEmail(
+  to: string,
+  link: string,
+  locale?: string | null,
+): Promise<void> {
   if (env.MOCK_EMAIL) {
     logMock('Password reset', to, link);
     return;
   }
   try {
+    const t = await getTranslations({ locale: normalizeLocale(locale), namespace: 'email.reset' });
     await resend().emails.send({
       from: env.EMAIL_FROM,
       to,
-      subject: 'Reset your Language Learning Bot password',
+      subject: t('subject'),
       html: [
-        `<p>Click below to reset your password:</p>`,
-        `<p><a href="${link}">${link}</a></p>`,
-        `<p>This link expires in 1 hour. If you didn't request this, ignore this email.</p>`,
+        `<p>${t('body')}</p>`,
+        `<p><a href="${link}">${t('cta')}</a></p>`,
+        `<p>${link}</p>`,
+        `<p>${t('ignore')}</p>`,
       ].join('\n'),
     });
   } catch (err) {

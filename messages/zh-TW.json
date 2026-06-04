@@ -3,11 +3,25 @@
     "appName": "Kaojai",
     "loading": "載入中…",
     "save": "儲存",
+    "saving": "儲存中…",
     "cancel": "取消",
+    "delete": "刪除",
+    "deleting": "刪除中…",
+    "edit": "編輯",
+    "remove": "移除",
+    "back": "返回",
+    "retry": "重試",
+    "close": "關閉",
+    "continue": "繼續",
+    "search": "搜尋",
     "comingSoon": "即將推出",
     "signOut": "登出",
     "settings": "設定",
-    "autoTranslated": "自動翻譯"
+    "autoTranslated": "自動翻譯",
+    "never": "從未",
+    "previous": "上一頁",
+    "next": "下一頁",
+    "pageOf": "第 {page} 頁，共 {total} 頁"
   },
   "nav": {
     "vocab": "詞彙",
@@ -27,22 +41,68 @@
   "auth": {
     "login": {
       "title": "登入",
+      "welcome": "歡迎回來。",
+      "verified": "電子郵件已驗證，請登入以繼續。",
       "email": "電子郵件",
       "password": "密碼",
       "submit": "登入",
       "submitting": "登入中…",
       "forgot": "忘記密碼？",
-      "noAccount": "還沒有帳號？",
-      "signupLink": "註冊"
+      "signupLink": "建立帳號",
+      "invalid": "憑證無效或電子郵件尚未驗證。"
     },
     "signup": {
       "title": "建立帳號",
+      "subtitle": "接下來你會收到一封驗證郵件。",
       "email": "電子郵件",
       "password": "密碼",
+      "passwordHint": "至少 8 個字元，且包含至少一個字母和一個數字。",
       "submit": "註冊",
       "submitting": "建立帳號中…",
       "haveAccount": "已經有帳號？",
-      "loginLink": "登入"
+      "loginLink": "登入",
+      "tooMany": "請求過於頻繁，請稍後再試。",
+      "failed": "發生錯誤"
+    },
+    "forgot": {
+      "title": "重設密碼",
+      "subtitle": "輸入你的電子郵件，我們會寄送重設連結。",
+      "email": "電子郵件",
+      "submit": "寄送重設連結",
+      "submitting": "寄送中…",
+      "sent": "如果該電子郵件存在，重設連結已寄出。",
+      "backToLogin": "返回登入"
+    },
+    "reset": {
+      "title": "設定新密碼",
+      "password": "新密碼",
+      "confirm": "確認密碼",
+      "submit": "更新密碼",
+      "submitting": "更新中…",
+      "mismatch": "兩次輸入的密碼不一致。",
+      "success": "密碼已更新，現在可以登入了。",
+      "invalidLink": "此重設連結無效或已過期。",
+      "backToLogin": "返回登入",
+      "invalidTitle": "無效連結",
+      "missingToken": "缺少重設權杖。",
+      "requestNew": "申請新連結",
+      "sessionsNote": "重設密碼後，現有的登入工作階段將全部失效。",
+      "redirecting": "密碼已更新。正在跳轉到登入…"
+    },
+    "verify": {
+      "verifying": "正在驗證你的電子郵件…",
+      "success": "電子郵件已驗證！現在可以登入了。",
+      "failed": "此驗證連結無效或已過期。",
+      "toLogin": "前往登入",
+      "title": "電子郵件驗證",
+      "noToken": "網址中沒有驗證權杖。",
+      "backToSignup": "返回註冊"
+    },
+    "verifySent": {
+      "title": "請查收電子郵件",
+      "body": "我們已向 {email} 寄送驗證連結。點擊連結以啟用帳號。",
+      "backToLogin": "返回登入",
+      "expires": "連結將在 24 小時後過期。如果幾分鐘內沒有收到，請檢查垃圾郵件資料夾。"
     }
   },
   "settings": {
@@ -62,9 +122,129 @@
       "photoAnalysis": "照片分析"
     }
   },
-  "vocab": {},
-  "decks": {},
-  "flashcards": {},
-  "errors": {},
-  "email": {}
+  "decks": {
+    "title": "字卡",
+    "createDeck": "新增卡組",
+    "freeConversation": "自由對話",
+    "colDeck": "卡組",
+    "colCards": "卡片",
+    "colDue": "待複習",
+    "colLastStudied": "上次學習",
+    "colLastSession": "上次工作階段",
+    "flashcardsBtn": "字卡",
+    "aiChatBtn": "AI 對話",
+    "empty": "還沒有卡組。建立你的第一個卡組開始學習吧。",
+    "refreshDeck": "重新整理卡組",
+    "refreshConfirm": "這將新增 {added} 項並移除 {removed} 項。是否繼續？",
+    "refreshing": "重新整理中…",
+    "upToDate": "卡組已是最新。",
+    "manualNoRefresh": "手動卡組無法重新整理",
+    "refreshFromSource": "從來源重新整理",
+    "deleteTitle": "刪除卡組「{name}」？",
+    "deleteDesc": "此操作無法復原。",
+    "deckSettings": "卡組設定",
+    "deckSettingsDesc": "變更方向會新增或移除相應的卡片。",
+    "deckName": "卡組名稱",
+    "cardDirection": "卡片方向",
+    "forwardOnly": "僅正向",
+    "reverseOnly": "僅反向",
+    "both": "雙向",
+    "refreshDone": "卡組已重新整理：新增 {added} 項，移除 {removed} 項。",
+    "deleted": "已刪除「{name}」。",
+    "updated": "卡組已更新。"
+  },
+  "flashcards": {
+    "cardProgress": "第 {n} 張，共 {total} 張",
+    "showAnswer": "顯示答案",
+    "promptForward": "這個的目標語言單字是什麼？",
+    "promptReverse": "這是什麼意思？",
+    "again": "重來",
+    "hard": "困難",
+    "good": "良好",
+    "easy": "簡單",
+    "nothingDue": "目前沒有需要複習的內容。",
+    "studyAhead": "提前學習",
+    "complete": "本次學習完成！",
+    "reviewedCount": "已複習 {n} 張卡片",
+    "continue": "繼續學習",
+    "backToDecks": "返回卡組",
+    "loadFailed": "無法載入此卡組。",
+    "allCaught": "全部完成！",
+    "noCardsDue": "目前沒有需要複習的卡片。",
+    "nextDue": "下一張卡片到期：{date}",
+    "chooseDeck": "選擇其他卡組",
+    "returnVocab": "返回詞彙",
+    "saveRatingFailed": "無法儲存評分，請重試。"
+  },
+  "practice": {
+    "backToDecks": "返回卡組",
+    "title": "Kruu Bingo",
+    "freeTitle": "Kruu Bingo · 自由對話",
+    "preparing": "正在準備你的老師…",
+    "tapToSpeak": "點擊說話",
+    "listening": "聆聽中…",
+    "speaking": "正在與 Kruu Bingo 對話",
+    "captions": "字幕",
+    "captionsPlaceholder": "你說話時，字幕會顯示在這裡。",
+    "endSession": "結束工作階段",
+    "endConfirmTitle": "結束與 Kruu Bingo 的對話？",
+    "endConfirmDesc": "你的練習資料將被儲存。",
+    "keepGoing": "繼續",
+    "continueTitle": "繼續對話？",
+    "continueBody": "你已經安靜了一會兒。對話即將結束。",
+    "endingIn": "{n} 秒後結束…",
+    "continueSession": "繼續對話",
+    "inputDetected": "偵測到使用者輸入",
+    "greatSession": "很棒的練習！",
+    "duration": "時長",
+    "minutes": "{n, plural, other {# 分鐘}}",
+    "estCost": "預計費用",
+    "exchanges": "{n, plural, other {# 次對話}}",
+    "practiceAgain": "再次練習",
+    "switchFlashcards": "切換到字卡",
+    "chooseDeck": "選擇其他卡組",
+    "returnVocab": "返回詞彙"
+  },
+  "vocab": {
+    "title": "詞彙",
+    "add": "新增單字",
+    "searchPlaceholder": "搜尋你的詞彙…",
+    "empty": "還沒有詞彙。新增你的第一個單字開始吧。",
+    "colImage": "圖片",
+    "colActions": "",
+    "deleteTitle": "刪除這個單字？",
+    "deleteDesc": "此操作無法復原。",
+    "deleted": "單字已刪除。"
+  },
+  "extraction": {
+    "title": "從照片擷取詞彙",
+    "subtitle": "上傳課本頁面或筆記的照片，我們會為你擷取詞彙以供審閱。",
+    "dropzone": "將照片拖到此處，或點擊選擇",
+    "analyzing": "正在分析你的照片…",
+    "reviewTitle": "審閱擷取的詞彙",
+    "reviewSubtitle": "取消勾選你不需要的，然後儲存。",
+    "saveSelected": "儲存所選",
+    "saving": "儲存中…",
+    "saved": "已儲存 {n} 項。",
+    "noneFound": "在這些照片中找不到詞彙。",
+    "failed": "無法分析照片，請重試。"
+  },
+  "email": {
+    "verify": {
+      "subject": "驗證你的 Kaojai 電子郵件",
+      "body": "點擊下方驗證你的電子郵件地址：",
+      "cta": "驗證電子郵件"
+    },
+    "reset": {
+      "subject": "重設你的 Kaojai 密碼",
+      "body": "點擊下方重設你的密碼：",
+      "cta": "重設密碼",
+      "ignore": "如果不是你本人操作，可以忽略此郵件。"
+    }
+  },
+  "errors": {
+    "generic": "發生錯誤，請重試。",
+    "saveFailed": "儲存失敗",
+    "loadFailed": "載入失敗"
+  }
 }

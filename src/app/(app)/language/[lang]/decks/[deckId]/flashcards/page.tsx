@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -50,17 +51,19 @@ const ZERO_STATS: SessionStats = {
   cardsReviewed: 0,
 };
 
-const RATINGS: { value: 1 | 2 | 3 | 4; label: string; cls: string; key: keyof SessionStats }[] = [
-  { value: 1, label: 'Again', cls: 'bg-red-600 hover:bg-red-700', key: 'againCount' },
-  { value: 2, label: 'Hard', cls: 'bg-orange-500 hover:bg-orange-600', key: 'hardCount' },
-  { value: 3, label: 'Good', cls: 'bg-green-600 hover:bg-green-700', key: 'goodCount' },
-  { value: 4, label: 'Easy', cls: 'bg-blue-600 hover:bg-blue-700', key: 'easyCount' },
+const RATINGS: { value: 1 | 2 | 3 | 4; tkey: string; cls: string; key: keyof SessionStats }[] = [
+  { value: 1, tkey: 'again', cls: 'bg-red-600 hover:bg-red-700', key: 'againCount' },
+  { value: 2, tkey: 'hard', cls: 'bg-orange-500 hover:bg-orange-600', key: 'hardCount' },
+  { value: 3, tkey: 'good', cls: 'bg-green-600 hover:bg-green-700', key: 'goodCount' },
+  { value: 4, tkey: 'easy', cls: 'bg-blue-600 hover:bg-blue-700', key: 'easyCount' },
 ];
 
 export default function StudyPage() {
   const params = useParams<{ lang: string; deckId: string }>();
   const router = useRouter();
   const { lang, deckId } = params;
+  const t = useTranslations('flashcards');
+  const tc = useTranslations('common');
 
   const [mode, setMode] = useState<Mode>('loading');
   const [cards, setCards] = useState<StudyCard[]>([]);
@@ -95,7 +98,7 @@ export default function StudyPage() {
       const data = await fetchStudy(1, false);
       if (cancelled) return;
       if (!data) {
-        toast.error('Failed to load deck.');
+        toast.error(t('loadFailed'));
         return;
       }
       if (data.dueCount === 0 || data.cards.length === 0) {
@@ -116,7 +119,7 @@ export default function StudyPage() {
     return () => {
       cancelled = true;
     };
-  }, [fetchStudy]);
+  }, [fetchStudy, t]);
 
   const startStudying = useCallback(
     async (aheadMode: boolean) => {
@@ -172,7 +175,7 @@ export default function StudyPage() {
       });
       if (!res.ok) throw new Error();
     } catch {
-      toast.error('Failed to save rating. Try again.');
+      toast.error(t('saveRatingFailed'));
       setSubmitting(false);
       return;
     }
@@ -216,7 +219,7 @@ export default function StudyPage() {
       className="gap-1.5"
     >
       <ArrowLeft className="h-4 w-4" />
-      Back
+      {tc('back')}
     </Button>
   );
 
@@ -227,7 +230,7 @@ export default function StudyPage() {
   if (mode === 'loading') {
     return (
       <div className={shellClass}>
-        <p className="text-sm text-muted-foreground">Loading…</p>
+        <p className="text-sm text-muted-foreground">{tc('loading')}</p>
       </div>
     );
   }
@@ -237,20 +240,20 @@ export default function StudyPage() {
       <div className={shellClass}>
         <div className="sm:hidden">{backButton}</div>
         <div className="m-auto max-w-md space-y-4 text-center">
-          <h1 className="text-xl font-semibold">All caught up!</h1>
-          <p className="text-muted-foreground">No cards are due right now.</p>
+          <h1 className="text-xl font-semibold">{t('allCaught')}</h1>
+          <p className="text-muted-foreground">{t('noCardsDue')}</p>
           {nextDueAt && (
             <p className="text-sm text-muted-foreground">
-              Next card due: {new Date(nextDueAt).toLocaleString()}
+              {t('nextDue', { date: new Date(nextDueAt).toLocaleString() })}
             </p>
           )}
           <div className="flex flex-col gap-2 pt-2 sm:flex-row sm:justify-center">
-            <Button onClick={() => startStudying(true)}>Study ahead</Button>
+            <Button onClick={() => startStudying(true)}>{t('studyAhead')}</Button>
             <Button variant="outline" onClick={() => router.push(decksPath(lang))}>
-              Choose another deck
+              {t('chooseDeck')}
             </Button>
             <Button variant="outline" onClick={() => router.push(vocabPath(lang))}>
-              Return to vocab
+              {t('returnVocab')}
             </Button>
           </div>
         </div>
@@ -287,7 +290,7 @@ export default function StudyPage() {
         <div className="space-y-1 pt-2">
           <div className="flex justify-between text-xs text-muted-foreground">
             <span>
-              Card {Math.min(progressDone + 1, progressTotal)} of {progressTotal}
+              {t('cardProgress', { n: Math.min(progressDone + 1, progressTotal), total: progressTotal })}
             </span>
             <span className="hidden sm:inline">{ahead ? 'Studying ahead' : 'Due cards'}</span>
           </div>
@@ -324,7 +327,7 @@ export default function StudyPage() {
                   primaryText={isForward ? card.nativeText : card.targetText}
                   transliteration={isForward ? null : card.transliteration}
                   imageUrl={isForward ? null : card.imageUrl}
-                  prompt={isForward ? 'What is the target word for this?' : 'What does this mean?'}
+                  prompt={isForward ? t('promptForward') : t('promptReverse')}
                   machine={isForward ? card.nativeMachine : false}
                 />
               </CardFace>
@@ -346,7 +349,7 @@ export default function StudyPage() {
         <div className="pb-2">
           {!flipped ? (
             <Button className="w-full" size="lg" onClick={() => setFlipped(true)}>
-              Show answer
+              {t('showAnswer')}
             </Button>
           ) : (
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -358,7 +361,7 @@ export default function StudyPage() {
                   onClick={() => rate(r.value, r.key)}
                   className={`text-white ${r.cls}`}
                 >
-                  {r.label}
+                  {t(r.tkey)}
                 </Button>
               ))}
             </div>
@@ -438,20 +441,21 @@ function CompletionScreen({
   onContinue: () => void;
 }) {
   const router = useRouter();
+  const t = useTranslations('flashcards');
   const bars: { label: string; n: number; cls: string }[] = [
-    { label: 'Again', n: stats.againCount, cls: 'bg-red-600' },
-    { label: 'Hard', n: stats.hardCount, cls: 'bg-orange-500' },
-    { label: 'Good', n: stats.goodCount, cls: 'bg-green-600' },
-    { label: 'Easy', n: stats.easyCount, cls: 'bg-blue-600' },
+    { label: t('again'), n: stats.againCount, cls: 'bg-red-600' },
+    { label: t('hard'), n: stats.hardCount, cls: 'bg-orange-500' },
+    { label: t('good'), n: stats.goodCount, cls: 'bg-green-600' },
+    { label: t('easy'), n: stats.easyCount, cls: 'bg-blue-600' },
   ];
   const max = Math.max(1, ...bars.map((b) => b.n));
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-background p-4 overflow-y-auto sm:static sm:z-auto sm:p-0">
       <div className="m-auto w-full max-w-md space-y-6 text-center">
-        <h1 className="text-2xl font-bold">Session complete! 🎉</h1>
+        <h1 className="text-2xl font-bold">{t('complete')} 🎉</h1>
         <p className="text-muted-foreground">
-          Cards reviewed: <span className="font-semibold text-foreground">{stats.cardsReviewed}</span>
+          {t('reviewedCount', { n: stats.cardsReviewed })}
         </p>
 
         <div className="space-y-2 text-left">
@@ -470,12 +474,12 @@ function CompletionScreen({
         </div>
 
         <div className="flex flex-col gap-2 pt-2 sm:flex-row sm:justify-center">
-          <Button onClick={onContinue}>Continue studying</Button>
+          <Button onClick={onContinue}>{t('continue')}</Button>
           <Button variant="outline" onClick={() => router.push(decksPath(lang))}>
-            Choose another deck
+            {t('chooseDeck')}
           </Button>
           <Button variant="outline" onClick={() => router.push(vocabPath(lang))}>
-            Return to vocab
+            {t('returnVocab')}
           </Button>
         </div>
       </div>

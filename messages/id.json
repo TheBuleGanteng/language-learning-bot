@@ -3,11 +3,25 @@
     "appName": "Kaojai",
     "loading": "Memuat…",
     "save": "Simpan",
+    "saving": "Menyimpan…",
     "cancel": "Batal",
+    "delete": "Hapus",
+    "deleting": "Menghapus…",
+    "edit": "Edit",
+    "remove": "Hapus",
+    "back": "Kembali",
+    "retry": "Coba lagi",
+    "close": "Tutup",
+    "continue": "Lanjutkan",
+    "search": "Cari",
     "comingSoon": "Segera hadir",
     "signOut": "Keluar",
     "settings": "Pengaturan",
-    "autoTranslated": "Diterjemahkan otomatis"
+    "autoTranslated": "Diterjemahkan otomatis",
+    "never": "Tidak pernah",
+    "previous": "Sebelumnya",
+    "next": "Berikutnya",
+    "pageOf": "Halaman {page} dari {total}"
   },
   "nav": {
     "vocab": "Kosakata",
@@ -27,22 +41,68 @@
   "auth": {
     "login": {
       "title": "Masuk",
+      "welcome": "Selamat datang kembali.",
+      "verified": "Email terverifikasi. Masuk untuk melanjutkan.",
       "email": "Email",
       "password": "Kata sandi",
       "submit": "Masuk",
       "submitting": "Sedang masuk…",
       "forgot": "Lupa kata sandi?",
-      "noAccount": "Belum punya akun?",
-      "signupLink": "Daftar"
+      "signupLink": "Buat akun",
+      "invalid": "Kredensial tidak valid atau email belum diverifikasi."
     },
     "signup": {
       "title": "Buat akun Anda",
+      "subtitle": "Anda akan menerima email verifikasi berikutnya.",
       "email": "Email",
       "password": "Kata sandi",
+      "passwordHint": "Minimal 8 karakter, dengan setidaknya satu huruf dan satu angka.",
       "submit": "Daftar",
       "submitting": "Membuat akun…",
       "haveAccount": "Sudah punya akun?",
-      "loginLink": "Masuk"
+      "loginLink": "Masuk",
+      "tooMany": "Terlalu banyak permintaan. Coba lagi nanti.",
+      "failed": "Terjadi kesalahan"
+    },
+    "forgot": {
+      "title": "Atur ulang kata sandi",
+      "subtitle": "Masukkan email Anda dan kami akan mengirimkan tautan pengaturan ulang.",
+      "email": "Email",
+      "submit": "Kirim tautan",
+      "submitting": "Mengirim…",
+      "sent": "Jika email itu ada, tautan pengaturan ulang sedang dikirim.",
+      "backToLogin": "Kembali ke masuk"
+    },
+    "reset": {
+      "title": "Atur kata sandi baru",
+      "password": "Kata sandi baru",
+      "confirm": "Konfirmasi kata sandi",
+      "submit": "Perbarui kata sandi",
+      "submitting": "Memperbarui…",
+      "mismatch": "Kata sandi tidak cocok.",
+      "success": "Kata sandi diperbarui. Anda sekarang dapat masuk.",
+      "invalidLink": "Tautan pengaturan ulang ini tidak valid atau telah kedaluwarsa.",
+      "backToLogin": "Kembali ke masuk",
+      "invalidTitle": "Tautan tidak valid",
+      "missingToken": "Token pengaturan ulang tidak ada.",
+      "requestNew": "Minta tautan baru",
+      "sessionsNote": "Sesi yang ada akan dibatalkan setelah Anda mengatur ulang kata sandi.",
+      "redirecting": "Kata sandi diperbarui. Mengalihkan ke masuk…"
+    },
+    "verify": {
+      "verifying": "Memverifikasi email Anda…",
+      "success": "Email terverifikasi! Anda sekarang dapat masuk.",
+      "failed": "Tautan verifikasi ini tidak valid atau telah kedaluwarsa.",
+      "toLogin": "Ke halaman masuk",
+      "title": "Verifikasi email",
+      "noToken": "Tidak ada token verifikasi di URL.",
+      "backToSignup": "Kembali ke daftar"
+    },
+    "verifySent": {
+      "title": "Periksa email Anda",
+      "body": "Kami mengirim tautan verifikasi ke {email}. Klik untuk mengaktifkan akun Anda.",
+      "backToLogin": "Kembali ke masuk",
+      "expires": "Tautan kedaluwarsa dalam 24 jam. Periksa folder spam jika tidak tiba dalam beberapa menit."
     }
   },
   "settings": {
@@ -62,9 +122,129 @@
       "photoAnalysis": "Analisis foto"
     }
   },
-  "vocab": {},
-  "decks": {},
-  "flashcards": {},
-  "errors": {},
-  "email": {}
+  "decks": {
+    "title": "Kartu hafalan",
+    "createDeck": "Buat dek baru",
+    "freeConversation": "Percakapan bebas",
+    "colDeck": "Dek",
+    "colCards": "Kartu",
+    "colDue": "Jatuh tempo",
+    "colLastStudied": "Terakhir dipelajari",
+    "colLastSession": "Sesi terakhir",
+    "flashcardsBtn": "Kartu hafalan",
+    "aiChatBtn": "Obrolan AI",
+    "empty": "Belum ada dek. Buat dek pertama Anda untuk memulai.",
+    "refreshDeck": "Segarkan dek",
+    "refreshConfirm": "Ini akan menambah {added} item dan menghapus {removed} item. Lanjutkan?",
+    "refreshing": "Menyegarkan…",
+    "upToDate": "Dek sudah terbaru.",
+    "manualNoRefresh": "Dek manual tidak dapat disegarkan",
+    "refreshFromSource": "Segarkan dari sumber",
+    "deleteTitle": "Hapus dek \"{name}\"?",
+    "deleteDesc": "Tindakan ini tidak dapat dibatalkan.",
+    "deckSettings": "Pengaturan dek",
+    "deckSettingsDesc": "Mengubah arah akan menambah atau menghapus kartu yang sesuai.",
+    "deckName": "Nama dek",
+    "cardDirection": "Arah kartu",
+    "forwardOnly": "Hanya maju",
+    "reverseOnly": "Hanya mundur",
+    "both": "Keduanya",
+    "refreshDone": "Dek disegarkan: {added} ditambahkan, {removed} dihapus.",
+    "deleted": "Menghapus \"{name}\".",
+    "updated": "Dek diperbarui."
+  },
+  "flashcards": {
+    "cardProgress": "Kartu {n} dari {total}",
+    "showAnswer": "Tampilkan jawaban",
+    "promptForward": "Apa kata bahasa target untuk ini?",
+    "promptReverse": "Apa artinya ini?",
+    "again": "Ulangi",
+    "hard": "Sulit",
+    "good": "Bagus",
+    "easy": "Mudah",
+    "nothingDue": "Tidak ada yang jatuh tempo sekarang.",
+    "studyAhead": "Belajar lebih awal",
+    "complete": "Sesi selesai!",
+    "reviewedCount": "{n} kartu ditinjau",
+    "continue": "Lanjut belajar",
+    "backToDecks": "Kembali ke dek",
+    "loadFailed": "Tidak dapat memuat dek ini.",
+    "allCaught": "Semua sudah selesai!",
+    "noCardsDue": "Tidak ada kartu yang jatuh tempo sekarang.",
+    "nextDue": "Kartu berikutnya jatuh tempo: {date}",
+    "chooseDeck": "Pilih dek lain",
+    "returnVocab": "Kembali ke kosakata",
+    "saveRatingFailed": "Tidak dapat menyimpan penilaian Anda. Coba lagi."
+  },
+  "practice": {
+    "backToDecks": "Kembali ke dek",
+    "title": "Kruu Bingo",
+    "freeTitle": "Kruu Bingo · Percakapan bebas",
+    "preparing": "Menyiapkan tutor Anda…",
+    "tapToSpeak": "Ketuk untuk berbicara",
+    "listening": "Mendengarkan…",
+    "speaking": "Berbicara dengan Kruu Bingo",
+    "captions": "Teks",
+    "captionsPlaceholder": "Teks akan muncul di sini saat Anda berbicara.",
+    "endSession": "Akhiri sesi",
+    "endConfirmTitle": "Akhiri sesi dengan Kruu Bingo?",
+    "endConfirmDesc": "Statistik latihan Anda akan disimpan.",
+    "keepGoing": "Lanjutkan",
+    "continueTitle": "Lanjutkan sesi?",
+    "continueBody": "Anda sudah diam beberapa saat. Sesi akan segera berakhir.",
+    "endingIn": "Berakhir dalam {n} dtk…",
+    "continueSession": "Lanjutkan sesi",
+    "inputDetected": "Masukan pengguna terdeteksi",
+    "greatSession": "Latihan yang bagus!",
+    "duration": "Durasi",
+    "minutes": "{n, plural, other {# menit}}",
+    "estCost": "Perkiraan biaya",
+    "exchanges": "{n, plural, other {# percakapan}}",
+    "practiceAgain": "Berlatih lagi",
+    "switchFlashcards": "Beralih ke kartu hafalan",
+    "chooseDeck": "Pilih dek lain",
+    "returnVocab": "Kembali ke kosakata"
+  },
+  "vocab": {
+    "title": "Kosakata",
+    "add": "Tambah kata",
+    "searchPlaceholder": "Cari kosakata Anda…",
+    "empty": "Belum ada kosakata. Tambahkan kata pertama Anda untuk memulai.",
+    "colImage": "Gambar",
+    "colActions": "",
+    "deleteTitle": "Hapus kata ini?",
+    "deleteDesc": "Tindakan ini tidak dapat dibatalkan.",
+    "deleted": "Kata dihapus."
+  },
+  "extraction": {
+    "title": "Ekstrak kosakata dari foto",
+    "subtitle": "Unggah foto halaman buku teks atau catatan dan kami akan mengambil kosakata untuk Anda tinjau.",
+    "dropzone": "Seret foto ke sini, atau klik untuk memilih",
+    "analyzing": "Menganalisis foto Anda…",
+    "reviewTitle": "Tinjau kosakata yang diekstrak",
+    "reviewSubtitle": "Hapus centang yang tidak Anda inginkan, lalu simpan.",
+    "saveSelected": "Simpan yang dipilih",
+    "saving": "Menyimpan…",
+    "saved": "Menyimpan {n} item.",
+    "noneFound": "Tidak ada kosakata yang ditemukan di foto tersebut.",
+    "failed": "Tidak dapat menganalisis foto. Silakan coba lagi."
+  },
+  "email": {
+    "verify": {
+      "subject": "Verifikasi email Anda untuk Kaojai",
+      "body": "Klik di bawah untuk memverifikasi alamat email Anda:",
+      "cta": "Verifikasi email"
+    },
+    "reset": {
+      "subject": "Atur ulang kata sandi Kaojai Anda",
+      "body": "Klik di bawah untuk mengatur ulang kata sandi Anda:",
+      "cta": "Atur ulang kata sandi",
+      "ignore": "Jika Anda tidak meminta ini, abaikan saja email ini."
+    }
+  },
+  "errors": {
+    "generic": "Terjadi kesalahan. Silakan coba lagi.",
+    "saveFailed": "Gagal menyimpan",
+    "loadFailed": "Gagal memuat"
+  }
 }

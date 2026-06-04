@@ -38,6 +38,7 @@ import {
   type BaseLanguageUse,
 } from '@/lib/base-language-use';
 import { defaultSpeechSpeed, isSpeechSpeed, type SpeechSpeed } from '@/lib/speech-speed';
+import { useTranslations } from 'next-intl';
 
 type Phase = 'loading' | 'no-key' | 'hard-stop' | 'ready' | 'completed';
 type AvatarState = 'idle' | 'speaking' | 'listening';
@@ -110,6 +111,7 @@ function CountdownRing({ seconds, total }: { seconds: number; total: number }) {
 export function VoiceChat({ mode, lang, deckId }: VoiceChatProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const t = useTranslations('practice');
 
   const [phase, setPhase] = useState<Phase>('loading');
   const [hardStopLimit, setHardStopLimit] = useState(0);
@@ -722,38 +724,35 @@ export function VoiceChat({ mode, lang, deckId }: VoiceChatProps) {
     return (
       <div className="fixed inset-0 z-50 flex flex-col bg-background p-4 overflow-y-auto sm:static sm:z-auto sm:p-0">
         <div className="m-auto w-full max-w-md space-y-6 text-center">
-          <h1 className="text-2xl font-bold">Great practice session!</h1>
+          <h1 className="text-2xl font-bold">{t('greatSession')}</h1>
           <div className="space-y-1 text-muted-foreground">
             <p>
-              Duration:{' '}
-              <span className="font-medium text-foreground">
-                {minutes} minute{minutes === 1 ? '' : 's'}
-              </span>
+              {t('duration')}:{' '}
+              <span className="font-medium text-foreground">{t('minutes', { n: minutes })}</span>
             </p>
             <p>
-              Estimated cost:{' '}
+              {t('estCost')}:{' '}
               <span className="font-medium text-foreground">${completion.costUsd.toFixed(2)}</span>
             </p>
             <p>
-              <span className="font-medium text-foreground">{completion.turnCount}</span> exchange
-              {completion.turnCount === 1 ? '' : 's'}
+              {t('exchanges', { n: completion.turnCount })}
             </p>
           </div>
           <div className="flex flex-col gap-2">
-            <Button onClick={restart}>Practice again</Button>
+            <Button onClick={restart}>{t('practiceAgain')}</Button>
             {mode === 'deck' && deckId && (
               <Button
                 variant="outline"
                 onClick={() => router.push(deckFlashcardsPath(lang, deckId))}
               >
-                Switch to flashcards
+                {t('switchFlashcards')}
               </Button>
             )}
             <Button variant="outline" onClick={() => router.push(decksPath(lang))}>
-              {mode === 'deck' ? 'Choose another deck' : 'Back to decks'}
+              {mode === 'deck' ? t('chooseDeck') : t('backToDecks')}
             </Button>
             <Button variant="outline" onClick={() => router.push(vocabPath(lang))}>
-              Return to vocab
+              {t('returnVocab')}
             </Button>
           </div>
         </div>
@@ -762,10 +761,10 @@ export function VoiceChat({ mode, lang, deckId }: VoiceChatProps) {
   }
 
   const micLabel = !started
-    ? 'Tap to speak'
+    ? t('tapToSpeak')
     : avatarState === 'listening'
-      ? 'Listening…'
-      : 'Speaking with Kruu Bingo';
+      ? t('listening')
+      : t('speaking');
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-background p-4 sm:static sm:z-auto sm:p-0">
@@ -778,16 +777,14 @@ export function VoiceChat({ mode, lang, deckId }: VoiceChatProps) {
           className="gap-1.5"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to decks
+          {t('backToDecks')}
         </Button>
-        <span className="font-semibold">
-          Kruu Bingo{mode === 'free' ? ' · Free conversation' : ''}
-        </span>
+        <span className="font-semibold">{mode === 'free' ? t('freeTitle') : t('title')}</span>
         <span className="w-24" />
       </div>
 
       {phase === 'loading' ? (
-        <div className="m-auto text-sm text-muted-foreground">Preparing your tutor…</div>
+        <div className="m-auto text-sm text-muted-foreground">{t('preparing')}</div>
       ) : (
         <div className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-4 overflow-hidden">
           {/* Avatar */}
@@ -830,7 +827,7 @@ export function VoiceChat({ mode, lang, deckId }: VoiceChatProps) {
                   )
                 ) : (
                   <p className="text-center text-sm text-muted-foreground">
-                    Captions will appear here as you talk.
+                    {t('captionsPlaceholder')}
                   </p>
                 )}
               </div>
@@ -870,7 +867,7 @@ export function VoiceChat({ mode, lang, deckId }: VoiceChatProps) {
               />
             </div>
             <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-3">
-              <span className="text-sm font-medium">Captions</span>
+              <span className="text-sm font-medium">{t('captions')}</span>
               <CaptionCcMenu
                 enabled={captionsEnabled}
                 onToggle={onToggleCaptions}
@@ -904,7 +901,7 @@ export function VoiceChat({ mode, lang, deckId }: VoiceChatProps) {
                 className="w-full gap-2"
               >
                 <Square className="h-4 w-4" />
-                End session
+                {t('endSession')}
               </Button>
             )}
           </div>
@@ -914,12 +911,12 @@ export function VoiceChat({ mode, lang, deckId }: VoiceChatProps) {
       <AlertDialog open={endOpen} onOpenChange={setEndOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>End session with Kruu Bingo?</AlertDialogTitle>
-            <AlertDialogDescription>Your practice stats will be saved.</AlertDialogDescription>
+            <AlertDialogTitle>{t('endConfirmTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('endConfirmDesc')}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Keep going</AlertDialogCancel>
-            <Button onClick={endSession}>End session</Button>
+            <AlertDialogCancel>{t('keepGoing')}</AlertDialogCancel>
+            <Button onClick={endSession}>{t('endSession')}</Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -939,30 +936,30 @@ export function VoiceChat({ mode, lang, deckId }: VoiceChatProps) {
             {inputDetected ? (
               <div className="flex flex-col items-center gap-3 py-6 animate-in fade-in zoom-in-95 duration-300">
                 <CheckCircle2 className="h-14 w-14 text-green-600" />
-                <p className="text-sm font-medium">User input detected</p>
+                <p className="text-sm font-medium">{t('inputDetected')}</p>
               </div>
             ) : (
               <>
-                <h2 className="text-center text-lg font-semibold">Continue session?</h2>
+                <h2 className="text-center text-lg font-semibold">{t('continueTitle')}</h2>
                 <p className="mt-2 text-center text-sm text-muted-foreground">
-                  You&apos;ve been quiet for a while. The session will end soon.
+                  {t('continueBody')}
                 </p>
                 <div className="my-5 flex flex-col items-center gap-2">
                   <CountdownRing seconds={countdown} total={WARNING_COUNTDOWN_SECONDS} />
                   <p className="text-sm text-muted-foreground" aria-live="polite">
-                    Ending in {countdown}s…
+                    {t('endingIn', { n: countdown })}
                   </p>
                 </div>
                 <div className="flex w-full flex-col gap-3 sm:flex-row">
                   <Button onClick={continueSession} className="w-full sm:flex-1 sm:min-w-0">
-                    Continue session
+                    {t('continueSession')}
                   </Button>
                   <Button
                     variant="outline"
                     onClick={endSession}
                     className="w-full sm:flex-1 sm:min-w-0"
                   >
-                    End session
+                    {t('endSession')}
                   </Button>
                 </div>
               </>

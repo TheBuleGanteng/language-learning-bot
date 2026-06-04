@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { withBase } from '@/lib/base-path';
 
 export default function ForgotPasswordPage() {
+  const t = useTranslations('auth.forgot');
   const [email, setEmail] = useState('');
   const [sent, setSent] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -31,26 +33,23 @@ export default function ForgotPasswordPage() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Forgot password</CardTitle>
+        <CardTitle>{t('title')}</CardTitle>
         <CardDescription>
-          Enter your email and we&apos;ll send a reset link if an account exists.
+          {t('subtitle')}
         </CardDescription>
       </CardHeader>
       <CardContent>
         {sent ? (
           <div className="space-y-4">
-            <p className="text-sm">
-              If <strong>{email}</strong> matches an account, a reset link has been sent. It
-              expires in 1 hour.
-            </p>
+            <p className="text-sm">{t('sent')}</p>
             <Button asChild variant="outline" className="w-full">
-              <Link href="/login">Back to log in</Link>
+              <Link href="/login">{t('backToLogin')}</Link>
             </Button>
           </div>
         ) : (
           <form onSubmit={onSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t('email')}</Label>
               <Input
                 id="email"
                 type="email"
@@ -61,7 +60,7 @@ export default function ForgotPasswordPage() {
               />
             </div>
             <Button type="submit" disabled={busy} className="w-full">
-              {busy ? 'Sending…' : 'Send reset link'}
+              {busy ? t('submitting') : t('submit')}
             </Button>
           </form>
         )}

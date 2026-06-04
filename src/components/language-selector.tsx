@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Check, Languages } from 'lucide-react';
+import { Check, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   DropdownMenu,
@@ -79,16 +79,13 @@ export function LanguageSelector({ currentLocale, authenticated }: Props) {
           <button
             type="button"
             aria-label="Select language"
-            className="inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+            className="group inline-flex cursor-pointer items-center gap-2 rounded-md border border-input bg-background px-3 py-1.5 text-sm transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring data-[popup-open]:bg-accent"
           >
-            <span className="flex h-3.5 w-5 items-center justify-center overflow-hidden rounded-[2px]">
-              {info.flagCountry ? (
-                <FlagIcon country={info.flagCountry} className="h-full w-full object-cover" />
-              ) : (
-                <Languages className="h-4 w-4" />
-              )}
+            <span className="flex h-3.5 w-5 shrink-0 items-center justify-center overflow-hidden rounded-[2px]">
+              <FlagIcon country={info.flagCountry} className="h-full w-full object-cover" />
             </span>
             <span className="hidden sm:inline">{triggerLabel}</span>
+            <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[popup-open]:rotate-180" />
           </button>
         }
       />
@@ -97,18 +94,14 @@ export function LanguageSelector({ currentLocale, authenticated }: Props) {
           <DropdownMenuItem
             key={l.code}
             onClick={() => choose(l.code)}
-            className={cn(l.code === current && 'font-medium')}
+            className={cn('cursor-pointer', l.code === current && 'font-medium')}
           >
-            <span className="flex h-3.5 w-5 items-center justify-center overflow-hidden rounded-[2px]">
-              {l.flagCountry ? (
-                <FlagIcon
-                  country={l.flagCountry}
-                  title={l.englishName}
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <Languages className="h-4 w-4" />
-              )}
+            <span className="flex h-3.5 w-5 shrink-0 items-center justify-center overflow-hidden rounded-[2px]">
+              <FlagIcon
+                country={l.flagCountry}
+                title={l.englishName}
+                className="h-full w-full object-cover"
+              />
             </span>
             <span className="flex-1">
               {l.nativeName}{' '}

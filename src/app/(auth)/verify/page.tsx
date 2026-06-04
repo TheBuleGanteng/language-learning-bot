@@ -1,6 +1,7 @@
 'use client';
 
 import { Suspense, useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,6 +11,7 @@ import { withBase } from '@/lib/base-path';
 function VerifyInner() {
   const router = useRouter();
   const search = useSearchParams();
+  const t = useTranslations('auth.verify');
   const token = search.get('token');
   const [state, setState] = useState<'pending' | 'ok' | 'error'>('pending');
   const [message, setMessage] = useState('');
@@ -17,7 +19,7 @@ function VerifyInner() {
   useEffect(() => {
     if (!token) {
       setState('error');
-      setMessage('No verification token in URL.');
+      setMessage(t('noToken'));
       return;
     }
     let cancelled = false;
@@ -35,34 +37,32 @@ function VerifyInner() {
         } else {
           const data = await res.json().catch(() => ({}));
           setState('error');
-          setMessage(data?.error ?? 'Verification failed.');
+          setMessage(data?.error ?? t('failed'));
         }
       } catch {
         if (!cancelled) {
           setState('error');
-          setMessage('Network error.');
+          setMessage(t('failed'));
         }
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [token, router]);
+  }, [token, router, t]);
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Email verification</CardTitle>
+        <CardTitle>{t('title')}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {state === 'pending' && <p>Verifying…</p>}
+        {state === 'pending' && <p>{t('verifying')}</p>}
         {state === 'ok' && (
           <>
-            <p className="text-green-700 dark:text-green-400">
-              Your email has been verified. Redirecting you to log in…
-            </p>
+            <p className="text-green-700 dark:text-green-400">{t('success')}</p>
             <Button asChild>
-              <Link href="/login?verified=1">Go to login</Link>
+              <Link href="/login?verified=1">{t('toLogin')}</Link>
             </Button>
           </>
         )}
@@ -70,7 +70,7 @@ function VerifyInner() {
           <>
             <p className="text-destructive">{message}</p>
             <Button asChild variant="outline">
-              <Link href="/signup">Back to sign up</Link>
+              <Link href="/signup">{t('backToSignup')}</Link>
             </Button>
           </>
         )}

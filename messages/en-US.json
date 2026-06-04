@@ -3,11 +3,25 @@
     "appName": "Kaojai",
     "loading": "Loading…",
     "save": "Save",
+    "saving": "Saving…",
     "cancel": "Cancel",
+    "delete": "Delete",
+    "deleting": "Deleting…",
+    "edit": "Edit",
+    "remove": "Remove",
+    "back": "Back",
+    "retry": "Try again",
+    "close": "Close",
+    "continue": "Continue",
+    "search": "Search",
     "comingSoon": "Coming soon",
     "signOut": "Sign out",
     "settings": "Settings",
-    "autoTranslated": "Auto-translated"
+    "autoTranslated": "Auto-translated",
+    "never": "Never",
+    "previous": "Previous",
+    "next": "Next",
+    "pageOf": "Page {page} of {total}"
   },
   "nav": {
     "vocab": "Vocab",
@@ -27,22 +41,68 @@
   "auth": {
     "login": {
       "title": "Log in",
+      "welcome": "Welcome back.",
+      "verified": "Email verified. Sign in to continue.",
       "email": "Email",
       "password": "Password",
       "submit": "Log in",
       "submitting": "Logging in…",
       "forgot": "Forgot password?",
-      "noAccount": "Don't have an account?",
-      "signupLink": "Sign up"
+      "signupLink": "Create account",
+      "invalid": "Invalid credentials or email not verified."
     },
     "signup": {
       "title": "Create your account",
+      "subtitle": "You'll get a verification email next.",
       "email": "Email",
       "password": "Password",
+      "passwordHint": "At least 8 characters, with at least one letter and one number.",
       "submit": "Sign up",
       "submitting": "Creating account…",
       "haveAccount": "Already have an account?",
-      "loginLink": "Log in"
+      "loginLink": "Log in",
+      "tooMany": "Too many requests. Try again later.",
+      "failed": "Something went wrong"
+    },
+    "forgot": {
+      "title": "Reset your password",
+      "subtitle": "Enter your email and we'll send you a reset link.",
+      "email": "Email",
+      "submit": "Send reset link",
+      "submitting": "Sending…",
+      "sent": "If that email exists, a reset link is on its way.",
+      "backToLogin": "Back to log in"
+    },
+    "reset": {
+      "title": "Set a new password",
+      "password": "New password",
+      "confirm": "Confirm password",
+      "submit": "Update password",
+      "submitting": "Updating…",
+      "mismatch": "Passwords don't match.",
+      "success": "Password updated. You can now log in.",
+      "invalidLink": "This reset link is invalid or has expired.",
+      "backToLogin": "Back to log in",
+      "invalidTitle": "Invalid link",
+      "missingToken": "Missing reset token.",
+      "requestNew": "Request a new link",
+      "sessionsNote": "Existing sessions will be invalidated once you reset your password.",
+      "redirecting": "Password updated. Redirecting to log in…"
+    },
+    "verify": {
+      "verifying": "Verifying your email…",
+      "success": "Email verified! You can now log in.",
+      "failed": "This verification link is invalid or has expired.",
+      "toLogin": "Go to log in",
+      "title": "Email verification",
+      "noToken": "No verification token in URL.",
+      "backToSignup": "Back to sign up"
+    },
+    "verifySent": {
+      "title": "Check your email",
+      "body": "We sent a verification link to {email}. Click it to activate your account.",
+      "backToLogin": "Back to log in",
+      "expires": "The link expires in 24 hours. Check your spam folder if it doesn't arrive in a few minutes."
     }
   },
   "settings": {
@@ -62,9 +122,129 @@
       "photoAnalysis": "Photo analysis"
     }
   },
-  "vocab": {},
-  "decks": {},
-  "flashcards": {},
-  "errors": {},
-  "email": {}
+  "decks": {
+    "title": "Flashcards",
+    "createDeck": "Create new deck",
+    "freeConversation": "Free conversation",
+    "colDeck": "Deck",
+    "colCards": "Cards",
+    "colDue": "Due",
+    "colLastStudied": "Last studied",
+    "colLastSession": "Last session",
+    "flashcardsBtn": "Flashcards",
+    "aiChatBtn": "AI Chat",
+    "empty": "No decks yet. Create your first deck to get started.",
+    "refreshDeck": "Refresh deck",
+    "refreshConfirm": "This will add {added} items and remove {removed} items. Continue?",
+    "refreshing": "Refreshing…",
+    "upToDate": "Deck is already up to date.",
+    "manualNoRefresh": "Manual decks cannot be refreshed",
+    "refreshFromSource": "Refresh from source",
+    "deleteTitle": "Delete deck \"{name}\"?",
+    "deleteDesc": "This cannot be undone.",
+    "deckSettings": "Deck settings",
+    "deckSettingsDesc": "Changing direction adds or removes the matching cards.",
+    "deckName": "Deck name",
+    "cardDirection": "Card direction",
+    "forwardOnly": "Forward only",
+    "reverseOnly": "Reverse only",
+    "both": "Both",
+    "refreshDone": "Deck refreshed: {added} added, {removed} removed.",
+    "deleted": "Deleted \"{name}\".",
+    "updated": "Deck updated."
+  },
+  "flashcards": {
+    "cardProgress": "Card {n} of {total}",
+    "showAnswer": "Show answer",
+    "promptForward": "What is the target word for this?",
+    "promptReverse": "What does this mean?",
+    "again": "Again",
+    "hard": "Hard",
+    "good": "Good",
+    "easy": "Easy",
+    "nothingDue": "Nothing due right now.",
+    "studyAhead": "Study ahead",
+    "complete": "Session complete!",
+    "reviewedCount": "{n} cards reviewed",
+    "continue": "Keep studying",
+    "backToDecks": "Back to decks",
+    "loadFailed": "Could not load this deck.",
+    "allCaught": "All caught up!",
+    "noCardsDue": "No cards are due right now.",
+    "nextDue": "Next card due: {date}",
+    "chooseDeck": "Choose another deck",
+    "returnVocab": "Return to vocab",
+    "saveRatingFailed": "Could not save your rating. Try again."
+  },
+  "practice": {
+    "backToDecks": "Back to decks",
+    "title": "Kruu Bingo",
+    "freeTitle": "Kruu Bingo · Free conversation",
+    "preparing": "Preparing your tutor…",
+    "tapToSpeak": "Tap to speak",
+    "listening": "Listening…",
+    "speaking": "Speaking with Kruu Bingo",
+    "captions": "Captions",
+    "captionsPlaceholder": "Captions will appear here as you talk.",
+    "endSession": "End session",
+    "endConfirmTitle": "End session with Kruu Bingo?",
+    "endConfirmDesc": "Your practice stats will be saved.",
+    "keepGoing": "Keep going",
+    "continueTitle": "Continue session?",
+    "continueBody": "You've been quiet for a while. The session will end soon.",
+    "endingIn": "Ending in {n}s…",
+    "continueSession": "Continue session",
+    "inputDetected": "User input detected",
+    "greatSession": "Great practice session!",
+    "duration": "Duration",
+    "minutes": "{n, plural, one {# minute} other {# minutes}}",
+    "estCost": "Estimated cost",
+    "exchanges": "{n, plural, one {# exchange} other {# exchanges}}",
+    "practiceAgain": "Practice again",
+    "switchFlashcards": "Switch to flashcards",
+    "chooseDeck": "Choose another deck",
+    "returnVocab": "Return to vocab"
+  },
+  "vocab": {
+    "title": "Vocab",
+    "add": "Add word",
+    "searchPlaceholder": "Search your vocabulary…",
+    "empty": "No vocabulary yet. Add your first word to get started.",
+    "colImage": "Image",
+    "colActions": "",
+    "deleteTitle": "Delete this word?",
+    "deleteDesc": "This cannot be undone.",
+    "deleted": "Word deleted."
+  },
+  "extraction": {
+    "title": "Extract vocabulary from photos",
+    "subtitle": "Upload photos of a textbook page or notes and we'll pull out vocabulary for you to review.",
+    "dropzone": "Drag photos here, or click to choose",
+    "analyzing": "Analyzing your photos…",
+    "reviewTitle": "Review extracted vocabulary",
+    "reviewSubtitle": "Uncheck anything you don't want, then save.",
+    "saveSelected": "Save selected",
+    "saving": "Saving…",
+    "saved": "Saved {n} items.",
+    "noneFound": "No vocabulary was found in those photos.",
+    "failed": "Could not analyze the photos. Please try again."
+  },
+  "email": {
+    "verify": {
+      "subject": "Verify your email for Kaojai",
+      "body": "Click below to verify your email address:",
+      "cta": "Verify email"
+    },
+    "reset": {
+      "subject": "Reset your Kaojai password",
+      "body": "Click below to reset your password:",
+      "cta": "Reset password",
+      "ignore": "If you didn't request this, you can safely ignore this email."
+    }
+  },
+  "errors": {
+    "generic": "Something went wrong. Please try again.",
+    "saveFailed": "Save failed",
+    "loadFailed": "Failed to load"
+  }
 }

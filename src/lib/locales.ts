@@ -22,8 +22,8 @@ export interface LocaleInfo {
   nativeName: string;
   /** The word "Language" in that locale (for the selector trigger label). */
   languageWord: string;
-  /** ISO 3166-1 alpha-2 flag country, or null (zh-TW renders no flag). */
-  flagCountry: string | null;
+  /** ISO 3166-1 alpha-2 flag country. All five locales have a flag. */
+  flagCountry: string;
 }
 
 export const LOCALE_CATALOG: Record<Locale, LocaleInfo> = {
@@ -46,7 +46,7 @@ export const LOCALE_CATALOG: Record<Locale, LocaleInfo> = {
     englishName: 'Chinese (Traditional)',
     nativeName: '繁體中文',
     languageWord: '語言',
-    flagCountry: null,
+    flagCountry: 'TW',
   },
   ko: {
     code: 'ko',
