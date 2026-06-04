@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ChevronDown, GraduationCap, MessagesSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { vocabPath, lessonsPath, decksPath } from '@/lib/routes';
+import { homePath, vocabPath, lessonsPath, decksPath } from '@/lib/routes';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -37,8 +37,8 @@ export function AppNav({ lang }: Props) {
 
   return (
     <nav className="flex items-center gap-1">
-      <Link href={vocabPath(lang)} className="font-semibold mr-4">
-        LangBot
+      <Link href={homePath()} className="font-semibold mr-4">
+        Kaojai
       </Link>
       {items.map((i) => (
         <Link key={i.label} href={i.href} className={navItemClass(isActive(i.match))}>

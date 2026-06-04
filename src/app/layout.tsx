@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Language Learning Bot',
+  title: 'Kaojai',
   description:
     'Self-hosted, multi-user language learning app with your own vocab and an AI tutor.',
   manifest: '/manifest.webmanifest',
