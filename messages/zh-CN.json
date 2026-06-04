@@ -162,8 +162,6 @@
   "flashcards": {
     "cardProgress": "第 {n} 张，共 {total} 张",
     "showAnswer": "显示答案",
-    "promptForward": "这个的目标语言单词是什么？",
-    "promptReverse": "这是什么意思？",
     "again": "重来",
     "hard": "困难",
     "good": "良好",
@@ -209,7 +207,16 @@
     "practiceAgain": "再次练习",
     "switchFlashcards": "切换到抽认卡",
     "chooseDeck": "选择其他卡组",
-    "returnVocab": "返回词汇"
+    "returnVocab": "返回词汇",
+    "couldNotStart": "无法启动 Kruu Bingo。",
+    "couldNotConnect": "无法连接到 OpenAI。请在设置中检查你的 API 密钥。",
+    "connectionFailed": "连接失败，请重试。",
+    "baseSaved": "已保存母语使用程度",
+    "speedSaved": "已保存语速",
+    "captionsOn": "字幕已开启",
+    "captionsOff": "字幕已关闭",
+    "captionLangSaved": "已保存字幕语言",
+    "saveFailed": "保存失败"
   },
   "vocab": {
     "title": "词汇",
@@ -292,5 +299,88 @@
     "selected": "已选 {count}",
     "done": "完成",
     "exit": "退出卡组创建"
+  },
+  "lessons": {
+    "title": "课程",
+    "newLesson": "新建课程",
+    "colName": "名称",
+    "colTopic": "主题",
+    "colDate": "日期",
+    "colVocab": "词汇",
+    "selected": "已选 {count}",
+    "shareUnshare": "共享 / 取消共享",
+    "clearSelection": "清除选择",
+    "empty": "还没有课程。创建你的第一个课程。",
+    "selectAria": "选择 {name}",
+    "deleteAria": "删除课程"
+  },
+  "lessonDelete": {
+    "title": "删除“{name}”？",
+    "reviewDesc": "确认前请查看将被删除的内容。",
+    "permanentlyDelete": "这将永久删除：",
+    "pdfs": "{count, plural, other {# 个 PDF 笔记}}",
+    "audio": "{count, plural, other {# 个音频文件}}",
+    "links": "{count, plural, other {# 个实用链接}}",
+    "vocabDeleted": "{count, plural, other {# 个词汇项}}（仅在此课程中）",
+    "images": "{count, plural, other {# 张生成的图片}}（用于这些词汇项）",
+    "andReassign": "并重新分配：",
+    "vocabReassigned": "{count, plural, other {# 个词汇项}}与其他课程共享",
+    "reassignNote": "（保留，但不再与“{name}”关联）",
+    "cannotUndo": "⚠ 此操作无法撤销。",
+    "deleteLesson": "删除课程",
+    "deletedToast": "已删除课程“{name}”。",
+    "loadFailed": "无法加载删除预览。",
+    "deleteFailed": "删除课程失败。"
+  },
+  "lessonNew": {
+    "title": "新建课程",
+    "desc": "创建一个新课程。之后你可以为它添加词汇、笔记、音频和链接。",
+    "name": "名称",
+    "topic": "主题",
+    "date": "日期",
+    "optional": "（可选）",
+    "nameRequired": "名称为必填项",
+    "create": "创建课程",
+    "creating": "创建中…",
+    "failed": "创建课程失败。"
+  },
+  "baseLanguageUse": {
+    "label": "母语使用程度",
+    "about": "关于母语使用程度",
+    "levels": {
+      "all": "全部",
+      "frequent": "频繁",
+      "moderate": "适中",
+      "rarely": "很少",
+      "never": "从不"
+    },
+    "help": {
+      "all": "所有内容都用{target}和{base}说出。每句{target}后面都跟着{base}翻译。",
+      "frequent": "老师经常使用{base}来帮助你，并穿插{target}。",
+      "moderate": "老师有时用{base}来澄清，力求{target}和{base}的平衡。",
+      "rarely": "老师主要使用{target}；只有在你要求时才会改用{base}。",
+      "never": "老师只说{target}，不使用{base}。"
+    }
+  },
+  "speechSpeed": {
+    "label": "语速",
+    "about": "关于语速",
+    "intro": "控制 Kruu Bingo 说话的速度。“慢速”最适合初学者。",
+    "levels": {
+      "slow": "慢速",
+      "moderate": "适中",
+      "native": "母语速度"
+    },
+    "help": {
+      "slow": "约为母语自然语速的一半，停顿清晰——最适合初学者。",
+      "moderate": "约为母语自然语速的四分之三——较慢，但仍然流畅。",
+      "native": "完全自然、流利的母语语速。"
+    }
+  },
+  "captions": {
+    "turnOn": "开启字幕",
+    "turnOff": "关闭字幕",
+    "captionLanguage": "字幕语言",
+    "romanizedSuffix": "{name}（罗马音）"
   }
 }

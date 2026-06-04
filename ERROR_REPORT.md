@@ -1798,3 +1798,39 @@ i18n work.
 **Quality gates:** lint clean, 75/75 tests, `tsc` clean, `pnpm build`
 "Compiled successfully" with all 41 pages generated (the build-traces tail is
 the documented benign hang). No schema change.
+
+## 2026-06-04 — Localize Lessons + Avatar/AI-chat pages, remove flashcard helper subtitle
+**PART 1:** Removed the flashcard card-front helper subtitle (the `prompt` line —
+"What is the target word for this?" / its reverse "What does this mean?"): dropped
+the `prompt` prop from `CardContent` and both call sites and deleted the
+`flashcards.promptForward` / `flashcards.promptReverse` keys from all five
+catalogs. Confirmed the remaining card chrome is keyed ("Show answer" =
+`flashcards.showAnswer`, progress = `flashcards.cardProgress`). Also localized the
+machine-gloss badge on the card (was hardcoded "Auto-translated").
+**PART 2 — localized two previously-English routes (catalogs now 318 keys,
+identical across all five locales, verified by key-diff):**
+- **Lessons route:** the index (`lessons-index-client`) — heading, "New Lesson",
+  the Name/Topic/Date/Vocab sortable headers, the "{n} selected" bar +
+  Share/Unshare + Clear selection, empty state, the Select/Delete aria-labels, and
+  the Date column now renders via the active locale (`toLocaleDateString(locale)`).
+  The **New Lesson** dialog (title, description, Name/Topic/Date labels +
+  "(optional)", validation + create/cancel buttons) and the **Delete Lesson**
+  dialog (title, review copy, the permanently-delete list with ICU plurals for
+  PDFs/audio/links/vocab/images, the reassign section, the cannot-undo warning,
+  buttons, and the success/error toasts).
+- **Avatar / AI-chat controls (shared, so settings localizes too):**
+  `BaseLanguageUseControl` (label, tooltip + per-level help with {target}/{base}
+  ICU placeholders, the All/Frequent/Moderate/Rarely/Never ticks),
+  `SpeechSpeedControl` (label, tooltip + Slow/Moderate/Native ticks/help), and the
+  `CaptionCcMenu` (CC on/off aria, caption-language aria, the "(romanized)"
+  suffix). The voice-chat bottom button + status (mic labels) were already keyed;
+  also localized its connection/start error toasts and the
+  base/speed/captions/caption-language save confirmations. (The low-level
+  realtime-lib mic-permission/connection error strings and the dynamic
+  spend-warning toast remain English — thrown deep in `src/lib/realtime.ts`.)
+**Content-name policy:** lesson names are user-entered/stored, so they are left
+exactly as written (never translated); there is no app-generated default
+lesson-name pattern. Dates are formatted by locale; the stored value is unchanged.
+**Quality gates:** lint clean (added the stable `t` to two effect dep arrays),
+75/75 tests, `tsc` clean, `pnpm build` "Compiled successfully" (build-traces tail
+is the documented benign hang). No schema change.

@@ -162,8 +162,6 @@
   "flashcards": {
     "cardProgress": "Card {n} of {total}",
     "showAnswer": "Show answer",
-    "promptForward": "What is the target word for this?",
-    "promptReverse": "What does this mean?",
     "again": "Again",
     "hard": "Hard",
     "good": "Good",
@@ -209,7 +207,16 @@
     "practiceAgain": "Practice again",
     "switchFlashcards": "Switch to flashcards",
     "chooseDeck": "Choose another deck",
-    "returnVocab": "Return to vocab"
+    "returnVocab": "Return to vocab",
+    "couldNotStart": "Could not start Kruu Bingo.",
+    "couldNotConnect": "Could not connect to OpenAI. Check your API key in Settings.",
+    "connectionFailed": "Connection failed. Please try again.",
+    "baseSaved": "Base language use saved",
+    "speedSaved": "Speech speed saved",
+    "captionsOn": "Captions on",
+    "captionsOff": "Captions off",
+    "captionLangSaved": "Caption language saved",
+    "saveFailed": "Save failed"
   },
   "vocab": {
     "title": "Vocab",
@@ -292,5 +299,88 @@
     "selected": "{count} selected",
     "done": "Done",
     "exit": "Exit deck builder"
+  },
+  "lessons": {
+    "title": "Lessons",
+    "newLesson": "New Lesson",
+    "colName": "Name",
+    "colTopic": "Topic",
+    "colDate": "Date",
+    "colVocab": "Vocab",
+    "selected": "{count} selected",
+    "shareUnshare": "Share / Unshare",
+    "clearSelection": "Clear selection",
+    "empty": "No lessons yet. Create your first lesson.",
+    "selectAria": "Select {name}",
+    "deleteAria": "Delete lesson"
+  },
+  "lessonDelete": {
+    "title": "Delete \"{name}\"?",
+    "reviewDesc": "Review what will be removed before confirming.",
+    "permanentlyDelete": "This will permanently delete:",
+    "pdfs": "{count, plural, one {# PDF note} other {# PDF notes}}",
+    "audio": "{count, plural, one {# audio file} other {# audio files}}",
+    "links": "{count, plural, one {# useful link} other {# useful links}}",
+    "vocabDeleted": "{count, plural, one {# vocab item} other {# vocab items}} (only in this lesson)",
+    "images": "{count, plural, one {# generated image} other {# generated images}} (for those vocab items)",
+    "andReassign": "And reassign:",
+    "vocabReassigned": "{count, plural, one {# vocab item} other {# vocab items}} shared with other lessons",
+    "reassignNote": "(kept, but no longer associated with \"{name}\")",
+    "cannotUndo": "⚠ This action cannot be undone.",
+    "deleteLesson": "Delete lesson",
+    "deletedToast": "Lesson \"{name}\" deleted.",
+    "loadFailed": "Failed to load deletion preview.",
+    "deleteFailed": "Failed to delete lesson."
+  },
+  "lessonNew": {
+    "title": "New Lesson",
+    "desc": "Create a new lesson. You can add vocab, notes, audio, and links to it afterward.",
+    "name": "Name",
+    "topic": "Topic",
+    "date": "Date",
+    "optional": "(optional)",
+    "nameRequired": "Name is required",
+    "create": "Create lesson",
+    "creating": "Creating…",
+    "failed": "Failed to create lesson."
+  },
+  "baseLanguageUse": {
+    "label": "Base language use",
+    "about": "About base language use",
+    "levels": {
+      "all": "All",
+      "frequent": "Frequent",
+      "moderate": "Moderate",
+      "rarely": "Rarely",
+      "never": "Never"
+    },
+    "help": {
+      "all": "Everything is said in both {target} and {base}. Every {target} phrase is followed by its {base} translation.",
+      "frequent": "The tutor uses {base} often to support you, with {target} woven in.",
+      "moderate": "The tutor sometimes uses {base} to clarify, aiming for a balance of {target} and {base}.",
+      "rarely": "The tutor mostly uses {target}; it only falls back to {base} if you ask.",
+      "never": "The tutor speaks only in {target} and does not use {base}."
+    }
+  },
+  "speechSpeed": {
+    "label": "Speech speed",
+    "about": "About speech speed",
+    "intro": "Controls how fast Kruu Bingo speaks. \"Slow\" is easiest for beginners.",
+    "levels": {
+      "slow": "Slow",
+      "moderate": "Moderate",
+      "native": "Native"
+    },
+    "help": {
+      "slow": "About half the speed of natural native speech, with clear pauses — easiest for beginners.",
+      "moderate": "About three-quarters the speed of natural native speech — slower, but still flowing.",
+      "native": "Full natural, fluent native pace."
+    }
+  },
+  "captions": {
+    "turnOn": "Turn captions on",
+    "turnOff": "Turn captions off",
+    "captionLanguage": "Caption language",
+    "romanizedSuffix": "{name} (romanized)"
   }
 }

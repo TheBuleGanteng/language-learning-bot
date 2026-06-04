@@ -162,8 +162,6 @@
   "flashcards": {
     "cardProgress": "Kartu {n} dari {total}",
     "showAnswer": "Tampilkan jawaban",
-    "promptForward": "Apa kata bahasa target untuk ini?",
-    "promptReverse": "Apa artinya ini?",
     "again": "Ulangi",
     "hard": "Sulit",
     "good": "Bagus",
@@ -209,7 +207,16 @@
     "practiceAgain": "Berlatih lagi",
     "switchFlashcards": "Beralih ke kartu hafalan",
     "chooseDeck": "Pilih dek lain",
-    "returnVocab": "Kembali ke kosakata"
+    "returnVocab": "Kembali ke kosakata",
+    "couldNotStart": "Tidak dapat memulai Kruu Bingo.",
+    "couldNotConnect": "Tidak dapat terhubung ke OpenAI. Periksa kunci API Anda di Pengaturan.",
+    "connectionFailed": "Koneksi gagal. Silakan coba lagi.",
+    "baseSaved": "Penggunaan bahasa dasar disimpan",
+    "speedSaved": "Kecepatan bicara disimpan",
+    "captionsOn": "Teks aktif",
+    "captionsOff": "Teks nonaktif",
+    "captionLangSaved": "Bahasa teks disimpan",
+    "saveFailed": "Gagal menyimpan"
   },
   "vocab": {
     "title": "Kosakata",
@@ -292,5 +299,88 @@
     "selected": "{count} dipilih",
     "done": "Selesai",
     "exit": "Keluar dari pembuat dek"
+  },
+  "lessons": {
+    "title": "Pelajaran",
+    "newLesson": "Pelajaran baru",
+    "colName": "Nama",
+    "colTopic": "Topik",
+    "colDate": "Tanggal",
+    "colVocab": "Kosakata",
+    "selected": "{count} dipilih",
+    "shareUnshare": "Bagikan / Batalkan",
+    "clearSelection": "Hapus pilihan",
+    "empty": "Belum ada pelajaran. Buat pelajaran pertama Anda.",
+    "selectAria": "Pilih {name}",
+    "deleteAria": "Hapus pelajaran"
+  },
+  "lessonDelete": {
+    "title": "Hapus \"{name}\"?",
+    "reviewDesc": "Tinjau apa yang akan dihapus sebelum mengonfirmasi.",
+    "permanentlyDelete": "Ini akan menghapus secara permanen:",
+    "pdfs": "{count, plural, other {# catatan PDF}}",
+    "audio": "{count, plural, other {# berkas audio}}",
+    "links": "{count, plural, other {# tautan berguna}}",
+    "vocabDeleted": "{count, plural, other {# item kosakata}} (hanya di pelajaran ini)",
+    "images": "{count, plural, other {# gambar yang dibuat}} (untuk item kosakata tersebut)",
+    "andReassign": "Dan tetapkan ulang:",
+    "vocabReassigned": "{count, plural, other {# item kosakata}} dibagikan dengan pelajaran lain",
+    "reassignNote": "(disimpan, tapi tidak lagi terkait dengan \"{name}\")",
+    "cannotUndo": "⚠ Tindakan ini tidak dapat dibatalkan.",
+    "deleteLesson": "Hapus pelajaran",
+    "deletedToast": "Pelajaran \"{name}\" dihapus.",
+    "loadFailed": "Gagal memuat pratinjau penghapusan.",
+    "deleteFailed": "Gagal menghapus pelajaran."
+  },
+  "lessonNew": {
+    "title": "Pelajaran baru",
+    "desc": "Buat pelajaran baru. Anda bisa menambahkan kosakata, catatan, audio, dan tautan setelahnya.",
+    "name": "Nama",
+    "topic": "Topik",
+    "date": "Tanggal",
+    "optional": "(opsional)",
+    "nameRequired": "Nama wajib diisi",
+    "create": "Buat pelajaran",
+    "creating": "Membuat…",
+    "failed": "Gagal membuat pelajaran."
+  },
+  "baseLanguageUse": {
+    "label": "Penggunaan bahasa dasar",
+    "about": "Tentang penggunaan bahasa dasar",
+    "levels": {
+      "all": "Semua",
+      "frequent": "Sering",
+      "moderate": "Sedang",
+      "rarely": "Jarang",
+      "never": "Tidak pernah"
+    },
+    "help": {
+      "all": "Semuanya diucapkan dalam {target} dan {base}. Setiap frasa {target} diikuti terjemahan {base}-nya.",
+      "frequent": "Tutor sering menggunakan {base} untuk membantu Anda, dengan {target} disisipkan.",
+      "moderate": "Tutor kadang menggunakan {base} untuk memperjelas, menyeimbangkan {target} dan {base}.",
+      "rarely": "Tutor sebagian besar menggunakan {target}; hanya beralih ke {base} jika Anda meminta.",
+      "never": "Tutor hanya berbicara dalam {target} dan tidak menggunakan {base}."
+    }
+  },
+  "speechSpeed": {
+    "label": "Kecepatan bicara",
+    "about": "Tentang kecepatan bicara",
+    "intro": "Mengatur seberapa cepat Kruu Bingo berbicara. \"Lambat\" paling mudah untuk pemula.",
+    "levels": {
+      "slow": "Lambat",
+      "moderate": "Sedang",
+      "native": "Native"
+    },
+    "help": {
+      "slow": "Sekitar setengah kecepatan bicara native alami, dengan jeda jelas — paling mudah untuk pemula.",
+      "moderate": "Sekitar tiga perempat kecepatan bicara native alami — lebih lambat, tapi tetap mengalir.",
+      "native": "Kecepatan native yang sepenuhnya alami dan lancar."
+    }
+  },
+  "captions": {
+    "turnOn": "Aktifkan teks",
+    "turnOff": "Nonaktifkan teks",
+    "captionLanguage": "Bahasa teks",
+    "romanizedSuffix": "{name} (romanisasi)"
   }
 }

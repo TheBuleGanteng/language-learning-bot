@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations, useLocale } from 'next-intl';
 import {
   ChevronDown,
   ChevronRight,
@@ -40,17 +41,17 @@ interface LessonRow {
 type SortCol = 'name' | 'topic' | 'date' | 'vocab_count';
 type SortOrder = 'asc' | 'desc';
 
-const COLS: { id: SortCol; label: string; className?: string }[] = [
-  { id: 'name', label: 'Name' },
-  { id: 'topic', label: 'Topic' },
-  { id: 'date', label: 'Date' },
-  { id: 'vocab_count', label: 'Vocab', className: 'text-right' },
+const COLS: { id: SortCol; tkey: string; className?: string }[] = [
+  { id: 'name', tkey: 'colName' },
+  { id: 'topic', tkey: 'colTopic' },
+  { id: 'date', tkey: 'colDate' },
+  { id: 'vocab_count', tkey: 'colVocab', className: 'text-right' },
 ];
 
-function formatDate(d: string | null): string {
+function formatDate(d: string | null, locale: string): string {
   if (!d) return '—';
   try {
-    return new Date(`${d}T00:00:00`).toLocaleDateString(undefined, {
+    return new Date(`${d}T00:00:00`).toLocaleDateString(locale, {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -66,6 +67,8 @@ interface Props {
 
 export function LessonsIndexClient({ lang }: Props) {
   const router = useRouter();
+  const t = useTranslations('lessons');
+  const locale = useLocale();
   const [rows, setRows] = useState<LessonRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [sortCol, setSortCol] = useState<SortCol | null>(null);
@@ -133,9 +136,9 @@ export function LessonsIndexClient({ lang }: Props) {
   return (
     <div className="space-y-4">
       <header className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Lessons</h1>
+        <h1 className="text-2xl font-bold">{t('title')}</h1>
         <Button size="sm" onClick={() => setNewLessonOpen(true)}>
-          New Lesson
+          {t('newLesson')}
         </Button>
       </header>
 
@@ -160,10 +163,10 @@ export function LessonsIndexClient({ lang }: Props) {
 
       {canShareLessons && selectedIds.size > 0 && (
         <div className="sticky top-0 z-10 flex items-center gap-2 flex-wrap rounded-md border bg-background p-2 shadow-sm">
-          <span className="text-sm font-medium">{selectedIds.size} selected</span>
+          <span className="text-sm font-medium">{t('selected', { count: selectedIds.size })}</span>
           <DisplayNameGate userDisplayName={me?.displayName ?? null}>
             <Button size="xs" variant="outline" onClick={() => setShowShareDialog(true)}>
-              Share / Unshare
+              {t('shareUnshare')}
             </Button>
           </DisplayNameGate>
           <Button
@@ -172,7 +175,7 @@ export function LessonsIndexClient({ lang }: Props) {
             onClick={() => setSelectedIds(new Set())}
             className="ml-auto"
           >
-            Clear selection
+            {t('clearSelection')}
           </Button>
         </div>
       )}
@@ -200,7 +203,7 @@ export function LessonsIndexClient({ lang }: Props) {
                   onClick={() => cycleSort(c.id)}
                   className={`font-semibold cursor-pointer select-none hover:bg-muted-foreground/10 ${c.className ?? ''}`}
                 >
-                  {c.label}
+                  {t(c.tkey)}
                   {sortIcon(c.id)}
                 </TableHead>
               ))}
@@ -218,7 +221,7 @@ export function LessonsIndexClient({ lang }: Props) {
                     <Checkbox
                       checked={selectedIds.has(r.id)}
                       onCheckedChange={(c) => toggleSelected(r.id, c === true)}
-                      aria-label={`Select ${r.name}`}
+                      aria-label={t('selectAria', { name: r.name })}
                     />
                   </TableCell>
                 )}
@@ -234,7 +237,7 @@ export function LessonsIndexClient({ lang }: Props) {
                     '—'
                   )}
                 </TableCell>
-                <TableCell className="align-top">{formatDate(r.date)}</TableCell>
+                <TableCell className="align-top">{formatDate(r.date, locale)}</TableCell>
                 <TableCell className="align-top text-right tabular-nums">
                   {r.vocabCount}
                 </TableCell>
@@ -244,7 +247,7 @@ export function LessonsIndexClient({ lang }: Props) {
                 <TableCell className="w-8 align-top">
                   <button
                     type="button"
-                    aria-label="Delete lesson"
+                    aria-label={t('deleteAria')}
                     className="text-muted-foreground/40 hover:text-red-600 cursor-pointer"
                     onClick={(e) => {
                       e.stopPropagation();
@@ -262,7 +265,7 @@ export function LessonsIndexClient({ lang }: Props) {
                   colSpan={COLS.length + 2 + (canShareLessons ? 1 : 0)}
                   className="text-center py-8 text-muted-foreground"
                 >
-                  No lessons yet. Create your first lesson.
+                  {t('empty')}
                 </TableCell>
               </TableRow>
             )}

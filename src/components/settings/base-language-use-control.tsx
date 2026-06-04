@@ -1,14 +1,10 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
 import { InfoIcon } from '@/components/ui/info-icon';
-import {
-  BASE_LANGUAGE_USE_LEVELS,
-  BASE_LANGUAGE_USE_LABELS,
-  baseLanguageUseHelp,
-  type BaseLanguageUse,
-} from '@/lib/base-language-use';
+import { BASE_LANGUAGE_USE_LEVELS, type BaseLanguageUse } from '@/lib/base-language-use';
 import { cn } from '@/lib/utils';
 
 interface Props {
@@ -37,23 +33,22 @@ export function BaseLanguageUseControl({
   disabled,
   className,
 }: Props) {
+  const t = useTranslations('baseLanguageUse');
   const names = { target: targetLanguage, base: baseLanguage };
   const idx = Math.max(0, BASE_LANGUAGE_USE_LEVELS.indexOf(value));
 
   return (
     <div className={cn('space-y-2', className)}>
       <div className="flex items-center gap-1.5">
-        <Label>Base language use</Label>
-        <InfoIcon label="About base language use">
-          <p className="font-medium">{BASE_LANGUAGE_USE_LABELS[value]}</p>
-          <p className="text-muted-foreground">{baseLanguageUseHelp(value, names)}</p>
+        <Label>{t('label')}</Label>
+        <InfoIcon label={t('about')}>
+          <p className="font-medium">{t(`levels.${value}`)}</p>
+          <p className="text-muted-foreground">{t(`help.${value}`, names)}</p>
           <div className="mt-1 space-y-1 border-t pt-2">
             {BASE_LANGUAGE_USE_LEVELS.map((lvl) => (
               <p key={lvl} className="text-xs leading-snug">
-                <span className="font-medium">{BASE_LANGUAGE_USE_LABELS[lvl]}:</span>{' '}
-                <span className="text-muted-foreground">
-                  {baseLanguageUseHelp(lvl, names)}
-                </span>
+                <span className="font-medium">{t(`levels.${lvl}`)}:</span>{' '}
+                <span className="text-muted-foreground">{t(`help.${lvl}`, names)}</span>
               </p>
             ))}
           </div>
@@ -61,7 +56,7 @@ export function BaseLanguageUseControl({
       </div>
 
       <Slider
-        aria-label="Base language use"
+        aria-label={t('label')}
         min={0}
         max={BASE_LANGUAGE_USE_LEVELS.length - 1}
         step={1}
@@ -77,7 +72,7 @@ export function BaseLanguageUseControl({
       <div className="flex justify-between text-[11px] text-muted-foreground">
         {BASE_LANGUAGE_USE_LEVELS.map((lvl) => (
           <span key={lvl} className={cn(lvl === value && 'font-semibold text-foreground')}>
-            {BASE_LANGUAGE_USE_LABELS[lvl]}
+            {t(`levels.${lvl}`)}
           </span>
         ))}
       </div>

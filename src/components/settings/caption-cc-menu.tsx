@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Captions, ChevronDown, Check } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { isNonRomanScript } from '@/lib/languages';
@@ -45,10 +46,15 @@ export function CaptionCcMenu({
   className,
 }: Props) {
   const [open, setOpen] = useState(false);
+  const t = useTranslations('captions');
 
   const active = resolveCaptionLanguage(captionLanguage, targetCode);
   const labelFor = (v: CaptionLanguage) =>
-    v === 'base' ? baseName : v === 'target_romanized' ? `${targetName} (romanized)` : targetName;
+    v === 'base'
+      ? baseName
+      : v === 'target_romanized'
+        ? t('romanizedSuffix', { name: targetName })
+        : targetName;
 
   // Build the offered options; romanized only for non-roman target scripts.
   const options: CaptionLanguage[] = ['base', 'target'];
@@ -73,7 +79,7 @@ export function CaptionCcMenu({
       <button
         type="button"
         aria-pressed={enabled}
-        aria-label={enabled ? 'Turn captions off' : 'Turn captions on'}
+        aria-label={enabled ? t('turnOff') : t('turnOn')}
         disabled={toggleDisabled}
         onClick={() => onToggle(!enabled)}
         className={cn(
@@ -95,7 +101,7 @@ export function CaptionCcMenu({
           render={
             <button
               type="button"
-              aria-label="Caption language"
+              aria-label={t('captionLanguage')}
               disabled={langDisabled}
               className={cn(
                 'inline-flex items-center border-l px-1.5 transition-colors',

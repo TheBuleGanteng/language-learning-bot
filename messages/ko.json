@@ -162,8 +162,6 @@
   "flashcards": {
     "cardProgress": "{total}장 중 {n}장",
     "showAnswer": "정답 보기",
-    "promptForward": "이것의 목표 언어 단어는 무엇인가요?",
-    "promptReverse": "이것은 무슨 뜻인가요?",
     "again": "다시",
     "hard": "어려움",
     "good": "보통",
@@ -209,7 +207,16 @@
     "practiceAgain": "다시 연습",
     "switchFlashcards": "플래시카드로 전환",
     "chooseDeck": "다른 덱 선택",
-    "returnVocab": "어휘로 돌아가기"
+    "returnVocab": "어휘로 돌아가기",
+    "couldNotStart": "Kruu Bingo를 시작할 수 없습니다.",
+    "couldNotConnect": "OpenAI에 연결할 수 없습니다. 설정에서 API 키를 확인하세요.",
+    "connectionFailed": "연결에 실패했습니다. 다시 시도하세요.",
+    "baseSaved": "모국어 사용이 저장되었습니다",
+    "speedSaved": "말하기 속도가 저장되었습니다",
+    "captionsOn": "자막 켜짐",
+    "captionsOff": "자막 꺼짐",
+    "captionLangSaved": "자막 언어가 저장되었습니다",
+    "saveFailed": "저장 실패"
   },
   "vocab": {
     "title": "어휘",
@@ -292,5 +299,88 @@
     "selected": "{count}개 선택됨",
     "done": "완료",
     "exit": "덱 빌더 종료"
+  },
+  "lessons": {
+    "title": "수업",
+    "newLesson": "새 수업",
+    "colName": "이름",
+    "colTopic": "주제",
+    "colDate": "날짜",
+    "colVocab": "어휘",
+    "selected": "{count}개 선택됨",
+    "shareUnshare": "공유 / 공유 해제",
+    "clearSelection": "선택 해제",
+    "empty": "아직 수업이 없습니다. 첫 수업을 만드세요.",
+    "selectAria": "{name} 선택",
+    "deleteAria": "수업 삭제"
+  },
+  "lessonDelete": {
+    "title": "\"{name}\"을(를) 삭제할까요?",
+    "reviewDesc": "확인하기 전에 삭제될 항목을 검토하세요.",
+    "permanentlyDelete": "다음 항목이 영구적으로 삭제됩니다:",
+    "pdfs": "{count, plural, other {# 개 PDF 노트}}",
+    "audio": "{count, plural, other {# 개 오디오 파일}}",
+    "links": "{count, plural, other {# 개 유용한 링크}}",
+    "vocabDeleted": "{count, plural, other {# 개 어휘 항목}} (이 수업에만 있음)",
+    "images": "{count, plural, other {# 개 생성된 이미지}} (해당 어휘 항목용)",
+    "andReassign": "그리고 재할당:",
+    "vocabReassigned": "{count, plural, other {# 개 어휘 항목}}이(가) 다른 수업과 공유됨",
+    "reassignNote": "(유지되지만 \"{name}\"과(와) 더 이상 연결되지 않음)",
+    "cannotUndo": "⚠ 이 작업은 되돌릴 수 없습니다.",
+    "deleteLesson": "수업 삭제",
+    "deletedToast": "수업 \"{name}\"을(를) 삭제했습니다.",
+    "loadFailed": "삭제 미리보기를 불러오지 못했습니다.",
+    "deleteFailed": "수업을 삭제하지 못했습니다."
+  },
+  "lessonNew": {
+    "title": "새 수업",
+    "desc": "새 수업을 만드세요. 이후 어휘, 노트, 오디오, 링크를 추가할 수 있습니다.",
+    "name": "이름",
+    "topic": "주제",
+    "date": "날짜",
+    "optional": "(선택)",
+    "nameRequired": "이름은 필수입니다",
+    "create": "수업 만들기",
+    "creating": "만드는 중…",
+    "failed": "수업을 만들지 못했습니다."
+  },
+  "baseLanguageUse": {
+    "label": "모국어 사용",
+    "about": "모국어 사용 정보",
+    "levels": {
+      "all": "모두",
+      "frequent": "자주",
+      "moderate": "보통",
+      "rarely": "드물게",
+      "never": "안 함"
+    },
+    "help": {
+      "all": "모든 내용을 {target}와(과) {base} 둘 다로 말합니다. 모든 {target} 표현 뒤에 {base} 번역이 따라옵니다.",
+      "frequent": "튜터가 {base}를 자주 사용해 도와주며 {target}를 섞어 씁니다.",
+      "moderate": "튜터가 가끔 {base}로 설명하며 {target}와(과) {base}의 균형을 맞춥니다.",
+      "rarely": "튜터가 주로 {target}를 사용하며 요청할 때만 {base}로 돌아갑니다.",
+      "never": "튜터가 {target}로만 말하고 {base}는 사용하지 않습니다."
+    }
+  },
+  "speechSpeed": {
+    "label": "말하기 속도",
+    "about": "말하기 속도 정보",
+    "intro": "Kruu Bingo가 말하는 속도를 조절합니다. \"느림\"이 초보자에게 가장 쉽습니다.",
+    "levels": {
+      "slow": "느림",
+      "moderate": "보통",
+      "native": "원어민"
+    },
+    "help": {
+      "slow": "원어민 자연 속도의 약 절반으로, 또렷한 멈춤이 있어 초보자에게 가장 쉽습니다.",
+      "moderate": "원어민 자연 속도의 약 4분의 3 — 느리지만 여전히 자연스럽습니다.",
+      "native": "완전히 자연스럽고 유창한 원어민 속도."
+    }
+  },
+  "captions": {
+    "turnOn": "자막 켜기",
+    "turnOff": "자막 끄기",
+    "captionLanguage": "자막 언어",
+    "romanizedSuffix": "{name} (로마자)"
   }
 }

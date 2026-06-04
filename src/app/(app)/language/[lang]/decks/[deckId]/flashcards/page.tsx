@@ -326,7 +326,6 @@ export default function StudyPage() {
                   primaryText={isForward ? card.nativeText : card.targetText}
                   transliteration={isForward ? null : card.transliteration}
                   imageUrl={isForward ? null : card.imageUrl}
-                  prompt={isForward ? t('promptForward') : t('promptReverse')}
                   machine={isForward ? card.nativeMachine : false}
                 />
               </CardFace>
@@ -336,7 +335,6 @@ export default function StudyPage() {
                   primaryText={isForward ? card.targetText : card.nativeText}
                   transliteration={isForward ? card.transliteration : null}
                   imageUrl={isForward ? card.imageUrl : null}
-                  prompt={null}
                   machine={isForward ? false : card.nativeMachine}
                 />
               </CardFace>
@@ -396,15 +394,14 @@ function CardContent({
   primaryText,
   transliteration,
   imageUrl,
-  prompt,
   machine,
 }: {
   primaryText: string;
   transliteration: string | null;
   imageUrl: string | null;
-  prompt: string | null;
   machine?: boolean;
 }) {
+  const tc = useTranslations('common');
   return (
     <div className="flex flex-col items-center gap-3 text-center">
       {imageUrl && (
@@ -418,14 +415,16 @@ function CardContent({
       <div className="text-2xl font-semibold break-words">{primaryText}</div>
       {/* C2: subtle flag that this meaning was machine-translated. */}
       {machine && (
-        <div className="text-[10px] uppercase tracking-wide text-muted-foreground" title="Auto-translated into your base language">
-          Auto-translated
+        <div
+          className="text-[10px] uppercase tracking-wide text-muted-foreground"
+          title={tc('autoTranslated')}
+        >
+          {tc('autoTranslated')}
         </div>
       )}
       {transliteration && (
         <div className="text-sm text-muted-foreground">{transliteration}</div>
       )}
-      {prompt && <div className="text-xs text-muted-foreground">{prompt}</div>}
     </div>
   );
 }

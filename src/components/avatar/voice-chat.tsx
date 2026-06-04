@@ -208,7 +208,7 @@ export function VoiceChat({ mode, lang, deckId }: VoiceChatProps) {
       const cfgRes = await fetch(withBase('/api/avatar/session-config'));
       if (cancelled) return;
       if (!cfgRes.ok) {
-        toast.error('Could not start Kruu Bingo.');
+        toast.error(t('couldNotStart'));
         return;
       }
       const cfg = await cfgRes.json();
@@ -285,7 +285,7 @@ export function VoiceChat({ mode, lang, deckId }: VoiceChatProps) {
     return () => {
       cancelled = true;
     };
-  }, [mode, deckId, lang, composePrompt]);
+  }, [mode, deckId, lang, composePrompt, t]);
 
   // Tear down on unmount — stop the session and clear any pending timers so we
   // don't leak handles or fire callbacks after the component is gone.
@@ -440,8 +440,8 @@ export function VoiceChat({ mode, lang, deckId }: VoiceChatProps) {
         if (d.error === 'no_openai_key') setPhase('no-key');
         else if (d.error === 'hard_stop') setPhase('hard-stop');
         else if (d.error === 'openai_error')
-          toast.error('Could not connect to OpenAI. Check your API key in Settings.');
-        else toast.error('Connection failed. Please try again.');
+          toast.error(t('couldNotConnect'));
+        else toast.error(t('connectionFailed'));
         setStarted(false);
         return;
       }
@@ -454,7 +454,7 @@ export function VoiceChat({ mode, lang, deckId }: VoiceChatProps) {
         );
       }
     } catch {
-      toast.error('Connection failed. Please try again.');
+      toast.error(t('connectionFailed'));
       setStarted(false);
       return;
     }
@@ -530,14 +530,14 @@ export function VoiceChat({ mode, lang, deckId }: VoiceChatProps) {
       });
       if (!res.ok) {
         const d = await res.json().catch(() => ({}));
-        throw new Error(d?.error ?? 'Save failed');
+        throw new Error(d?.error ?? t('saveFailed'));
       }
-      toast.success('Base language use saved');
+      toast.success(t('baseSaved'));
     } catch (e) {
       setBaseLanguageUse(prev);
       promptRef.current = composePrompt(prev, speechSpeed);
       sessionRef.current?.updateInstructions(promptRef.current);
-      toast.error(e instanceof Error ? e.message : 'Save failed');
+      toast.error(e instanceof Error ? e.message : t('saveFailed'));
     } finally {
       setBlSaving(false);
     }
@@ -561,14 +561,14 @@ export function VoiceChat({ mode, lang, deckId }: VoiceChatProps) {
       });
       if (!res.ok) {
         const d = await res.json().catch(() => ({}));
-        throw new Error(d?.error ?? 'Save failed');
+        throw new Error(d?.error ?? t('saveFailed'));
       }
-      toast.success('Speech speed saved');
+      toast.success(t('speedSaved'));
     } catch (e) {
       setSpeechSpeed(prev);
       promptRef.current = composePrompt(baseLanguageUse, prev);
       sessionRef.current?.updateInstructions(promptRef.current);
-      toast.error(e instanceof Error ? e.message : 'Save failed');
+      toast.error(e instanceof Error ? e.message : t('saveFailed'));
     } finally {
       setSsSaving(false);
     }
@@ -588,12 +588,12 @@ export function VoiceChat({ mode, lang, deckId }: VoiceChatProps) {
       });
       if (!res.ok) {
         const d = await res.json().catch(() => ({}));
-        throw new Error(d?.error ?? 'Save failed');
+        throw new Error(d?.error ?? t('saveFailed'));
       }
-      toast.success(`Captions ${next ? 'on' : 'off'}`);
+      toast.success(next ? t('captionsOn') : t('captionsOff'));
     } catch (e) {
       setCaptionsEnabled(prev);
-      toast.error(e instanceof Error ? e.message : 'Save failed');
+      toast.error(e instanceof Error ? e.message : t('saveFailed'));
     } finally {
       setCaptionsSaving(false);
     }
@@ -613,12 +613,12 @@ export function VoiceChat({ mode, lang, deckId }: VoiceChatProps) {
       });
       if (!res.ok) {
         const d = await res.json().catch(() => ({}));
-        throw new Error(d?.error ?? 'Save failed');
+        throw new Error(d?.error ?? t('saveFailed'));
       }
-      toast.success('Caption language saved');
+      toast.success(t('captionLangSaved'));
     } catch (e) {
       setCaptionLanguage(prev);
-      toast.error(e instanceof Error ? e.message : 'Save failed');
+      toast.error(e instanceof Error ? e.message : t('saveFailed'));
     } finally {
       setCaptionLangSaving(false);
     }

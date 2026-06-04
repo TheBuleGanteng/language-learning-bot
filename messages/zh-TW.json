@@ -162,8 +162,6 @@
   "flashcards": {
     "cardProgress": "第 {n} 張，共 {total} 張",
     "showAnswer": "顯示答案",
-    "promptForward": "這個的目標語言單字是什麼？",
-    "promptReverse": "這是什麼意思？",
     "again": "重來",
     "hard": "困難",
     "good": "良好",
@@ -209,7 +207,16 @@
     "practiceAgain": "再次練習",
     "switchFlashcards": "切換到字卡",
     "chooseDeck": "選擇其他卡組",
-    "returnVocab": "返回詞彙"
+    "returnVocab": "返回詞彙",
+    "couldNotStart": "無法啟動 Kruu Bingo。",
+    "couldNotConnect": "無法連接到 OpenAI。請在設定中檢查你的 API 金鑰。",
+    "connectionFailed": "連接失敗，請重試。",
+    "baseSaved": "已儲存母語使用程度",
+    "speedSaved": "已儲存語速",
+    "captionsOn": "字幕已開啟",
+    "captionsOff": "字幕已關閉",
+    "captionLangSaved": "已儲存字幕語言",
+    "saveFailed": "儲存失敗"
   },
   "vocab": {
     "title": "詞彙",
@@ -292,5 +299,88 @@
     "selected": "已選 {count}",
     "done": "完成",
     "exit": "退出卡組建立"
+  },
+  "lessons": {
+    "title": "課程",
+    "newLesson": "新增課程",
+    "colName": "名稱",
+    "colTopic": "主題",
+    "colDate": "日期",
+    "colVocab": "詞彙",
+    "selected": "已選 {count}",
+    "shareUnshare": "分享 / 取消分享",
+    "clearSelection": "清除選擇",
+    "empty": "還沒有課程。建立你的第一個課程。",
+    "selectAria": "選擇 {name}",
+    "deleteAria": "刪除課程"
+  },
+  "lessonDelete": {
+    "title": "刪除「{name}」？",
+    "reviewDesc": "確認前請查看將被刪除的內容。",
+    "permanentlyDelete": "這將永久刪除：",
+    "pdfs": "{count, plural, other {# 個 PDF 筆記}}",
+    "audio": "{count, plural, other {# 個音訊檔案}}",
+    "links": "{count, plural, other {# 個實用連結}}",
+    "vocabDeleted": "{count, plural, other {# 個詞彙項}}（僅在此課程中）",
+    "images": "{count, plural, other {# 張生成的圖片}}（用於這些詞彙項）",
+    "andReassign": "並重新分配：",
+    "vocabReassigned": "{count, plural, other {# 個詞彙項}}與其他課程共享",
+    "reassignNote": "（保留，但不再與「{name}」關聯）",
+    "cannotUndo": "⚠ 此操作無法復原。",
+    "deleteLesson": "刪除課程",
+    "deletedToast": "已刪除課程「{name}」。",
+    "loadFailed": "無法載入刪除預覽。",
+    "deleteFailed": "刪除課程失敗。"
+  },
+  "lessonNew": {
+    "title": "新增課程",
+    "desc": "建立一個新課程。之後你可以為它新增詞彙、筆記、音訊和連結。",
+    "name": "名稱",
+    "topic": "主題",
+    "date": "日期",
+    "optional": "（可選）",
+    "nameRequired": "名稱為必填項",
+    "create": "建立課程",
+    "creating": "建立中…",
+    "failed": "建立課程失敗。"
+  },
+  "baseLanguageUse": {
+    "label": "母語使用程度",
+    "about": "關於母語使用程度",
+    "levels": {
+      "all": "全部",
+      "frequent": "頻繁",
+      "moderate": "適中",
+      "rarely": "很少",
+      "never": "從不"
+    },
+    "help": {
+      "all": "所有內容都用{target}和{base}說出。每句{target}後面都跟著{base}翻譯。",
+      "frequent": "老師經常使用{base}來幫助你，並穿插{target}。",
+      "moderate": "老師有時用{base}來澄清，力求{target}和{base}的平衡。",
+      "rarely": "老師主要使用{target}；只有在你要求時才會改用{base}。",
+      "never": "老師只說{target}，不使用{base}。"
+    }
+  },
+  "speechSpeed": {
+    "label": "語速",
+    "about": "關於語速",
+    "intro": "控制 Kruu Bingo 說話的速度。「慢速」最適合初學者。",
+    "levels": {
+      "slow": "慢速",
+      "moderate": "適中",
+      "native": "母語速度"
+    },
+    "help": {
+      "slow": "約為母語自然語速的一半，停頓清晰——最適合初學者。",
+      "moderate": "約為母語自然語速的四分之三——較慢，但仍然流暢。",
+      "native": "完全自然、流利的母語語速。"
+    }
+  },
+  "captions": {
+    "turnOn": "開啟字幕",
+    "turnOff": "關閉字幕",
+    "captionLanguage": "字幕語言",
+    "romanizedSuffix": "{name}（羅馬拼音）"
   }
 }

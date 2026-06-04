@@ -8,6 +8,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 import type { DeletionSummary } from '@/lib/lesson-deletion';
 import { withBase } from '@/lib/base-path';
 
@@ -24,6 +25,8 @@ interface DeleteLessonDialogProps {
 export function DeleteLessonDialog({
   open, onOpenChange, lessonId, lessonName, onDeleted,
 }: DeleteLessonDialogProps) {
+  const t = useTranslations('lessonDelete');
+  const tc = useTranslations('common');
   const [preview, setPreview] = useState<DeletionSummary | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -41,7 +44,7 @@ export function DeleteLessonDialog({
       .then(async (res) => {
         if (!res.ok) {
           const d = await res.json().catch(() => ({}));
-          throw new Error(d.error ?? 'Failed to load deletion preview');
+          throw new Error(d.error ?? t('loadFailed'));
         }
         return res.json() as Promise<DeletionSummary>;
       })
@@ -49,12 +52,12 @@ export function DeleteLessonDialog({
         if (!cancelled) setPreview(data);
       })
       .catch((e) => {
-        if (!cancelled) setLoadError(e instanceof Error ? e.message : 'Failed to load preview');
+        if (!cancelled) setLoadError(e instanceof Error ? e.message : t('loadFailed'));
       });
     return () => {
       cancelled = true;
     };
-  }, [open, lessonId]);
+  }, [open, lessonId, t]);
 
   async function handleDelete() {
     if (deleting) return;
@@ -64,20 +67,14 @@ export function DeleteLessonDialog({
       const res = await fetch(withBase(`/api/lessons/${lessonId}`), { method: 'DELETE' });
       if (!res.ok) {
         const d = await res.json().catch(() => ({}));
-        throw new Error(d.error ?? 'Failed to delete lesson');
+        throw new Error(d.error ?? t('deleteFailed'));
       }
       const summary = (await res.json()) as DeletionSummary;
-      toast.success(
-        `Lesson '${summary.lessonName}' deleted. ${summary.vocabDeletedCount} vocab ${
-          summary.vocabDeletedCount === 1 ? 'item' : 'items'
-        } removed, ${summary.vocabReassignedCount} vocab ${
-          summary.vocabReassignedCount === 1 ? 'item' : 'items'
-        } kept.`,
-      );
+      toast.success(t('deletedToast', { name: summary.lessonName }));
       onOpenChange(false);
       onDeleted(summary);
     } catch (e) {
-      setDeleteError(e instanceof Error ? e.message : 'Failed to delete lesson');
+      setDeleteError(e instanceof Error ? e.message : t('deleteFailed'));
       setDeleting(false);
     }
   }
@@ -88,10 +85,8 @@ export function DeleteLessonDialog({
     <Dialog open={open} onOpenChange={(o) => { if (!deleting) onOpenChange(o); }}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Delete &ldquo;{displayName}&rdquo;?</DialogTitle>
-          <DialogDescription>
-            Review what will be removed before confirming.
-          </DialogDescription>
+          <DialogTitle>{t('title', { name: displayName })}</DialogTitle>
+          <DialogDescription>{t('reviewDesc')}</DialogDescription>
         </DialogHeader>
 
         <div className="py-2 text-sm">
@@ -100,41 +95,31 @@ export function DeleteLessonDialog({
           ) : !preview ? (
             <div className="flex items-center gap-2 text-muted-foreground py-4">
               <Loader2 className="h-4 w-4 animate-spin" />
-              Loading…
+              {tc('loading')}
             </div>
           ) : (
             <div className="space-y-4">
               <div>
-                <p className="font-medium">This will permanently delete:</p>
+                <p className="font-medium">{t('permanentlyDelete')}</p>
                 <ul className="mt-1 list-disc pl-5 space-y-0.5 text-muted-foreground">
-                  <li>{preview.pdfCount} PDF {preview.pdfCount === 1 ? 'note' : 'notes'}</li>
-                  <li>{preview.audioCount} audio {preview.audioCount === 1 ? 'file' : 'files'}</li>
-                  <li>{preview.linkCount} useful {preview.linkCount === 1 ? 'link' : 'links'}</li>
-                  <li>
-                    {preview.vocabDeletedCount} vocab{' '}
-                    {preview.vocabDeletedCount === 1 ? 'item' : 'items'} (only in this lesson)
-                  </li>
-                  <li>
-                    {preview.imageCount} generated{' '}
-                    {preview.imageCount === 1 ? 'image' : 'images'} (for those vocab items)
-                  </li>
+                  <li>{t('pdfs', { count: preview.pdfCount })}</li>
+                  <li>{t('audio', { count: preview.audioCount })}</li>
+                  <li>{t('links', { count: preview.linkCount })}</li>
+                  <li>{t('vocabDeleted', { count: preview.vocabDeletedCount })}</li>
+                  <li>{t('images', { count: preview.imageCount })}</li>
                 </ul>
               </div>
               <div>
-                <p className="font-medium">And reassign:</p>
+                <p className="font-medium">{t('andReassign')}</p>
                 <ul className="mt-1 list-disc pl-5 space-y-0.5 text-muted-foreground">
                   <li>
-                    {preview.vocabReassignedCount} vocab{' '}
-                    {preview.vocabReassignedCount === 1 ? 'item' : 'items'} shared with other
-                    lessons
+                    {t('vocabReassigned', { count: preview.vocabReassignedCount })}
                     <br />
-                    <span className="text-xs">
-                      (kept, but no longer associated with &ldquo;{displayName}&rdquo;)
-                    </span>
+                    <span className="text-xs">{t('reassignNote', { name: displayName })}</span>
                   </li>
                 </ul>
               </div>
-              <p className="text-amber-600">⚠ This action cannot be undone.</p>
+              <p className="text-amber-600">{t('cannotUndo')}</p>
               {deleteError && <p className="text-red-600">{deleteError}</p>}
             </div>
           )}
@@ -142,7 +127,7 @@ export function DeleteLessonDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={deleting}>
-            Cancel
+            {tc('cancel')}
           </Button>
           <Button
             variant="destructive"
@@ -152,12 +137,12 @@ export function DeleteLessonDialog({
             {deleting ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Deleting…
+                {tc('deleting')}
               </>
             ) : (
               <>
                 <Trash2 className="h-4 w-4" />
-                Delete lesson
+                {t('deleteLesson')}
               </>
             )}
           </Button>

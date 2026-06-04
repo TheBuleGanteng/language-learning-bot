@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
@@ -30,6 +31,8 @@ export function NewLessonDialog({
   open, onOpenChange, lang, mode = 'navigate', onCreated,
 }: NewLessonDialogProps) {
   const router = useRouter();
+  const t = useTranslations('lessonNew');
+  const tc = useTranslations('common');
   const [name, setName] = useState('');
   const [topicHtml, setTopicHtml] = useState('');
   const [date, setDate] = useState('');  // ISO date string, e.g., "2026-05-28"
@@ -47,7 +50,7 @@ export function NewLessonDialog({
   async function handleSave() {
     if (saving) return;
     if (!name.trim()) {
-      setError('Name is required');
+      setError(t('nameRequired'));
       return;
     }
     setSaving(true);
@@ -64,7 +67,7 @@ export function NewLessonDialog({
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error ?? 'Failed to create lesson');
+        throw new Error(data.error ?? t('failed'));
       }
       const lesson = await res.json();
 
@@ -80,7 +83,7 @@ export function NewLessonDialog({
         router.push(lessonPath(lang, lesson.id));
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to create lesson');
+      setError(e instanceof Error ? e.message : t('failed'));
       setSaving(false);
     }
   }
@@ -89,14 +92,12 @@ export function NewLessonDialog({
     <Dialog open={open} onOpenChange={(o) => { if (!o) reset(); onOpenChange(o); }}>
       <DialogContent className="max-w-xl">
         <DialogHeader>
-          <DialogTitle>New Lesson</DialogTitle>
-          <DialogDescription>
-            Create a new lesson. You can add vocab, notes, audio, and links to it afterward.
-          </DialogDescription>
+          <DialogTitle>{t('title')}</DialogTitle>
+          <DialogDescription>{t('desc')}</DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div className="space-y-1">
-            <Label htmlFor="lesson-name">Name</Label>
+            <Label htmlFor="lesson-name">{t('name')}</Label>
             <Input
               id="lesson-name"
               value={name}
@@ -107,11 +108,11 @@ export function NewLessonDialog({
             />
           </div>
           <div className="space-y-1">
-            <Label>Topic <span className="text-muted-foreground">(optional)</span></Label>
+            <Label>{t('topic')} <span className="text-muted-foreground">{t('optional')}</span></Label>
             <RichTextEditor value={topicHtml} onChange={setTopicHtml} />
           </div>
           <div className="space-y-1">
-            <Label htmlFor="lesson-date">Date <span className="text-muted-foreground">(optional)</span></Label>
+            <Label htmlFor="lesson-date">{t('date')} <span className="text-muted-foreground">{t('optional')}</span></Label>
             <Input
               id="lesson-date"
               type="date"
@@ -124,10 +125,10 @@ export function NewLessonDialog({
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
-            Cancel
+            {tc('cancel')}
           </Button>
           <Button onClick={handleSave} disabled={saving || !name.trim()}>
-            {saving ? 'Creating…' : 'Create lesson'}
+            {saving ? t('creating') : t('create')}
           </Button>
         </DialogFooter>
       </DialogContent>
