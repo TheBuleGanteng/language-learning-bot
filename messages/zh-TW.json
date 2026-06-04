@@ -258,7 +258,9 @@
     "showingAll": "顯示全部 {total} 項",
     "showingOf": "顯示 {total} 項中的 {n} 項",
     "sortLessons": "課程",
-    "sortTags": "標籤"
+    "sortTags": "標籤",
+    "deleteItemDesc": "此操作無法復原。該詞條及其課程和標籤關聯都將被移除。",
+    "deleteFailed": "刪除失敗"
   },
   "extraction": {
     "title": "從照片擷取詞彙",

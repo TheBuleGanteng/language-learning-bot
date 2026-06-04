@@ -408,11 +408,11 @@ function VocabInner() {
     if (!deleteId) return;
     const res = await fetch(withBase(`/api/vocab/${deleteId}`), { method: 'DELETE' });
     if (res.ok) {
-      toast.success('Deleted');
+      toast.success(t('deleted'));
       setItems((prev) => prev.filter((i) => i.id !== deleteId));
       setTotal((t) => Math.max(0, t - 1));
     } else {
-      toast.error('Delete failed');
+      toast.error(t('deleteFailed'));
     }
     setDeleteId(null);
   }
@@ -879,7 +879,7 @@ function VocabInner() {
                         variant="outline"
                         className="border-blue-300 text-blue-700 hover:bg-blue-50 hover:text-blue-800"
                       >
-                        <Link href={vocabPath(lang, `/${i.id}`)}>Edit</Link>
+                        <Link href={vocabPath(lang, `/${i.id}`)}>{tc('edit')}</Link>
                       </Button>
                       <Button
                         size="xs"
@@ -887,7 +887,7 @@ function VocabInner() {
                         className="text-red-600 hover:bg-red-50 hover:text-red-700"
                         onClick={() => setDeleteId(i.id)}
                       >
-                        Delete
+                        {tc('delete')}
                       </Button>
                     </div>
                   </TableCell>
@@ -924,15 +924,12 @@ function VocabInner() {
       <AlertDialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this vocab item?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. The item, its lesson assignment, and its tag
-              assignments will be removed.
-            </AlertDialogDescription>
+            <AlertDialogTitle>{t('deleteTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('deleteItemDesc')}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={doDelete}>Delete</AlertDialogAction>
+            <AlertDialogCancel>{tc('cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={doDelete}>{tc('delete')}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

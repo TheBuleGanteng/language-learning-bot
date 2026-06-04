@@ -258,7 +258,9 @@
     "showingAll": "Menampilkan semua {total} item",
     "showingOf": "Menampilkan {n} dari {total} item",
     "sortLessons": "Pelajaran",
-    "sortTags": "Tag"
+    "sortTags": "Tag",
+    "deleteItemDesc": "Tindakan ini tidak dapat dibatalkan. Item beserta penetapan pelajaran dan tag-nya akan dihapus.",
+    "deleteFailed": "Gagal menghapus"
   },
   "extraction": {
     "title": "Ekstrak kosakata dari foto",

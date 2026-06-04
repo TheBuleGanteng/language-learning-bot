@@ -258,7 +258,9 @@
     "showingAll": "Showing all {total} items",
     "showingOf": "Showing {n} of {total} items",
     "sortLessons": "Lessons",
-    "sortTags": "Tags"
+    "sortTags": "Tags",
+    "deleteItemDesc": "This action cannot be undone. The item, its lesson assignment, and its tag assignments will be removed.",
+    "deleteFailed": "Delete failed"
   },
   "extraction": {
     "title": "Extract vocabulary from photos",

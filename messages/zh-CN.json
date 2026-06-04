@@ -258,7 +258,9 @@
     "showingAll": "显示全部 {total} 项",
     "showingOf": "显示 {total} 项中的 {n} 项",
     "sortLessons": "课程",
-    "sortTags": "标签"
+    "sortTags": "标签",
+    "deleteItemDesc": "此操作无法撤销。该词条及其课程和标签关联都将被移除。",
+    "deleteFailed": "删除失败"
   },
   "extraction": {
     "title": "从照片提取词汇",

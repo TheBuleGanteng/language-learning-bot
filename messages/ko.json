@@ -258,7 +258,9 @@
     "showingAll": "전체 {total}개 표시 중",
     "showingOf": "{total}개 중 {n}개 표시 중",
     "sortLessons": "수업",
-    "sortTags": "태그"
+    "sortTags": "태그",
+    "deleteItemDesc": "이 작업은 되돌릴 수 없습니다. 항목과 해당 수업·태그 연결이 모두 삭제됩니다.",
+    "deleteFailed": "삭제 실패"
   },
   "extraction": {
     "title": "사진에서 어휘 추출",
