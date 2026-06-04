@@ -137,9 +137,13 @@ export class RealtimeSession {
       case 'output_audio_buffer.started':
         this.config.onSpeaking();
         break;
+      // AI/model transcript. GA renamed these to response.output_audio_transcript.*;
+      // handle both GA and legacy beta names so captions work either way.
+      case 'response.output_audio_transcript.delta':
       case 'response.audio_transcript.delta':
         this.assistantBuffer += evt.delta ?? '';
         break;
+      case 'response.output_audio_transcript.done':
       case 'response.audio_transcript.done':
         if (this.assistantBuffer) {
           this.config.onTranscript(this.assistantBuffer, 'assistant');

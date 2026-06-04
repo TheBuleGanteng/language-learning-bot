@@ -1439,3 +1439,27 @@ transcript-scroll ref/effect.
 successfully" + "Finished TypeScript") all passed. Routes verified to
 compile/serve on the dev server (settings 307→login, /api/settings 401). The
 live caption behavior (mic) still needs a logged-in browser smoke test.
+
+## 2026-06-04 — AI captions missing: beta vs GA transcript event name
+**Symptom**: The user's captions appeared but the AI tutor's never did, even
+after the previous task consolidated the caption display.
+**Root cause**: `src/lib/realtime.ts` listened for the BETA model-transcript
+events `response.audio_transcript.delta` / `.done`. The GA Realtime API
+(`gpt-realtime` via `/v1/realtime/calls`, which this app uses) renamed them to
+`response.output_audio_transcript.delta` / `.done`, so the assistant transcript
+was never captured and `onTranscript(text,'assistant')` never fired. The user
+event (`conversation.item.input_audio_transcription.completed`) is unchanged in
+GA, which is why only the AI captions were missing. The prior "verified by
+reading the handler" check could not catch a wrong event NAME — the handler
+looked correct but matched the wrong string.
+**Fix**: Added the GA event names as fall-through `case` labels alongside the
+beta names (both delta and done), so the assistant transcript is captured
+regardless of which the session emits; beta names kept as fallback. No
+caption-component change was needed — it already renders the `'assistant'`
+role line.
+**Live confirmation**: NOT performed — no microphone is available in this
+environment, so the temporary unhandled-event `default:` logger from §2 would
+observe nothing and was not added/committed. The fix is authoritative from the
+GA docs; the user should confirm live (with captions ON, the tutor's reply
+should appear and no AI-transcript event should hit an "unhandled" log). If the
+live event name differs, add it to the same branches.
