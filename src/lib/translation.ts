@@ -19,20 +19,23 @@ function client(): v2.Translate {
 }
 
 /**
- * Translate `text` from `sourceLangCode` to `targetLangCode` (2-letter codes,
- * e.g. 'th' → 'en'). Returns the translated string. Never logs the text.
+ * Translate `text` into `targetLangCode` (2-letter codes, e.g. 'en'). Pass
+ * `sourceLangCode` when the source language is known (e.g. the tutor's line is
+ * always the target language); omit it to let Google auto-detect the source
+ * (the user may speak either their base or the target language). Returns the
+ * translated string. Never logs the text.
  */
 export async function translateText(
   text: string,
-  sourceLangCode: string,
   targetLangCode: string,
+  sourceLangCode?: string | null,
 ): Promise<string> {
   const trimmed = text.trim();
   if (!trimmed) return text;
-  // No-op when source and destination are the same language.
-  if (sourceLangCode === targetLangCode) return text;
+  // No-op when a known source equals the destination.
+  if (sourceLangCode && sourceLangCode === targetLangCode) return text;
   const [translated] = await client().translate(trimmed, {
-    from: sourceLangCode,
+    ...(sourceLangCode ? { from: sourceLangCode } : {}),
     to: targetLangCode,
     format: 'text',
   });

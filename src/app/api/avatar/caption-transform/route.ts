@@ -19,7 +19,8 @@ import type { Provider } from '@/lib/models';
 
 const schema = z.object({
   text: z.string().min(1).max(2000),
-  mode: z.enum(['base', 'target_romanized']),
+  mode: z.enum(['base', 'target', 'target_romanized']),
+  speaker: z.enum(['tutor', 'user']),
 });
 
 // Maps a provider to the aliased column selected below.
@@ -31,11 +32,18 @@ const KEY_ALIAS: Record<Provider, 'anth' | 'openai' | 'gemini'> = {
 
 /**
  * POST /api/avatar/caption-transform — transform one finalized caption line.
- * - mode 'base': Google Cloud Translation (target → base language). App-level
- *   cost, NOT logged to ai_spend_log.
- * - mode 'target_romanized': LLM transliteration using the user's romanization
- *   model + key. Billed to ai_spend_log and subject to the hard stop.
- * Mode 'target' never reaches here (the client renders the raw transcript).
+ * Behaviour is decided by (speaker, mode), matching the rendering table:
+ *
+ *   mode              tutor's line                 user's input
+ *   ----------------  ---------------------------  ------------------------------
+ *   target            (passthrough — never calls)  translate → target script (Google)
+ *   target_romanized  romanize → Latin (LLM)       translate→target (Google) then romanize (LLM)
+ *   base              translate → base (Google)     translate → base (Google)
+ *
+ * The tutor's line is always the target language, so its translations use a
+ * known source; the user may speak either language, so theirs auto-detect the
+ * source. Google translation is an app-level cost (NOT logged). The LLM
+ * romanization is billed to ai_spend_log and subject to the hard stop.
  */
 export async function POST(req: Request) {
   const session = await auth();
@@ -52,7 +60,7 @@ export async function POST(req: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: 'Invalid input' }, { status: 400 });
   }
-  const { text, mode } = parsed.data;
+  const { text, mode, speaker } = parsed.data;
 
   const [u] = await db
     .select({
@@ -65,10 +73,16 @@ export async function POST(req: Request) {
   const targetCode = normalizeLanguageCode(u?.targetLanguage);
   const baseCode = normalizeLanguageCode(u?.nativeLanguage);
 
-  // --- base: Google translation (no spend tracking) ---
-  if (mode === 'base') {
+  // --- Google translation only (no spend tracking): 'base' for either speaker,
+  // and 'target' for the user (the tutor's 'target' line is a client-side
+  // passthrough and never calls this route). ---
+  if (mode === 'base' || mode === 'target') {
+    const to = mode === 'base' ? baseCode : targetCode;
+    // The tutor always speaks the target language, so its source is known; the
+    // user may speak either language, so let Google auto-detect (omit source).
+    const from = speaker === 'tutor' ? targetCode : undefined;
     try {
-      const translated = await translateText(text, targetCode, baseCode);
+      const translated = await translateText(text, to, from);
       return NextResponse.json({ text: translated });
     } catch (err) {
       console.error('caption translate error:', err instanceof Error ? err.message : err);
@@ -76,7 +90,20 @@ export async function POST(req: Request) {
     }
   }
 
-  // --- target_romanized: user's LLM (billed + hard-stop enforced) ---
+  // --- target_romanized: user's LLM (billed + hard-stop enforced). The tutor's
+  // line is already the target language; the user's line is first translated to
+  // the target language (Google, app-level) so the romanizer always receives
+  // target-language text. ---
+  let toRomanize = text;
+  if (speaker === 'user') {
+    try {
+      toRomanize = await translateText(text, targetCode);
+    } catch (err) {
+      console.error('caption romanize-translate error:', err instanceof Error ? err.message : err);
+      return NextResponse.json({ error: 'translate_failed' }, { status: 502 });
+    }
+  }
+
   const [s] = await db
     .select({
       romanizationModel: userSettings.romanizationModel,
@@ -103,8 +130,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'key_decrypt_failed' }, { status: 500 });
   }
 
-  // Estimate cost from text length and enforce the hard stop before spending.
-  const estCost = (text.length / 1000) * romanizationModelCostPer1kChars(model);
+  // Estimate cost from the (possibly translated) text length and enforce the
+  // hard stop before spending.
+  const estCost = (toRomanize.length / 1000) * romanizationModelCostPer1kChars(model);
   try {
     await enforceHardStop(userId, estCost);
   } catch (err) {
@@ -119,12 +147,12 @@ export async function POST(req: Request) {
       provider,
       model,
       apiKey,
-      text,
+      text: toRomanize,
       targetLanguageName: languageName(targetCode) || 'the target language',
     });
     // Bill it like the other LLM features (counts toward the global monthly cap).
     await logSpend(userId, 'avatar', estCost, `caption romanization (${model})`);
-    return NextResponse.json({ text: romanized || text });
+    return NextResponse.json({ text: romanized || toRomanize });
   } catch (err) {
     console.error('caption romanize error:', err instanceof Error ? err.message : err);
     return NextResponse.json({ error: 'romanize_failed' }, { status: 502 });

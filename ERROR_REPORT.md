@@ -1487,3 +1487,50 @@ three modes per §10.
 **Deploy note**: the prod GCP service account needs the **Cloud Translation API
 User** role and the Translation API enabled before/at deploy (additive
 migration auto-applied by the deploy flow). No new prod secret.
+
+## 2026-06-04 — Caption transforms not applying (per-speaker model) + CC control
+**Symptoms**: (1) "Thai (romanized)" captions still showed Thai script;
+(2) "Thai" mode showed stray roman text (the user's own non-Thai lines were not
+converted to Thai).
+**Root cause — empirical note**: live browser/mic confirmation was NOT possible
+in this environment (no display, no microphone, romanization needs a logged-in
+user's stored key), so the causes were traced in code rather than observed in
+the Network tab.
+- **Bug #2 (deterministic, confirmed in code)**: `captionText()` returned the
+  raw transcript for BOTH speakers whenever `mode === 'target'`. The intended
+  model is per-speaker: in target mode the tutor's line is a passthrough but the
+  USER's line must be translated into the target script. The user's line was
+  never transformed, so an English utterance stayed English ("stray roman").
+  The original design treated `target` as a universal passthrough.
+- **Bug #1**: in romanized mode the client DOES call the transform endpoint, so
+  raw Thai can only survive if the endpoint returns non-OK and the client's
+  silent fallback (`res.ok && data.text ? data.text : text`) masks it. Most
+  likely trigger: the default romanization model is Anthropic
+  (`claude-haiku-4-5`) while a voice user typically has only an OpenAI key
+  stored → route returns `400 no_key` → fallback substitutes raw Thai with no
+  signal. The structural cause is the silent fallback with no error surfacing.
+**Fix**:
+- Implemented the per-`(speaker, mode)` rendering table in the transform route
+  and client. Route now takes `{ text, mode, speaker }`; `mode` enum extended to
+  include `'target'` (for the user's line). Tutor lines translate from a known
+  source (target language); user lines auto-detect the source (Google).
+  `target_romanized` for the user is translate→target (Google) then romanize
+  (LLM); for the tutor it romanizes directly. `translateText` now takes an
+  optional source (omitted → Google auto-detect).
+- Client caches by `speaker+mode+text`; the ONLY no-call case is tutor+target
+  (passthrough). Transform failures are now logged to the dev console with
+  `(speaker/mode, status, error)` so a silent fall-back-to-raw can never again
+  mask a broken transform.
+- Replaced the caption-type dropdown on the voice page with a YouTube-style CC
+  control (`caption-cc-menu.tsx`): a CC on/off button plus a caret that opens a
+  hover(desktop)+tap(mobile) Popover menu of caption types with a checkmark on
+  the active one; romanized is offered only for non-roman targets; selecting a
+  type implies captions ON. The settings page keeps its labeled
+  `CaptionLanguageSelect`, and both read/write the shared `caption_language`.
+**Quality gates**: lint, 75 tests, `tsc --noEmit`, and webpack "Compiled
+successfully" all pass (the local full build hangs at the trace/TS tail on a
+cold cache, as documented — benign). No schema change was needed.
+**Live confirmation**: NOT performed (no browser/mic). The user should verify
+each cell of the §3 table per §6, and — for the romanized path — confirm their
+romanization model's provider matches a stored API key (otherwise the route
+returns `no_key`, now visible in the console instead of silently masked).

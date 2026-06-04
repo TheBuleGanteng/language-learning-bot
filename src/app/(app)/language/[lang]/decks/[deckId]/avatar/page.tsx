@@ -26,9 +26,8 @@ import { RealtimeSession } from '@/lib/realtime';
 import { buildKruuBingoPrompt } from '@/lib/kruu-bingo-prompt';
 import { voiceModelCostPerMinute } from '@/lib/voice-models';
 import { BaseLanguageUseControl } from '@/components/settings/base-language-use-control';
-import { CaptionsToggle } from '@/components/settings/captions-toggle';
+import { CaptionCcMenu } from '@/components/settings/caption-cc-menu';
 import {
-  CaptionLanguageSelect,
   resolveCaptionLanguage,
   type CaptionLanguage,
 } from '@/components/settings/caption-language-select';
@@ -569,16 +568,21 @@ export default function AvatarPage() {
   // degrades to 'target' if the target language is roman-script.
   const captionMode = resolveCaptionLanguage(captionLanguage, targetCode);
 
-  // For 'base'/'target_romanized', transform each finalized line server-side and
-  // swap it in once ready (raw text shows until then). Cache by mode+text so
-  // repeated/identical lines don't re-call the API.
+  // Transform each finalized line server-side per (speaker, mode) and swap it in
+  // once ready (raw text shows until then). The ONLY no-call case is the tutor's
+  // line in 'target' mode (a pure passthrough); every other (speaker, mode) is
+  // transformed. Cache by speaker+mode+text so repeats don't re-call the API.
   useEffect(() => {
-    if (!captionsEnabled || captionMode === 'target') return;
-    const lines = [latestAssistant?.text, latestUser?.text].filter(
-      (t): t is string => !!t && t.trim().length > 0,
-    );
-    for (const text of lines) {
-      const key = `${captionMode}::${text}`;
+    if (!captionsEnabled) return;
+    const lines: { speaker: 'tutor' | 'user'; text: string }[] = [];
+    if (latestAssistant?.text?.trim() && captionMode !== 'target') {
+      lines.push({ speaker: 'tutor', text: latestAssistant.text });
+    }
+    if (latestUser?.text?.trim()) {
+      lines.push({ speaker: 'user', text: latestUser.text });
+    }
+    for (const { speaker, text } of lines) {
+      const key = `${speaker}::${captionMode}::${text}`;
       if (captionCache[key] !== undefined || transformInFlightRef.current.has(key)) continue;
       transformInFlightRef.current.add(key);
       (async () => {
@@ -586,13 +590,22 @@ export default function AvatarPage() {
           const res = await fetch(withBase('/api/avatar/caption-transform'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text, mode: captionMode }),
+            body: JSON.stringify({ text, mode: captionMode, speaker }),
           });
           const data = await res.json().catch(() => ({}));
+          if (!res.ok || typeof data.text !== 'string' || !data.text) {
+            // Surface the failure so a silent fall-back-to-raw never again masks
+            // a broken transform (e.g. missing romanization key, translate auth).
+            console.error(
+              `caption transform failed (${speaker}/${captionMode}, ${res.status}):`,
+              data?.error ?? 'unknown error',
+            );
+          }
           // On any failure, cache the raw text so we keep it and don't retry.
           const out = res.ok && typeof data.text === 'string' && data.text ? data.text : text;
           setCaptionCache((prev) => ({ ...prev, [key]: out }));
-        } catch {
+        } catch (err) {
+          console.error(`caption transform request error (${speaker}/${captionMode}):`, err);
           setCaptionCache((prev) => ({ ...prev, [key]: text }));
         } finally {
           transformInFlightRef.current.delete(key);
@@ -601,10 +614,12 @@ export default function AvatarPage() {
     }
   }, [captionsEnabled, captionMode, latestAssistant?.text, latestUser?.text, captionCache]);
 
-  // Display text for a caption line under the current mode (raw until transformed).
-  function captionText(text: string): string {
-    if (captionMode === 'target') return text;
-    return captionCache[`${captionMode}::${text}`] ?? text;
+  // Display text for a caption line under the current (speaker, mode). The
+  // tutor's line in 'target' mode renders as-is (passthrough); everything else
+  // shows the transformed text once ready, raw until then.
+  function captionText(text: string, speaker: 'tutor' | 'user'): string {
+    if (captionMode === 'target' && speaker === 'tutor') return text;
+    return captionCache[`${speaker}::${captionMode}::${text}`] ?? text;
   }
 
   // ---- render ----------------------------------------------------------
@@ -696,7 +711,7 @@ export default function AvatarPage() {
                         <span className="mr-1 text-[10px] uppercase tracking-wide text-muted-foreground">
                           Kruu Bingo
                         </span>
-                        {captionText(latestAssistant.text)}
+                        {captionText(latestAssistant.text, 'tutor')}
                       </span>
                     </div>
                   )}
@@ -706,7 +721,7 @@ export default function AvatarPage() {
                         <span className="mr-1 text-[10px] uppercase tracking-wide text-primary-foreground/70">
                           You
                         </span>
-                        {captionText(latestUser.text)}
+                        {captionText(latestUser.text, 'user')}
                       </span>
                     </div>
                   )}
@@ -752,22 +767,17 @@ export default function AvatarPage() {
             />
             <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-3">
               <span className="text-sm font-medium">Captions</span>
-              <div className="flex items-center gap-2">
-                <CaptionLanguageSelect
-                  value={captionLanguage}
-                  onChange={onCaptionLanguageChange}
-                  targetCode={targetCode}
-                  targetName={targetName}
-                  baseName={baseName}
-                  disabled={captionLangSaving || !captionsEnabled}
-                  className="h-9 w-auto min-w-32"
-                />
-                <CaptionsToggle
-                  enabled={captionsEnabled}
-                  onToggle={onToggleCaptions}
-                  disabled={captionsSaving}
-                />
-              </div>
+              <CaptionCcMenu
+                enabled={captionsEnabled}
+                onToggle={onToggleCaptions}
+                captionLanguage={captionLanguage}
+                onCaptionLanguageChange={onCaptionLanguageChange}
+                targetCode={targetCode}
+                targetName={targetName}
+                baseName={baseName}
+                toggleDisabled={captionsSaving}
+                langDisabled={captionLangSaving}
+              />
             </div>
           </div>
 
