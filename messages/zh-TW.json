@@ -216,7 +216,10 @@
     "captionsOn": "字幕已開啟",
     "captionsOff": "字幕已關閉",
     "captionLangSaved": "已儲存字幕語言",
-    "saveFailed": "儲存失敗"
+    "saveFailed": "儲存失敗",
+    "micDenied": "麥克風權限被拒絕。請啟用麥克風以與 Kruu Bingo 對話。",
+    "apiError": "語音服務回報了一個錯誤。請重試。",
+    "spendWarning": "本月你已花費 {spent}（警告閾值：{limit}）。"
   },
   "vocab": {
     "title": "詞彙",
@@ -224,7 +227,7 @@
     "searchPlaceholder": "搜尋你的詞彙…",
     "empty": "還沒有詞彙。新增你的第一個單字開始吧。",
     "colImage": "圖片",
-    "colActions": "",
+    "colActions": "操作",
     "deleteTitle": "刪除這個單字？",
     "deleteDesc": "此操作無法復原。",
     "deleted": "單字已刪除。",
@@ -298,7 +301,8 @@
     "desc": "選擇要新增到新卡組的詞彙。",
     "selected": "已選 {count}",
     "done": "完成",
-    "exit": "退出卡組建立"
+    "exit": "退出卡組建立",
+    "finish": "建立卡組"
   },
   "lessons": {
     "title": "課程",

@@ -28,12 +28,13 @@ import {
 } from '@/components/ui/select';
 import { FilterAccordion } from '@/components/vocab/filter-accordion';
 import { BulkSelectBar } from '@/components/vocab/bulk-select-bar';
+import { AddToDeckDialog } from '@/components/vocab/add-to-deck-dialog';
 import { colorForLesson, colorForTag } from '@/lib/colors';
 import { cn } from '@/lib/utils';
 import { vocabPath, lessonPath } from '@/lib/routes';
-import { languageName } from '@/lib/languages';
-import { localeEnglishName } from '@/lib/locales';
-import { useTranslations } from 'next-intl';
+import { languageName, normalizeLanguageCode } from '@/lib/languages';
+import { localeEnglishName, displayLanguageName, localeLanguageSubtag } from '@/lib/locales';
+import { useTranslations, useLocale } from 'next-intl';
 import {
   Table,
   TableBody,
@@ -131,6 +132,7 @@ function VocabInner() {
   const t = useTranslations('vocab');
   const tc = useTranslations('common');
   const tdb = useTranslations('deckBuilder');
+  const locale = useLocale();
 
   const [me, setMe] = useState<MeResponse | null>(null);
   const [lessons, setLessons] = useState<Lesson[]>([]);
@@ -149,6 +151,7 @@ function VocabInner() {
   const [refetchCounter, setRefetchCounter] = useState(0);
   const [showExtraction, setShowExtraction] = useState(false);
   const [newLessonOpen, setNewLessonOpen] = useState(false);
+  const [deckBuilderDialogOpen, setDeckBuilderDialogOpen] = useState(false);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const selectedLessons = useMemo(() => new Set(search.getAll('lesson')), [search]);
@@ -167,8 +170,19 @@ function VocabInner() {
   const pageSize: PageSizeOption = parsePageSizeOpt(search.get('pageSize'));
   const [searchInput, setSearchInput] = useState(searchTerm);
 
-  const targetLabel = languageName(me?.targetLanguage ?? lang);
-  const nativeLabel = localeEnglishName(me?.nativeLanguage);
+  // Header language names follow the active UI locale (e.g. th → "泰语" in zh-CN).
+  const targetLabel = displayLanguageName(
+    locale,
+    normalizeLanguageCode(me?.targetLanguage ?? lang),
+    languageName(me?.targetLanguage ?? lang) || 'Target',
+  );
+  // The meaning column is rendered in the user's base language (= active locale),
+  // so its header is that language's name in the active locale.
+  const nativeLabel = displayLanguageName(
+    locale,
+    localeLanguageSubtag(locale),
+    localeEnglishName(me?.nativeLanguage) || 'Native',
+  );
 
   const SORT_COLS: { id: SortCol; label: string }[] = [
     { id: 'thai', label: targetLabel || 'Target' },
@@ -694,19 +708,49 @@ function VocabInner() {
         </div>
 
         {deckBuilderMode && (
-          <div className="sticky top-16 z-30 -mx-px rounded-md border-2 border-primary bg-primary/10 px-4 py-2.5 shadow-sm">
+          <div className="sticky top-16 z-30 rounded-lg bg-primary px-4 py-3 text-primary-foreground shadow-lg ring-1 ring-primary/40">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-primary">{tdb('title')}</p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-base font-bold">{tdb('title')}</p>
+                <p className="text-xs text-primary-foreground/80">
                   {tdb('desc')} · {tdb('selected', { count: selectedIds.size })}
                 </p>
               </div>
-              <Button size="sm" variant="outline" onClick={() => router.push(vocabPath(lang))}>
-                {tdb('exit')}
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  disabled={selectedIds.size === 0}
+                  onClick={() => setDeckBuilderDialogOpen(true)}
+                >
+                  {tdb('finish')}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-primary-foreground/40 bg-transparent text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground"
+                  onClick={() => router.push(vocabPath(lang))}
+                >
+                  {tdb('exit')}
+                </Button>
+              </div>
             </div>
           </div>
+        )}
+
+        {/* Create-deck dialog reachable from the banner's finish action — the
+            same AddToDeckDialog the selection bar uses (forceManual in builder). */}
+        {deckBuilderMode && (
+          <AddToDeckDialog
+            open={deckBuilderDialogOpen}
+            onOpenChange={setDeckBuilderDialogOpen}
+            lang={lang}
+            vocabIds={Array.from(selectedIds)}
+            activeTag={activeTag}
+            activeLesson={activeLesson}
+            forceManual
+            onDone={clearSelection}
+          />
         )}
 
         <BulkSelectBar
@@ -733,7 +777,7 @@ function VocabInner() {
             <TableHeader>
               <TableRow className="bg-muted border-b-2">
                 <TableHead className="w-10" />
-                <TableHead className="w-14 font-semibold">Image</TableHead>
+                <TableHead className="w-14 font-semibold">{t('colImage')}</TableHead>
                 {SORT_COLS.map((c) => (
                   <TableHead
                     key={c.id}
@@ -744,7 +788,7 @@ function VocabInner() {
                     {sortIcon(c.id)}
                   </TableHead>
                 ))}
-                <TableHead className="w-32 text-right font-semibold">Actions</TableHead>
+                <TableHead className="w-32 text-right font-semibold">{t('colActions')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

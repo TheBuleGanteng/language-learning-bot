@@ -28,9 +28,9 @@ import {
 import { colorForLesson, colorForTag } from '@/lib/colors';
 import { cn } from '@/lib/utils';
 import { vocabPath, lessonPath } from '@/lib/routes';
-import { languageName } from '@/lib/languages';
-import { localeEnglishName } from '@/lib/locales';
-import { useTranslations } from 'next-intl';
+import { languageName, normalizeLanguageCode } from '@/lib/languages';
+import { localeEnglishName, displayLanguageName, localeLanguageSubtag } from '@/lib/locales';
+import { useTranslations, useLocale } from 'next-intl';
 import {
   Table,
   TableBody,
@@ -117,10 +117,19 @@ export function VocabTable({
   const [sortCol, setSortCol] = useState<SortCol | null>(null);
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
 
-  const targetLabel = languageName(me?.targetLanguage ?? lang) || 'Target';
-  const nativeLabel = localeEnglishName(me?.nativeLanguage) || 'Native';
   const t = useTranslations('vocab');
   const tc = useTranslations('common');
+  const locale = useLocale();
+  const targetLabel = displayLanguageName(
+    locale,
+    normalizeLanguageCode(me?.targetLanguage ?? lang),
+    languageName(me?.targetLanguage ?? lang) || 'Target',
+  );
+  const nativeLabel = displayLanguageName(
+    locale,
+    localeLanguageSubtag(locale),
+    localeEnglishName(me?.nativeLanguage) || 'Native',
+  );
 
   const SORT_COLS: { id: SortCol; label: string }[] = [
     { id: 'thai', label: targetLabel },
@@ -308,7 +317,7 @@ export function VocabTable({
                   {sortIcon(c.id)}
                 </TableHead>
               ))}
-              <TableHead className="w-32 text-right font-semibold">{tc('edit')}</TableHead>
+              <TableHead className="w-32 text-right font-semibold">{t('colActions')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

@@ -216,7 +216,10 @@
     "captionsOn": "Teks aktif",
     "captionsOff": "Teks nonaktif",
     "captionLangSaved": "Bahasa teks disimpan",
-    "saveFailed": "Gagal menyimpan"
+    "saveFailed": "Gagal menyimpan",
+    "micDenied": "Izin mikrofon ditolak. Aktifkan untuk berbicara dengan Kruu Bingo.",
+    "apiError": "Layanan suara melaporkan kesalahan. Silakan coba lagi.",
+    "spendWarning": "Anda telah menghabiskan {spent} bulan ini (ambang peringatan: {limit})."
   },
   "vocab": {
     "title": "Kosakata",
@@ -224,7 +227,7 @@
     "searchPlaceholder": "Cari kosakata Anda…",
     "empty": "Belum ada kosakata. Tambahkan kata pertama Anda untuk memulai.",
     "colImage": "Gambar",
-    "colActions": "",
+    "colActions": "Tindakan",
     "deleteTitle": "Hapus kata ini?",
     "deleteDesc": "Tindakan ini tidak dapat dibatalkan.",
     "deleted": "Kata dihapus.",
@@ -298,7 +301,8 @@
     "desc": "Pilih kosakata untuk ditambahkan ke dek baru Anda.",
     "selected": "{count} dipilih",
     "done": "Selesai",
-    "exit": "Keluar dari pembuat dek"
+    "exit": "Keluar dari pembuat dek",
+    "finish": "Buat dek"
   },
   "lessons": {
     "title": "Pelajaran",

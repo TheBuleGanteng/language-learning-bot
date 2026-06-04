@@ -128,3 +128,27 @@ export function localeEnglishName(locale: string | null | undefined): string {
 export function localeNativeName(locale: string | null | undefined): string {
   return LOCALE_CATALOG[normalizeLocale(locale)].nativeName;
 }
+
+/**
+ * Localized display name of a language `code` (e.g. 'th', 'zh') as seen in
+ * `inLocale` — via `Intl.DisplayNames`. Falls back to `fallback` if unavailable.
+ * Used for vocab table headers (target + base language names follow the UI
+ * locale).
+ */
+export function displayLanguageName(
+  inLocale: string,
+  code: string | null | undefined,
+  fallback: string,
+): string {
+  if (!code) return fallback;
+  try {
+    return new Intl.DisplayNames([inLocale], { type: 'language' }).of(code) ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+/** The primary language subtag of a locale ('zh-CN' → 'zh', 'en-US' → 'en'). */
+export function localeLanguageSubtag(locale: string | null | undefined): string {
+  return normalizeLocale(locale).split('-')[0];
+}

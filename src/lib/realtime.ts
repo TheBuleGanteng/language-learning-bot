@@ -12,6 +12,28 @@ const REALTIME_URL = 'https://api.openai.com/v1/realtime/calls';
 // model's estimate from src/lib/voice-models.ts).
 const APPROX_USD_PER_MINUTE = 0.3;
 
+// Stable, framework-agnostic error codes. The lib carries NO user-facing
+// English; call sites map these codes → localized messages (see voice-chat).
+export type RealtimeErrorCode =
+  | 'mic_permission_denied'
+  | 'connection_failed'
+  | 'api_error';
+
+export interface RealtimeError {
+  code: RealtimeErrorCode;
+  /** Optional HTTP status (handshake) — structured param, not display text. */
+  status?: number;
+  /** Provider-supplied detail (NOT our copy) — for logging/diagnostics only. */
+  detail?: string;
+}
+
+/** Internal marker for a non-OK realtime handshake response (carries status). */
+class HandshakeError extends Error {
+  constructor(readonly status: number) {
+    super('handshake');
+  }
+}
+
 export interface RealtimeSessionConfig {
   /** Short-lived ephemeral token from /api/avatar/token (NOT the raw key). */
   ephemeralToken: string;
@@ -25,7 +47,8 @@ export interface RealtimeSessionConfig {
   onSpeaking: () => void;
   onListening: () => void;
   onTranscript: (text: string, role: 'user' | 'assistant') => void;
-  onError: (error: Error) => void;
+  /** Receives a typed error code (no display text) for the call site to localize. */
+  onError: (error: RealtimeError) => void;
   onSessionEnd: () => void;
   /** Optional — fired when the assistant finishes a turn (back to idle). */
   onIdle?: () => void;
@@ -84,22 +107,23 @@ export class RealtimeSession {
         },
       });
       if (!res.ok) {
-        throw new Error(`Realtime handshake failed (${res.status})`);
+        throw new HandshakeError(res.status);
       }
       const answer = await res.text();
       await pc.setRemoteDescription({ type: 'answer', sdp: answer });
 
       this.startedAt = Date.now();
     } catch (err) {
-      const error =
-        err instanceof DOMException && err.name === 'NotAllowedError'
-          ? new Error('Microphone permission denied. Enable it to talk to Kruu Bingo.')
-          : err instanceof Error
-            ? err
-            : new Error(String(err));
       this.cleanup();
-      this.config.onError(error);
-      throw error;
+      const rtError: RealtimeError =
+        err instanceof DOMException && err.name === 'NotAllowedError'
+          ? { code: 'mic_permission_denied' }
+          : err instanceof HandshakeError
+            ? { code: 'connection_failed', status: err.status }
+            : { code: 'connection_failed', detail: err instanceof Error ? err.message : String(err) };
+      this.config.onError(rtError);
+      // Rethrow for the caller's await; message is a code token, not display text.
+      throw new Error(rtError.code);
     }
   }
 
@@ -162,9 +186,9 @@ export class RealtimeSession {
         this.config.onIdle?.();
         break;
       case 'error': {
-        const detail = (evt as { error?: { message?: string } }).error?.message ?? 'Realtime API error';
+        const detail = (evt as { error?: { message?: string } }).error?.message;
         console.error('Realtime API error event:', JSON.stringify(evt));
-        this.config.onError(new Error(detail));
+        this.config.onError({ code: 'api_error', detail });
         break;
       }
     }

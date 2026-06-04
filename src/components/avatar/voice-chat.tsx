@@ -22,7 +22,7 @@ import { localeEnglishName } from '@/lib/locales';
 import { KruuBingo } from '@/components/avatar/kruu-bingo';
 import { NoKeyDialog } from '@/components/avatar/no-key-dialog';
 import { HardStopDialog } from '@/components/avatar/hard-stop-dialog';
-import { RealtimeSession } from '@/lib/realtime';
+import { RealtimeSession, type RealtimeErrorCode } from '@/lib/realtime';
 import { buildKruuBingoPrompt, buildFreeConversationPrompt } from '@/lib/kruu-bingo-prompt';
 import { voiceModelCostPerMinute } from '@/lib/voice-models';
 import { BaseLanguageUseControl } from '@/components/settings/base-language-use-control';
@@ -79,6 +79,22 @@ const DEFAULT_INACTIVITY_TIMEOUT_SECONDS = 120;
 // How long the green "input detected" checkmark animation holds before the
 // popup dismisses and the session resumes.
 const INPUT_DETECTED_HOLD_MS = 800;
+
+// Single place mapping realtime error codes → `practice`-namespace message keys.
+// The `never` assignment is an exhaustiveness guard: adding a new RealtimeErrorCode
+// without a case here becomes a compile error, so an error can't ship un-localized.
+function realtimeErrorKey(code: RealtimeErrorCode): string {
+  switch (code) {
+    case 'mic_permission_denied':
+      return 'micDenied';
+    case 'connection_failed':
+      return 'connectionFailed';
+    case 'api_error':
+      return 'apiError';
+  }
+  const _exhaustive: never = code;
+  return _exhaustive;
+}
 
 /** Circular countdown indicator with the remaining seconds shown in the centre. */
 function CountdownRing({ seconds, total }: { seconds: number; total: number }) {
@@ -225,7 +241,10 @@ export function VoiceChat({ mode, lang, deckId }: VoiceChatProps) {
       setHardStopLimit(Number(cfg.hardStopLimit ?? 0));
       if (cfg.warningTriggered) {
         toast.warning(
-          `You've spent $${Number(cfg.monthlySpend).toFixed(2)} this month (warning threshold: $${Number(cfg.warningLimit).toFixed(2)}).`,
+          t('spendWarning', {
+            spent: `$${Number(cfg.monthlySpend).toFixed(2)}`,
+            limit: `$${Number(cfg.warningLimit).toFixed(2)}`,
+          }),
         );
       }
 
@@ -450,7 +469,10 @@ export function VoiceChat({ mode, lang, deckId }: VoiceChatProps) {
       if (data.model) costPerMinute = voiceModelCostPerMinute(data.model);
       if (data.warning) {
         toast.warning(
-          `You've spent $${Number(data.warning.monthlySpend).toFixed(2)} this month (warning threshold: $${Number(data.warning.warningLimit).toFixed(2)}).`,
+          t('spendWarning', {
+            spent: `$${Number(data.warning.monthlySpend).toFixed(2)}`,
+            limit: `$${Number(data.warning.warningLimit).toFixed(2)}`,
+          }),
         );
       }
     } catch {
@@ -482,7 +504,7 @@ export function VoiceChat({ mode, lang, deckId }: VoiceChatProps) {
       onTranscript: (text, role) =>
         setTranscript((prev) => [...prev, { id: turnIdRef.current++, role, rawText: text }]),
       onError: (err) => {
-        toast.error(err.message);
+        toast.error(t(realtimeErrorKey(err.code)));
       },
       onSessionEnd: () => setAvatarState('idle'),
     });

@@ -24,7 +24,7 @@
     "pageOf": "Page {page} of {total}"
   },
   "nav": {
-    "vocab": "Vocab",
+    "vocab": "Vocabulary",
     "lessons": "Lessons",
     "learn": "Learn",
     "flashcards": "Flashcards",
@@ -216,7 +216,10 @@
     "captionsOn": "Captions on",
     "captionsOff": "Captions off",
     "captionLangSaved": "Caption language saved",
-    "saveFailed": "Save failed"
+    "saveFailed": "Save failed",
+    "micDenied": "Microphone permission denied. Enable it to talk to Kruu Bingo.",
+    "apiError": "The voice service reported an error. Please try again.",
+    "spendWarning": "You've spent {spent} this month (warning threshold: {limit})."
   },
   "vocab": {
     "title": "Vocab",
@@ -224,7 +227,7 @@
     "searchPlaceholder": "Search your vocabulary…",
     "empty": "No vocabulary yet. Add your first word to get started.",
     "colImage": "Image",
-    "colActions": "",
+    "colActions": "Actions",
     "deleteTitle": "Delete this word?",
     "deleteDesc": "This cannot be undone.",
     "deleted": "Word deleted.",
@@ -298,7 +301,8 @@
     "desc": "Select vocabulary to add to your new deck.",
     "selected": "{count} selected",
     "done": "Done",
-    "exit": "Exit deck builder"
+    "exit": "Exit deck builder",
+    "finish": "Create deck"
   },
   "lessons": {
     "title": "Lessons",

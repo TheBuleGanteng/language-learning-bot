@@ -1834,3 +1834,38 @@ lesson-name pattern. Dates are formatted by locale; the stored value is unchange
 **Quality gates:** lint clean (added the stable `t` to two effect dep arrays),
 75/75 tests, `tsc` clean, `pnpm build` "Compiled successfully" (build-traces tail
 is the documented benign hang). No schema change.
+
+## 2026-06-04 — Dynamic vocab headers, prominent sticky deck-builder banner, Vocab→Vocabulary, typed lib voice errors
+**PART 1 — vocab table headers:** the two language-name headers are now derived
+via `Intl.DisplayNames(activeLocale, { type: 'language' })` (new
+`displayLanguageName` / `localeLanguageSubtag` helpers in `locales.ts`, with
+graceful fallback): the target header from the route's `[lang]` target code
+(th → "泰语" in zh-CN), and the meaning header from the active locale's base
+language subtag (zh-CN → "中文", no longer the stale "English (US)"). Both the
+`/vocab` inline table and the shared `vocab-table` component (lesson detail).
+Also keyed the "Image"/"Actions" headers (`vocab.colImage` / new `vocab.colActions`
+across all five). The filters/pills/"Showing…"/"Show:"/search placeholder/
+Created-by filter were already localized in the prior pass.
+**PART 2 — deck-builder banner:** redesigned to a prominent **sticky** banner —
+`sticky top-16 z-30` (pinned just under the global sticky header), solid
+`bg-primary` accent + `shadow-lg`, bold title, full content width, responsive. It
+keeps the live "{count} selected" (ICU) and "Exit deck builder", and now surfaces
+the real **finish action**: a "Create deck" button that opens the same
+`AddToDeckDialog` the selection bar uses (`forceManual`, wired to the page's
+selected ids + `clearSelection`) — the existing BulkSelectBar completion path is
+unchanged. New `deckBuilder.finish` key, all five locales.
+**PART 3 — nav "Vocab" → "Vocabulary":** changed only the `en-US` value of
+`nav.vocab`; the other four locales already use the full word and are untouched.
+**PART 4 — typed lib voice errors:** `src/lib/realtime.ts` no longer contains any
+user-facing English — `onError` now emits a typed `RealtimeError` { code:
+'mic_permission_denied' | 'connection_failed' | 'api_error', status?, detail? }.
+The mic-permission and handshake/connection sentences were removed (handshake
+uses an internal `HandshakeError` carrying the status; the rethrow uses the code
+token). The voice-chat call site maps code → `practice`-namespace key in one
+place (`realtimeErrorKey`) with a `never` exhaustiveness guard, and shows the
+localized toast. The spend-warning toasts (which originate in voice-chat, not a
+lib) are now `t('spendWarning', { spent, limit })` with formatted-amount params.
+New keys: `practice.micDenied/apiError/spendWarning` (connectionFailed reused).
+**Catalogs:** 322 keys, identical across all five locales (key-diff verified).
+**Quality gates:** lint clean, 75/75 tests, `tsc` clean, `pnpm build` completed
+("Compiled successfully", exit 0). No schema change.
