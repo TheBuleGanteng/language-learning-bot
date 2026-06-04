@@ -1587,3 +1587,60 @@ run). **Live confirmation**: NOT performed (no browser) — the user should veri
 per §4 that the box holds a fixed height, scrolls internally with newest at the
 bottom, the scroll-to-bottom button engages, and the controls below no longer
 shift as turns accumulate (desktop + mobile touch).
+
+## 2026-06-04 — UI/UX batch: home hub, sticky shell, API-key UX, free chat, speech-speed slider
+**Scope (§1–§9, clean run)**: nine mostly-independent UI/UX work items, local only.
+- **§1 Remove dead chat text input**: the "Type a message…" box + Send were not
+  wired to working functionality. Removed entirely from the voice/chat UI along
+  with the `textInput` state and `sendText` handler. The mic, transcript,
+  captions, sliders, and End session remain.
+- **§2 Return-to-origin after saving a required key**: redirect-to-settings sites
+  now append `?returnTo=<in-app path>&needKey=openai`. `NoKeyDialog` carries the
+  origin; the settings page reads it (from `window.location.search`, avoiding the
+  `useSearchParams` Suspense requirement) and, after the matching key saves,
+  navigates back. Security: `safeReturnTo()` only honors a single-slash relative
+  path with no scheme/host (rejects `//evil.com`, `https://…`).
+- **§3 Non-technical API-key help**: a "what is an API key" tooltip by the API
+  keys heading + a per-provider tooltip (OpenAI/Anthropic/Google) with
+  step-by-step instructions and a real clickable link (new tab), reusing the
+  existing `InfoIcon` popover (hover + tap).
+- **§4 Home hub at `/home`**: new authed landing page; resolves the user's target
+  language server-side and shows two large tiles — Practice {lang} (→ decks, SVG
+  country flag) and Update vocabulary (→ vocab, `BookOpen`). Root redirect now
+  sends authed users to `/home`. Flags render as **SVG** via the new
+  `country-flag-icons` dep (emoji flags don't render on Windows); `flagCountry`
+  (ISO 3166-1 alpha-2) added to each language in `languages.ts`, with a neutral
+  `Languages` fallback.
+- **§5 Sticky header / §6 sticky footer**: app shell is now header (`sticky top-0
+  z-40`) + scrollable main (`pb-16` clearance) + footer (`sticky bottom-0 z-40`).
+  Footer is slim, two centered lines with new-tab links. The immersive chat view
+  is `fixed z-50` on mobile so it covers the footer (never the mic/sliders);
+  desktop static view sits in the padded main.
+- **§7 Free conversation**: "Free conversation" button on the decks page (right of
+  "Create new deck") → new `/language/[lang]/practice` route, a deck-less voice
+  chat using a new `buildFreeConversationPrompt`. The whole voice UI was extracted
+  from `avatar/page.tsx` into a shared `VoiceChat` component parameterized by
+  `mode: 'deck' | 'free'` (rather than duplicated); both pages are now thin
+  wrappers. The session POST route's `deckId` is now optional — free conversation
+  omits it, so it only logs spend to `ai_spend_log` and never touches a deck's
+  `last_studied`.
+- **§8 Speech-speed slider**: new `src/lib/speech-speed.ts` (Slow/Moderate/Native,
+  default Moderate) + `SpeechSpeedControl` modeled exactly on the Base-language-use
+  slider, with an info tooltip. Shown in settings (adjacent to base-language-use)
+  and on both voice views; mirrored + auto-saved everywhere; applied LIVE
+  mid-session via `updateInstructions` (`session.update`). **Speed is applied by
+  injecting a pacing INSTRUCTION into the prompt — NOT the OpenAI Realtime `speed`
+  param** (which only changes mechanical playback rate and sounds unnatural).
+- **§9 Migration**: one new column `user_settings.speech_speed`
+  (`varchar(16)` default `'moderate'`). Drizzle migration `0017_awesome_rachel_grey.sql`
+  generated and applied **locally** (prod deploy not performed).
+**Type-check snag (fixed inline)**: `flag-icon.tsx` first declared its own
+`FlagComponent` type for the `country-flag-icons` map; the library's component
+props use `HTMLSVGElement`, so my `SVGProps<SVGSVGElement>` shape wasn't
+assignable. Fixed by importing the library's exported `FlagComponent` type
+instead.
+**Quality gates**: `pnpm lint` clean, `pnpm test` 75/75, `tsc --noEmit` clean,
+`pnpm build` "Compiled successfully" with `/home` and `/language/[lang]/practice`
+in the route table. **Live confirmation**: NOT performed (no browser/mic) — the
+user should verify §11 (esp. the live speech-speed change mid-session, the flag
+rendering on Windows, and that the footer never overlaps the mic/slider controls).

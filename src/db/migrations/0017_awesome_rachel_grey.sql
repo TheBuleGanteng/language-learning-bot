@@ -1,0 +1,1 @@
+ALTER TABLE "user_settings" ADD COLUMN "speech_speed" varchar(16) DEFAULT 'moderate' NOT NULL;

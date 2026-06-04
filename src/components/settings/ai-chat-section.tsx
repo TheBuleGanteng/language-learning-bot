@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { BaseLanguageUseControl } from '@/components/settings/base-language-use-control';
+import { SpeechSpeedControl } from '@/components/settings/speech-speed-control';
 import { CaptionsToggle } from '@/components/settings/captions-toggle';
 import {
   CaptionLanguageSelect,
@@ -32,6 +33,11 @@ import {
   isBaseLanguageUse,
   type BaseLanguageUse,
 } from '@/lib/base-language-use';
+import {
+  defaultSpeechSpeed,
+  isSpeechSpeed,
+  type SpeechSpeed,
+} from '@/lib/speech-speed';
 
 type Role = 'regular' | 'admin' | 'superuser';
 
@@ -68,6 +74,9 @@ export function AiChatSection() {
   const [blReady, setBlReady] = useState(false);
   const [blSaving, setBlSaving] = useState(false);
 
+  const [speechSpeed, setSpeechSpeed] = useState<SpeechSpeed>(defaultSpeechSpeed());
+  const [ssSaving, setSsSaving] = useState(false);
+
   const [captionsEnabled, setCaptionsEnabled] = useState(false);
   const [captionsSaving, setCaptionsSaving] = useState(false);
 
@@ -98,6 +107,7 @@ export function AiChatSection() {
       if (settingsRes.ok) {
         const s = await settingsRes.json();
         if (isBaseLanguageUse(s.baseLanguageUse)) setBaseLanguageUse(s.baseLanguageUse);
+        if (isSpeechSpeed(s.speechSpeed)) setSpeechSpeed(s.speechSpeed);
         setCaptionsEnabled(Boolean(s.captionsEnabled));
         setCaptionLanguage(resolveCaptionLanguage(s.captionLanguage, code));
       }
@@ -138,6 +148,27 @@ export function AiChatSection() {
       toast.error(e instanceof Error ? e.message : 'Save failed');
     } finally {
       setBlSaving(false);
+    }
+  }
+
+  async function saveSpeechSpeed(next: SpeechSpeed) {
+    const prev = speechSpeed;
+    setSpeechSpeed(next);
+    setSsSaving(true);
+    try {
+      const res = await fetch(withBase('/api/settings'), {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ speechSpeed: next }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(d?.error ?? 'Save failed');
+      toast.success('Speech speed saved');
+    } catch (e) {
+      setSpeechSpeed(prev);
+      toast.error(e instanceof Error ? e.message : 'Save failed');
+    } finally {
+      setSsSaving(false);
     }
   }
 
@@ -214,15 +245,22 @@ export function AiChatSection() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="max-w-md">
+        <div className="max-w-md space-y-6">
           {blReady ? (
-            <BaseLanguageUseControl
-              value={baseLanguageUse}
-              onChange={saveBaseLanguageUse}
-              targetLanguage={targetName}
-              baseLanguage={baseName}
-              disabled={blSaving}
-            />
+            <>
+              <BaseLanguageUseControl
+                value={baseLanguageUse}
+                onChange={saveBaseLanguageUse}
+                targetLanguage={targetName}
+                baseLanguage={baseName}
+                disabled={blSaving}
+              />
+              <SpeechSpeedControl
+                value={speechSpeed}
+                onChange={saveSpeechSpeed}
+                disabled={ssSaving}
+              />
+            </>
           ) : (
             <p className="text-sm text-muted-foreground">Loading…</p>
           )}

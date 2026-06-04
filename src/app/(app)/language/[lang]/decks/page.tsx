@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
-import { RefreshCw, Settings2, Trash2 } from 'lucide-react';
+import { MessagesSquare, RefreshCw, Settings2, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -33,7 +33,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { withBase } from '@/lib/base-path';
-import { vocabPath, deckHubPath, deckFlashcardsPath, deckAvatarPath } from '@/lib/routes';
+import { vocabPath, deckHubPath, deckFlashcardsPath, deckAvatarPath, practicePath } from '@/lib/routes';
 
 type Direction = 'forward' | 'reverse' | 'both';
 
@@ -192,9 +192,20 @@ export default function FlashcardsPage() {
     <div className="space-y-6 max-w-5xl mx-auto">
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">Flashcards</h1>
-        <Button onClick={() => router.push(`${vocabPath(lang)}?mode=deck-builder`)}>
-          Create new deck
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={() => router.push(`${vocabPath(lang)}?mode=deck-builder`)}>
+            Create new deck
+          </Button>
+          {/* Free conversation (§7): a deck-less Kruu Bingo voice chat. */}
+          <Button
+            variant="outline"
+            className="gap-1.5"
+            onClick={() => router.push(practicePath(lang))}
+          >
+            <MessagesSquare className="h-4 w-4" />
+            Free conversation
+          </Button>
+        </div>
       </div>
 
       {decks.length === 0 && !loading ? (

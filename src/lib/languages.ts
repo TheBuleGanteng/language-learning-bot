@@ -10,16 +10,23 @@ export interface LanguageInfo {
   nativeName: string;
   script: LanguageScript;
   rtl?: boolean;
+  /**
+   * ISO 3166-1 alpha-2 country code for the flag to show for this language
+   * (e.g. 'th' for Thai). Rendered as an SVG flag (emoji flags don't render on
+   * Windows). Omit when no single country flag fits — callers fall back to a
+   * neutral icon.
+   */
+  flagCountry?: string;
 }
 
 export const LANGUAGES: ReadonlyArray<LanguageInfo> = [
-  { code: 'th', name: 'Thai', nativeName: 'ไทย', script: 'thai' },
-  { code: 'en', name: 'English', nativeName: 'English', script: 'latin' },
-  { code: 'zh', name: 'Chinese', nativeName: '中文', script: 'han' },
-  { code: 'ja', name: 'Japanese', nativeName: '日本語', script: 'japanese' },
-  { code: 'es', name: 'Spanish', nativeName: 'Español', script: 'latin' },
-  { code: 'fr', name: 'French', nativeName: 'Français', script: 'latin' },
-  { code: 'de', name: 'German', nativeName: 'Deutsch', script: 'latin' },
+  { code: 'th', name: 'Thai', nativeName: 'ไทย', script: 'thai', flagCountry: 'th' },
+  { code: 'en', name: 'English', nativeName: 'English', script: 'latin', flagCountry: 'gb' },
+  { code: 'zh', name: 'Chinese', nativeName: '中文', script: 'han', flagCountry: 'cn' },
+  { code: 'ja', name: 'Japanese', nativeName: '日本語', script: 'japanese', flagCountry: 'jp' },
+  { code: 'es', name: 'Spanish', nativeName: 'Español', script: 'latin', flagCountry: 'es' },
+  { code: 'fr', name: 'French', nativeName: 'Français', script: 'latin', flagCountry: 'fr' },
+  { code: 'de', name: 'German', nativeName: 'Deutsch', script: 'latin', flagCountry: 'de' },
 ];
 
 // V1: only Thai is unlocked as a target language.
@@ -67,6 +74,13 @@ export function languageScript(code: string | null | undefined): LanguageScript 
  */
 export function isNonRomanScript(code: string | null | undefined): boolean {
   return languageScript(code) !== 'latin';
+}
+
+/** The ISO 3166-1 alpha-2 country code for a language's flag, or undefined. */
+export function languageFlagCountry(code: string | null | undefined): string | undefined {
+  if (!code) return undefined;
+  const normalized = normalizeLanguageCode(code);
+  return LANGUAGES.find((l) => l.code === normalized)?.flagCountry;
 }
 
 export function languageNativeName(code: string | null | undefined): string {

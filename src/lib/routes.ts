@@ -1,5 +1,15 @@
+// Authenticated home hub (§4) — the post-login landing page.
+export function homePath() {
+  return '/home';
+}
+
 export function vocabPath(lang: string, sub?: string) {
   return `/language/${lang}/vocab${sub ?? ''}`;
+}
+
+// Deck-less "Free conversation" Kruu Bingo voice chat (§7).
+export function practicePath(lang: string) {
+  return `/language/${lang}/practice`;
 }
 
 export function lessonsPath(lang: string) {

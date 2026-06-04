@@ -29,6 +29,7 @@ import {
 } from '@/lib/extraction/catalog';
 import { isVoiceModel } from '@/lib/voice-models';
 import { isBaseLanguageUse } from '@/lib/base-language-use';
+import { isSpeechSpeed } from '@/lib/speech-speed';
 import { isRomanizationModel } from '@/lib/romanization-models';
 
 const LANGUAGE_CODES = LANGUAGES.map((l) => l.code) as [string, ...string[]];
@@ -91,6 +92,7 @@ export async function GET() {
     extractionModel: s.extractionModel,
     voiceModel: s.voiceModel,
     baseLanguageUse: s.baseLanguageUse,
+    speechSpeed: s.speechSpeed,
     captionsEnabled: s.captionsEnabled,
     captionLanguage: s.captionLanguage,
     romanizationModel: s.romanizationModel,
@@ -118,6 +120,7 @@ const patchSchema = z.object({
   extractionModel: z.string().min(1).max(100).optional(),
   voiceModel: z.string().min(1).max(64).optional(),
   baseLanguageUse: z.string().min(1).max(16).optional(),
+  speechSpeed: z.string().min(1).max(16).optional(),
   captionsEnabled: z.boolean().optional(),
   captionLanguage: z.enum(['base', 'target', 'target_romanized']).optional(),
   romanizationModel: z.string().min(1).max(64).optional(),
@@ -234,6 +237,16 @@ export async function PATCH(req: Request) {
       );
     }
     updates.baseLanguageUse = parsed.data.baseLanguageUse;
+  }
+
+  if (parsed.data.speechSpeed !== undefined) {
+    if (!isSpeechSpeed(parsed.data.speechSpeed)) {
+      return NextResponse.json(
+        { error: `Invalid speech speed level: ${parsed.data.speechSpeed}` },
+        { status: 400 },
+      );
+    }
+    updates.speechSpeed = parsed.data.speechSpeed;
   }
 
   if (parsed.data.captionsEnabled !== undefined) {

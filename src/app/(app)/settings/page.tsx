@@ -93,6 +93,58 @@ const PROVIDER_LABELS: Record<Provider, string> = {
   google: 'Google',
 };
 
+// §3b: per-provider, non-technical step-by-step help for obtaining an API key.
+// `usedFor` is tailored to what each provider powers in THIS app.
+const PROVIDER_KEY_HELP: Record<
+  Provider,
+  { link: string; usedFor: string; steps: string[] }
+> = {
+  openai: {
+    link: 'https://platform.openai.com/api-keys',
+    usedFor: 'Kruu Bingo voice chat and image generation',
+    steps: [
+      'Go to platform.openai.com and sign in (this is separate from ChatGPT).',
+      'Add a payment method under Settings → Billing — a small prepaid balance (about $5) is required before a key works; complete phone verification if asked.',
+      'Open the API keys page (platform.openai.com/api-keys).',
+      'Click "Create new secret key", name it, and copy the key (starts with "sk-"). It is shown only once.',
+      'Paste it into the OpenAI field here.',
+    ],
+  },
+  anthropic: {
+    link: 'https://console.anthropic.com/settings/keys',
+    usedFor: 'the AI chat and photo analysis',
+    steps: [
+      'Go to console.anthropic.com and sign in (separate from the Claude.ai app).',
+      'Add a payment method under Billing (required before a key works).',
+      'Open Settings → API keys (console.anthropic.com/settings/keys).',
+      'Click "Create Key", name it, and copy the key (starts with "sk-ant-"). Shown once.',
+      'Paste it into the Anthropic field here.',
+    ],
+  },
+  google: {
+    link: 'https://aistudio.google.com/app/apikey',
+    usedFor: 'image generation',
+    steps: [
+      'Go to aistudio.google.com/app/apikey and sign in with a Google account.',
+      'Click "Create API key" and let it create or select a Google Cloud project.',
+      'Copy the key (starts with "AIza"). A free tier is available; heavy use needs billing enabled in Google Cloud.',
+      'Paste it into the Google field here.',
+    ],
+  },
+};
+
+/**
+ * §2 security: only honor a `returnTo` that is a relative in-app path — starts
+ * with a single `/`, is not protocol-relative (`//`), and carries no scheme or
+ * host. Anything else is ignored (never redirect to an external URL).
+ */
+function safeReturnTo(value: string | null): string | null {
+  if (!value) return null;
+  if (!value.startsWith('/') || value.startsWith('//')) return null;
+  if (/^[a-z][a-z0-9+.-]*:/i.test(value)) return null; // has a scheme
+  return value;
+}
+
 const IMAGE_PROVIDER_LABELS: Record<ImageProviderId, string> = {
   google: 'Google',
   openai: 'OpenAI',
@@ -145,6 +197,17 @@ export default function SettingsPage() {
     openai: false,
     google: false,
   });
+
+  // §2: after a redirect-to-settings-for-a-key, send the user back where they
+  // came from once the required key is saved. Read from the URL on mount (avoids
+  // useSearchParams' Suspense requirement).
+  const [returnTo, setReturnTo] = useState<string | null>(null);
+  const [needKey, setNeedKey] = useState<string | null>(null);
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setReturnTo(safeReturnTo(params.get('returnTo')));
+    setNeedKey(params.get('needKey'));
+  }, []);
 
   async function load() {
     const res = await fetch(withBase('/api/settings'));
@@ -217,6 +280,14 @@ export default function SettingsPage() {
     if (ok) {
       toast.success(`${PROVIDER_LABELS[provider]} key saved`);
       await load();
+      // §2: return to origin once the required key is saved. If `needKey` was
+      // given, only redirect when THAT provider's key was the one saved (so
+      // saving an unrelated key doesn't yank the user away). With no `needKey`,
+      // any successful save returns the user while a `returnTo` is present.
+      if (returnTo && (!needKey || needKey === provider)) {
+        toast.success('Returning to where you left off…');
+        router.push(returnTo);
+      }
     }
   }
 
@@ -763,7 +834,16 @@ export default function SettingsPage() {
 
       <Card id="api-keys">
         <CardHeader>
-          <CardTitle>API keys</CardTitle>
+          <div className="flex items-center gap-1.5">
+            <CardTitle>API keys</CardTitle>
+            {/* §3a: plain-language "what is an API key" help. */}
+            <InfoIcon label="What is an API key">
+              An API key is like a password that lets this app use an AI provider on
+              your behalf. You create it (free) on the provider&apos;s website, paste it
+              here, and we store it encrypted. The provider bills you directly for usage —
+              we never see or charge your card. You can replace or remove a key anytime.
+            </InfoIcon>
+          </div>
           <CardDescription>
             Stored encrypted at rest (AES-256-GCM). Use the eye icon to reveal a key.
           </CardDescription>
@@ -774,7 +854,29 @@ export default function SettingsPage() {
             const revealed = reveal[provider];
             return (
               <div key={provider} className="space-y-2 border-b pb-4 last:border-b-0 last:pb-0">
-                <Label>{PROVIDER_LABELS[provider]} API key</Label>
+                <div className="flex items-center gap-1.5">
+                  <Label>{PROVIDER_LABELS[provider]} API key</Label>
+                  {/* §3b: per-provider step-by-step instructions + a clickable link. */}
+                  <InfoIcon label={`How to get a ${PROVIDER_LABELS[provider]} API key`}>
+                    <p className="font-medium">{PROVIDER_LABELS[provider]} API key</p>
+                    <p className="text-muted-foreground">
+                      Used for {PROVIDER_KEY_HELP[provider].usedFor} in this app.
+                    </p>
+                    <ol className="mt-2 list-decimal space-y-1 pl-4 text-xs">
+                      {PROVIDER_KEY_HELP[provider].steps.map((step, i) => (
+                        <li key={i}>{step}</li>
+                      ))}
+                    </ol>
+                    <a
+                      href={PROVIDER_KEY_HELP[provider].link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-2 inline-block text-xs font-medium underline hover:text-foreground"
+                    >
+                      Open the {PROVIDER_LABELS[provider]} key page →
+                    </a>
+                  </InfoIcon>
+                </div>
                 <div className="flex gap-2">
                   <div className="relative flex-1">
                     <Input

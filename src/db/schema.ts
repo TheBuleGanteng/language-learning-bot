@@ -145,6 +145,10 @@ export const userSettings = pgTable('user_settings', {
   baseLanguageUse: varchar('base_language_use', { length: 16 })
     .notNull()
     .default('moderate'),
+  // How fast the AI tutor speaks. One of src/lib/speech-speed.ts levels:
+  // 'slow' | 'moderate' | 'native'. Applied via a pacing instruction injected
+  // into the realtime session prompt (NOT the OpenAI `speed` param).
+  speechSpeed: varchar('speech_speed', { length: 16 }).notNull().default('moderate'),
   // Show captions (transcript) during AI voice chat. Per-user, default OFF.
   captionsEnabled: boolean('captions_enabled').notNull().default(false),
   // Caption language mode: 'base' (translate to base language via Google),
