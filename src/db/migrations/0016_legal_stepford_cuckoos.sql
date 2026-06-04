@@ -1,0 +1,2 @@
+ALTER TABLE "user_settings" ADD COLUMN "caption_language" varchar(24) DEFAULT 'target' NOT NULL;--> statement-breakpoint
+ALTER TABLE "user_settings" ADD COLUMN "romanization_model" varchar(64) DEFAULT 'claude-haiku-4-5' NOT NULL;

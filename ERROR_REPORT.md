@@ -1463,3 +1463,27 @@ observe nothing and was not added/committed. The fix is authoritative from the
 GA docs; the user should confirm live (with captions ON, the tutor's reply
 should appear and no AI-transcript event should hit an "unhandled" log). If the
 live event name differs, add it to the same branches.
+
+## 2026-06-04 — Caption language selection (translate + romanize)
+**Scope**: Added per-user caption language (`base` / `target` /
+`target_romanized`): `target` renders the raw transcript (no call); `base`
+translates the target-language line into the user's `base_language` via Google
+Cloud Translation (`src/lib/translation.ts`, app-level GCP credential, NOT
+logged to `ai_spend_log`); `target_romanized` calls the user's selected
+romanization model to produce tone-marked romanization (logged to
+`ai_spend_log`, respects spend limits, offered only for non-roman scripts via
+the new `script` field + `isNonRomanScript` in `src/lib/languages.ts`). New
+`POST /api/avatar/caption-transform` endpoint; new "Captions (romanization)"
+model row (between Voice chat and Image generation); caption-language selector
+in both settings and the voice page with per-`(mode+text)` caching and graceful
+raw-text fallback; additive migration `0016` (`caption_language`,
+`romanization_model`).
+**No bugs encountered**; lint, 75 tests, and build ("Compiled successfully" +
+"Finished TypeScript", 40/40 static pages) all passed. The local build hangs at
+"Collecting build traces" as documented — benign, compilation already green.
+**Live confirmation**: NOT performed — requires a logged-in browser, a mic, and
+`GOOGLE_APPLICATION_CREDENTIALS` set locally; the user should smoke-test the
+three modes per §10.
+**Deploy note**: the prod GCP service account needs the **Cloud Translation API
+User** role and the Translation API enabled before/at deploy (additive
+migration auto-applied by the deploy flow). No new prod secret.

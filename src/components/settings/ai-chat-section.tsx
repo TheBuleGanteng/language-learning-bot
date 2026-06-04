@@ -19,9 +19,14 @@ import {
 } from '@/components/ui/select';
 import { BaseLanguageUseControl } from '@/components/settings/base-language-use-control';
 import { CaptionsToggle } from '@/components/settings/captions-toggle';
+import {
+  CaptionLanguageSelect,
+  resolveCaptionLanguage,
+  type CaptionLanguage,
+} from '@/components/settings/caption-language-select';
 import { InfoIcon } from '@/components/ui/info-icon';
 import { withBase } from '@/lib/base-path';
-import { languageName } from '@/lib/languages';
+import { languageName, normalizeLanguageCode, type LanguageCode } from '@/lib/languages';
 import {
   defaultBaseLanguageUse,
   isBaseLanguageUse,
@@ -66,6 +71,10 @@ export function AiChatSection() {
   const [captionsEnabled, setCaptionsEnabled] = useState(false);
   const [captionsSaving, setCaptionsSaving] = useState(false);
 
+  const [targetCode, setTargetCode] = useState<LanguageCode>('th');
+  const [captionLanguage, setCaptionLanguage] = useState<CaptionLanguage>('target');
+  const [captionLangSaving, setCaptionLangSaving] = useState(false);
+
   const [timeoutSeconds, setTimeoutSeconds] = useState<number>(DEFAULT_TIMEOUT_SECONDS);
   const [timeoutSaving, setTimeoutSaving] = useState(false);
 
@@ -77,9 +86,12 @@ export function AiChatSection() {
         fetch(withBase('/api/settings')),
       ]);
       if (cancelled) return;
+      let code: LanguageCode = 'th';
       if (meRes.ok) {
         const me = await meRes.json();
         setRole(me.role as Role);
+        code = normalizeLanguageCode(me.targetLanguage);
+        setTargetCode(code);
         setTargetName(languageName(me.targetLanguage) || 'the target language');
         setBaseName(languageName(me.nativeLanguage) || 'your base language');
       }
@@ -87,6 +99,7 @@ export function AiChatSection() {
         const s = await settingsRes.json();
         if (isBaseLanguageUse(s.baseLanguageUse)) setBaseLanguageUse(s.baseLanguageUse);
         setCaptionsEnabled(Boolean(s.captionsEnabled));
+        setCaptionLanguage(resolveCaptionLanguage(s.captionLanguage, code));
       }
       setBlReady(true);
     })();
@@ -149,6 +162,27 @@ export function AiChatSection() {
     }
   }
 
+  async function saveCaptionLanguage(next: CaptionLanguage) {
+    const prev = captionLanguage;
+    setCaptionLanguage(next);
+    setCaptionLangSaving(true);
+    try {
+      const res = await fetch(withBase('/api/settings'), {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ captionLanguage: next }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(d?.error ?? 'Save failed');
+      toast.success('Caption language saved');
+    } catch (e) {
+      setCaptionLanguage(prev);
+      toast.error(e instanceof Error ? e.message : 'Save failed');
+    } finally {
+      setCaptionLangSaving(false);
+    }
+  }
+
   async function saveTimeout(next: number) {
     if (next === timeoutSeconds) return;
     const prev = timeoutSeconds;
@@ -208,6 +242,25 @@ export function AiChatSection() {
             onToggle={saveCaptions}
             disabled={captionsSaving}
           />
+
+          <div className="max-w-xs space-y-1.5 pt-1">
+            <div className="flex items-center gap-1.5">
+              <Label>Caption language</Label>
+              <InfoIcon label="About caption language">
+                Choose what language captions appear in: your base language
+                (translated), the target language, or — for non-Latin scripts —
+                romanized target text.
+              </InfoIcon>
+            </div>
+            <CaptionLanguageSelect
+              value={captionLanguage}
+              onChange={saveCaptionLanguage}
+              targetCode={targetCode}
+              targetName={targetName}
+              baseName={baseName}
+              disabled={captionLangSaving || !captionsEnabled}
+            />
+          </div>
         </div>
 
         {isSuperuser && (

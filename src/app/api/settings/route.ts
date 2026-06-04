@@ -29,6 +29,7 @@ import {
 } from '@/lib/extraction/catalog';
 import { isVoiceModel } from '@/lib/voice-models';
 import { isBaseLanguageUse } from '@/lib/base-language-use';
+import { isRomanizationModel } from '@/lib/romanization-models';
 
 const LANGUAGE_CODES = LANGUAGES.map((l) => l.code) as [string, ...string[]];
 
@@ -91,6 +92,8 @@ export async function GET() {
     voiceModel: s.voiceModel,
     baseLanguageUse: s.baseLanguageUse,
     captionsEnabled: s.captionsEnabled,
+    captionLanguage: s.captionLanguage,
+    romanizationModel: s.romanizationModel,
     aiSpendReminderUsd: Number(s.aiSpendReminderUsd ?? 25),
     aiSpendHardStopUsd: Number(s.aiSpendHardStopUsd ?? 100),
     // Owner-scoped: the authenticated user's own keys are returned decrypted so
@@ -116,6 +119,8 @@ const patchSchema = z.object({
   voiceModel: z.string().min(1).max(64).optional(),
   baseLanguageUse: z.string().min(1).max(16).optional(),
   captionsEnabled: z.boolean().optional(),
+  captionLanguage: z.enum(['base', 'target', 'target_romanized']).optional(),
+  romanizationModel: z.string().min(1).max(64).optional(),
   aiSpendReminderUsd: z.number().min(1).max(99999).optional(),
   aiSpendHardStopUsd: z.number().min(1).max(99999).optional(),
   targetLanguage: z.enum(LANGUAGE_CODES).optional(),
@@ -233,6 +238,20 @@ export async function PATCH(req: Request) {
 
   if (parsed.data.captionsEnabled !== undefined) {
     updates.captionsEnabled = parsed.data.captionsEnabled;
+  }
+
+  if (parsed.data.captionLanguage !== undefined) {
+    updates.captionLanguage = parsed.data.captionLanguage;
+  }
+
+  if (parsed.data.romanizationModel !== undefined) {
+    if (!isRomanizationModel(parsed.data.romanizationModel)) {
+      return NextResponse.json(
+        { error: `Invalid romanization model: ${parsed.data.romanizationModel}` },
+        { status: 400 },
+      );
+    }
+    updates.romanizationModel = parsed.data.romanizationModel;
   }
 
   if (parsed.data.aiSpendReminderUsd !== undefined) {

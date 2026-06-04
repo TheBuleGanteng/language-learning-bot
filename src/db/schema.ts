@@ -145,9 +145,16 @@ export const userSettings = pgTable('user_settings', {
   baseLanguageUse: varchar('base_language_use', { length: 16 })
     .notNull()
     .default('moderate'),
-  // Show YouTube-style captions (target-language transcript) during AI voice
-  // chat. Per-user, default OFF.
+  // Show captions (transcript) during AI voice chat. Per-user, default OFF.
   captionsEnabled: boolean('captions_enabled').notNull().default(false),
+  // Caption language mode: 'base' (translate to base language via Google),
+  // 'target' (raw target-language transcript), 'target_romanized' (LLM
+  // transliteration). Default 'target'.
+  captionLanguage: varchar('caption_language', { length: 24 }).notNull().default('target'),
+  // Per-user text model used for caption romanization (src/lib/romanization-models.ts).
+  romanizationModel: varchar('romanization_model', { length: 64 })
+    .notNull()
+    .default('claude-haiku-4-5'),
   // Feature C: spend caps now cover ALL AI features (image gen + avatar), not
   // just image generation.
   aiSpendReminderUsd: numeric('ai_spend_reminder_usd', { precision: 10, scale: 2 })

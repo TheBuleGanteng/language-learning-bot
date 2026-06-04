@@ -1,20 +1,25 @@
 export type LanguageCode = 'th' | 'en' | 'zh' | 'ja' | 'es' | 'fr' | 'de';
 
+// Writing system. Anything other than 'latin' is considered non-roman, which is
+// what gates the "romanized" caption option.
+export type LanguageScript = 'latin' | 'thai' | 'han' | 'japanese';
+
 export interface LanguageInfo {
   code: LanguageCode;
   name: string;
   nativeName: string;
+  script: LanguageScript;
   rtl?: boolean;
 }
 
 export const LANGUAGES: ReadonlyArray<LanguageInfo> = [
-  { code: 'th', name: 'Thai', nativeName: 'ไทย' },
-  { code: 'en', name: 'English', nativeName: 'English' },
-  { code: 'zh', name: 'Chinese', nativeName: '中文' },
-  { code: 'ja', name: 'Japanese', nativeName: '日本語' },
-  { code: 'es', name: 'Spanish', nativeName: 'Español' },
-  { code: 'fr', name: 'French', nativeName: 'Français' },
-  { code: 'de', name: 'German', nativeName: 'Deutsch' },
+  { code: 'th', name: 'Thai', nativeName: 'ไทย', script: 'thai' },
+  { code: 'en', name: 'English', nativeName: 'English', script: 'latin' },
+  { code: 'zh', name: 'Chinese', nativeName: '中文', script: 'han' },
+  { code: 'ja', name: 'Japanese', nativeName: '日本語', script: 'japanese' },
+  { code: 'es', name: 'Spanish', nativeName: 'Español', script: 'latin' },
+  { code: 'fr', name: 'French', nativeName: 'Français', script: 'latin' },
+  { code: 'de', name: 'German', nativeName: 'Deutsch', script: 'latin' },
 ];
 
 // V1: only Thai is unlocked as a target language.
@@ -47,6 +52,21 @@ export function languageName(code: string | null | undefined): string {
   if (!code) return '';
   const normalized = normalizeLanguageCode(code);
   return LANGUAGES.find((l) => l.code === normalized)?.name ?? code;
+}
+
+/** The writing system for a language code (defaults to 'latin' if unknown). */
+export function languageScript(code: string | null | undefined): LanguageScript {
+  if (!code) return 'latin';
+  const normalized = normalizeLanguageCode(code);
+  return LANGUAGES.find((l) => l.code === normalized)?.script ?? 'latin';
+}
+
+/**
+ * True when the language's normal script is not Latin — i.e. a romanized
+ * caption option is meaningful (Thai yes, Spanish no).
+ */
+export function isNonRomanScript(code: string | null | undefined): boolean {
+  return languageScript(code) !== 'latin';
 }
 
 export function languageNativeName(code: string | null | undefined): string {

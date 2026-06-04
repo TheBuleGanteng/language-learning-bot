@@ -23,6 +23,11 @@ import {
 import { MODELS, PROVIDERS, type Provider } from '@/lib/models';
 import { VOICE_MODELS, voiceModelCostPerMinute } from '@/lib/voice-models';
 import {
+  ROMANIZATION_MODELS,
+  romanizationModelProvider,
+  romanizationModelCostPer1kChars,
+} from '@/lib/romanization-models';
+import {
   LANGUAGES,
   UNLOCKED_TARGET_LANGUAGES,
   languageDisplayLabel,
@@ -64,6 +69,7 @@ interface SettingsState {
   extractionProvider: ExtractionProvider;
   extractionModel: string;
   voiceModel: string;
+  romanizationModel: string;
   aiSpendReminderUsd: number;
   aiSpendHardStopUsd: number;
   keys: Record<Provider, KeyInfo | null>;
@@ -118,6 +124,7 @@ export default function SettingsPage() {
   const targetSave = useFieldAutoSave();
   const nativeSave = useFieldAutoSave();
   const voiceModelSave = useFieldAutoSave();
+  const romanizationSave = useFieldAutoSave();
   const imageProviderSave = useFieldAutoSave();
   const imageModelSave = useFieldAutoSave();
   const extractionProviderSave = useFieldAutoSave();
@@ -252,6 +259,14 @@ export default function SettingsPage() {
     });
   }
 
+  function onRomanizationModelChange(modelId: string) {
+    if (!state || modelId === state.romanizationModel) return;
+    setState({ ...state, romanizationModel: modelId });
+    void romanizationSave.run(async () => {
+      await patchOrThrow({ romanizationModel: modelId });
+    });
+  }
+
   function onImageProviderChange(p: ImageProviderId) {
     if (!state || p === state.imageProvider) return;
     const newModel = defaultImageModel(p);
@@ -327,6 +342,8 @@ export default function SettingsPage() {
   const imageProviderHasKey = !!state.keys[IMAGE_PROVIDER_KEY[state.imageProvider]];
   const imageCostPerImage = imageModelCost(state.imageProvider, state.imageModel);
   const voiceCostPerMin = voiceModelCostPerMinute(state.voiceModel);
+  const romanizationCostPer1k = romanizationModelCostPer1kChars(state.romanizationModel);
+  const romanizationProvider = romanizationModelProvider(state.romanizationModel);
   const imagesPossible =
     spend && spend.estimatedCostPerImage > 0
       ? Math.max(0, Math.floor((spend.hardStop - spend.currentSpend) / spend.estimatedCostPerImage))
@@ -499,6 +516,47 @@ export default function SettingsPage() {
             <div className="space-y-1">
               <span className="text-xs text-muted-foreground md:hidden">Est. Cost</span>
               <p className="text-sm">~${voiceCostPerMin.toFixed(2)} / min</p>
+            </div>
+          </div>
+
+          {/* Captions (romanization) — text model that transliterates captions. */}
+          <div className={rowCls}>
+            <div className="flex items-center gap-1.5">
+              <span className="text-sm font-medium">Captions (romanization)</span>
+              <InfoIcon label="About caption romanization">
+                Powers romanized captions — transliterates the tutor&apos;s and your
+                lines into tone-marked Latin script. Only used when caption language is
+                set to romanized.
+              </InfoIcon>
+            </div>
+            <div className="space-y-1">
+              <span className="text-xs text-muted-foreground md:hidden">Provider</span>
+              <p className="py-1.5 text-sm">{PROVIDER_LABELS[romanizationProvider]}</p>
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground md:hidden">Model</span>
+                <SaveStatus status={romanizationSave.status} />
+              </div>
+              <Select
+                value={state.romanizationModel}
+                onValueChange={(v) => v && onRomanizationModelChange(v)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {ROMANIZATION_MODELS.map((m) => (
+                    <SelectItem key={m.id} value={m.id}>
+                      {m.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <span className="text-xs text-muted-foreground md:hidden">Est. Cost</span>
+              <p className="text-sm">~${romanizationCostPer1k.toFixed(3)} / 1K chars</p>
             </div>
           </div>
 
