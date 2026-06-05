@@ -1929,3 +1929,12 @@ follow-up if the internal table scroll there is undesirable.
 **Catalogs:** 351 keys, identical across all five locales (key-diff verified).
 **Quality gates:** lint clean, 75/75 tests, `tsc` clean, `pnpm build` exit 0
 ("Compiled successfully"). No schema change.
+
+## 2026-06-05 — Fix: MobileMenu DropdownMenuLabel must be inside a group (runtime crash)
+The new mobile master menu crashed on open with "Base UI: MenuGroupContext is
+missing. Menu group parts must be used within <Menu.Group> or <Menu.RadioGroup>."
+— `DropdownMenuLabel` (a base-ui `Menu.GroupLabel`) was rendered directly inside
+`DropdownMenuContent`. Fix: wrapped each menu section in `DropdownMenuGroup`
+(`Menu.Group`), with the "Learn" and account-email labels inside their groups.
+Verified with `tsc --noEmit` (clean) and `pnpm lint` (clean). (Caught at runtime,
+not build time, because the invalid nesting compiles fine.)

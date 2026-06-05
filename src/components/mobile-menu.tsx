@@ -15,6 +15,7 @@ import {
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -58,19 +59,25 @@ export function MobileMenu({ lang, email, className }: Props) {
         }
       />
       <DropdownMenuContent align="end" className="min-w-56">
-        <DropdownMenuItem render={<Link href={vocabPath(lang)}><BookOpen className="mr-2 h-4 w-4" />{t('vocab')}</Link>} />
-        <DropdownMenuItem render={<Link href={lessonsPath(lang)}><Library className="mr-2 h-4 w-4" />{t('lessons')}</Link>} />
+        <DropdownMenuGroup>
+          <DropdownMenuItem render={<Link href={vocabPath(lang)}><BookOpen className="mr-2 h-4 w-4" />{t('vocab')}</Link>} />
+          <DropdownMenuItem render={<Link href={lessonsPath(lang)}><Library className="mr-2 h-4 w-4" />{t('lessons')}</Link>} />
+        </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuLabel>{t('learn')}</DropdownMenuLabel>
-        <DropdownMenuItem render={<Link href={decksPath(lang)}><GraduationCap className="mr-2 h-4 w-4" />{t('flashcards')}</Link>} />
-        <DropdownMenuItem render={<Link href={decksPath(lang)}><MessagesSquare className="mr-2 h-4 w-4" />{t('practice')}</Link>} />
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>{t('learn')}</DropdownMenuLabel>
+          <DropdownMenuItem render={<Link href={decksPath(lang)}><GraduationCap className="mr-2 h-4 w-4" />{t('flashcards')}</Link>} />
+          <DropdownMenuItem render={<Link href={decksPath(lang)}><MessagesSquare className="mr-2 h-4 w-4" />{t('practice')}</Link>} />
+        </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuLabel className="truncate font-normal text-muted-foreground">{email}</DropdownMenuLabel>
-        <DropdownMenuItem render={<Link href="/settings"><Settings className="mr-2 h-4 w-4" />{tc('settings')}</Link>} />
-        <DropdownMenuItem onClick={() => void signOut({ callbackUrl: withBase('/login') })}>
-          <LogOut className="mr-2 h-4 w-4" />
-          {tc('signOut')}
-        </DropdownMenuItem>
+        <DropdownMenuGroup>
+          <DropdownMenuLabel className="truncate font-normal text-muted-foreground">{email}</DropdownMenuLabel>
+          <DropdownMenuItem render={<Link href="/settings"><Settings className="mr-2 h-4 w-4" />{tc('settings')}</Link>} />
+          <DropdownMenuItem onClick={() => void signOut({ callbackUrl: withBase('/login') })}>
+            <LogOut className="mr-2 h-4 w-4" />
+            {tc('signOut')}
+          </DropdownMenuItem>
+        </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>
   );
