@@ -28,7 +28,8 @@
     "lessons": "Lessons",
     "learn": "Learn",
     "flashcards": "Flashcards",
-    "practice": "Practice with Kruu Bingo"
+    "practice": "Practice with Kruu Bingo",
+    "menu": "Menu"
   },
   "home": {
     "welcome": "Welcome back",
@@ -157,7 +158,9 @@
     "srcLesson": "Lesson",
     "dirForward": "Forward",
     "dirReverse": "Reverse",
-    "dirBoth": "Both"
+    "dirBoth": "Both",
+    "refreshAria": "Refresh deck",
+    "deleteAria": "Delete deck"
   },
   "flashcards": {
     "cardProgress": "Card {n} of {total}",
@@ -260,7 +263,9 @@
     "sortLessons": "Lessons",
     "sortTags": "Tags",
     "deleteItemDesc": "This action cannot be undone. The item, its lesson assignment, and its tag assignments will be removed.",
-    "deleteFailed": "Delete failed"
+    "deleteFailed": "Delete failed",
+    "selectRow": "Select row",
+    "noMatch": "No vocab items match your filters."
   },
   "extraction": {
     "title": "Extract vocabulary from photos",

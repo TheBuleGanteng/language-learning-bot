@@ -772,7 +772,101 @@ function VocabInner() {
           onShareDone={refreshItems}
         />
 
-        <div className="w-full max-w-full border rounded-md overflow-x-auto">
+        {/* Mobile (< md): stacked card per item — no horizontal scroll. */}
+        <div className="space-y-3 md:hidden">
+          {items.map((i) => (
+            <div key={i.id} className="rounded-lg border bg-card p-3">
+              <div className="flex gap-3">
+                <Checkbox
+                  className="mt-1 shrink-0"
+                  checked={selectedIds.has(i.id)}
+                  disabled={i.imageStatus === 'generating'}
+                  onCheckedChange={(c) => toggleSelect(i.id, c === true)}
+                  aria-label={t('selectRow')}
+                />
+                <div className="shrink-0">
+                  <ThumbCell item={i} onClick={() => i.imageUrl && setPreviewItem(i)} />
+                </div>
+                <div className="min-w-0 flex-1 space-y-1">
+                  <Link
+                    href={vocabPath(lang, `/${i.id}`)}
+                    className="font-medium break-words hover:underline"
+                  >
+                    {i.targetText}
+                  </Link>
+                  {i.transliteration && (
+                    <span className="block break-words text-xs text-muted-foreground">
+                      {i.transliteration}
+                    </span>
+                  )}
+                  <p className="break-words text-sm">
+                    {i.nativeText}
+                    {i.nativeMachine && (
+                      <span
+                        className="ml-1 align-middle text-[10px] uppercase tracking-wide text-muted-foreground"
+                        title={tc('autoTranslated')}
+                      >
+                        · {tc('autoTranslated')}
+                      </span>
+                    )}
+                  </p>
+                  {(i.lessons.length > 0 || i.tags.length > 0) && (
+                    <div className="flex flex-wrap gap-1 pt-0.5">
+                      {i.lessons.map((l) => {
+                        const c = colorForLesson(l.name);
+                        return (
+                          <Link key={l.id} href={lessonPath(lang, l.id)} className="inline-block">
+                            <Badge variant="outline" className={cn('border-transparent', c.bg, c.text)}>
+                              {l.name}
+                            </Badge>
+                          </Link>
+                        );
+                      })}
+                      {i.tags.map((tag) => {
+                        const c = colorForTag(tag.name);
+                        return (
+                          <Badge
+                            key={tag.id}
+                            variant="outline"
+                            className={cn('border-transparent', c.bg, c.text)}
+                          >
+                            {tag.name}
+                          </Badge>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="mt-3 flex items-center justify-end gap-2 border-t pt-2">
+                <Button
+                  asChild
+                  size="sm"
+                  variant="outline"
+                  className="border-blue-300 text-blue-700 hover:bg-blue-50 hover:text-blue-800"
+                >
+                  <Link href={vocabPath(lang, `/${i.id}`)}>{tc('edit')}</Link>
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                  onClick={() => setDeleteId(i.id)}
+                >
+                  {tc('delete')}
+                </Button>
+              </div>
+            </div>
+          ))}
+          {items.length === 0 && !loading && (
+            <div className="rounded-md border bg-muted/30 p-8 text-center text-muted-foreground">
+              {t('noMatch')}
+            </div>
+          )}
+        </div>
+
+        {/* Desktop (md+): the full table. */}
+        <div className="hidden w-full max-w-full overflow-x-auto rounded-md border md:block">
           <Table className="w-full">
             <TableHeader>
               <TableRow className="bg-muted border-b-2">
@@ -799,7 +893,7 @@ function VocabInner() {
                       checked={selectedIds.has(i.id)}
                       disabled={i.imageStatus === 'generating'}
                       onCheckedChange={(c) => toggleSelect(i.id, c === true)}
-                      aria-label="Select row"
+                      aria-label={t('selectRow')}
                     />
                   </TableCell>
                   <TableCell className="align-top">
@@ -899,7 +993,7 @@ function VocabInner() {
                     colSpan={SORT_COLS.length + 3}
                     className="text-center py-8 text-muted-foreground"
                   >
-                    No vocab items match your filters.
+                    {t('noMatch')}
                   </TableCell>
                 </TableRow>
               )}

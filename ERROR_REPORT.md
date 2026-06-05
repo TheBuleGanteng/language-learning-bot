@@ -1884,3 +1884,48 @@ instance — new keys in the existing `extraction` namespace.
 **Catalogs:** 346 keys, identical across all five locales (key-diff verified).
 **Quality gates:** lint clean, 75/75 tests, `tsc` clean, `pnpm build` exit 0
 ("Compiled successfully"). No schema change.
+
+## 2026-06-05 — Mobile responsiveness pass (nav, decks/flashcards/avatar, app-wide)
+**PART 1 — responsive header + mobile master menu:** the header is now contained
+to the viewport (`w-full`, `max-w-full`, `min-w-0`/`shrink-0`, no non-wrapping
+fixed rows). The logo was lifted out of `AppNav` into the header so it stays
+visible; `AppNav` is now `hidden md:flex` (desktop only) and takes a `className`.
+A new `MobileMenu` (hamburger, `md:hidden`) — a base-ui dropdown (focus/Escape/
+outside-tap/aria handled) — holds the primary links (Vocabulary, Lessons, Learn →
+Flashcards/Practice) plus the account menu (email, Settings, Sign out). The
+language selector stays outside the menu and already compacts to flag-only below
+`sm`; `UserMenu` is now `hidden md:block`. New `nav.menu` aria key (5 locales).
+**PART 2 — decks/flashcards/avatar:**
+- Decks list: below `md` the wide table is replaced by a **stacked card per deck**
+  (name + source/direction, a labeled metadata grid for Cards/Due/Last studied/
+  Last session, and touch-sized action buttons incl. Study/AI-chat/refresh/
+  settings/delete); the table is `hidden md:block`. Header button row now wraps.
+  Action aria/titles localized (new `decks.refreshAria`/`deleteAria`, reused
+  `deckSettings`).
+- Flashcard study screen was already responsive (`grid-cols-2 sm:grid-cols-4`
+  rating buttons, `w-full`/`max-w-xl`) — left as is.
+- Avatar/slider controls: the Base-language-use and Speech-speed tick labels are
+  now equal-width, centered, wrap-safe (`flex-1 min-w-0 break-words`, smaller on
+  mobile) so long localized words can't push the control past the screen.
+**PART 3 — app-wide:**
+- **Vocab table** (`/vocab`) and **lessons table** (`/lessons`): same
+  desktop-table / mobile-stacked-card treatment; functionality preserved
+  (selection, image thumb, target/meaning + auto-translated badge, lesson/tag
+  chips, edit/delete). Localized two more strings (`vocab.selectRow`,
+  `vocab.noMatch`).
+- **Dialogs**: `DialogContent` and `AlertDialogContent` now have
+  `max-h-[calc(100svh-2rem)] overflow-y-auto` (+ a `max-w-[calc(100%-2rem)]`
+  floor on the alert dialog) so tall dialogs scroll internally and keep buttons
+  reachable on mobile.
+- Vocab page filters already collapse to a single column (`grid-cols-1
+  lg:grid-cols-[16rem,1fr]`) with wrapping controls; the deck-builder banner is
+  `sticky top-16` (clears the ~57px mobile header). Other major routes (home,
+  settings model rows `grid-cols-1 md:grid-cols-[...]`, auth) were already
+  flex/grid-responsive.
+**Intentionally deferred:** the lesson-detail vocab table (`vocab-table.tsx`)
+keeps its contained `overflow-x-auto` (so the page never scrolls horizontally,
+only that table area does) rather than a second card rewrite — noted for a
+follow-up if the internal table scroll there is undesirable.
+**Catalogs:** 351 keys, identical across all five locales (key-diff verified).
+**Quality gates:** lint clean, 75/75 tests, `tsc` clean, `pnpm build` exit 0
+("Compiled successfully"). No schema change.

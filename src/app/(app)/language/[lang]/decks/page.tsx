@@ -193,9 +193,9 @@ export default function FlashcardsPage() {
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">{t('title')}</h1>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button onClick={() => router.push(`${vocabPath(lang)}?mode=deck-builder`)}>
             {t('createDeck')}
           </Button>
@@ -216,7 +216,85 @@ export default function FlashcardsPage() {
           {t('empty')}
         </div>
       ) : (
-        <div className="w-full max-w-full border rounded-md overflow-x-auto">
+        <>
+        {/* Mobile (< md): stacked card per deck — no horizontal scroll. */}
+        <div className="space-y-3 md:hidden">
+          {decks.map((deck) => (
+            <div key={deck.id} className="space-y-3 rounded-lg border bg-card p-4">
+              <div className="min-w-0">
+                <Link href={deckHubPath(lang, deck.id)} className="font-medium break-words hover:underline">
+                  {deck.name}
+                </Link>
+                <p className="text-xs text-muted-foreground">
+                  {t(deck.source === 'manual' ? 'srcManual' : deck.source === 'tag' ? 'srcTag' : 'srcLesson')}{' '}
+                  · {t(deck.direction === 'forward' ? 'dirForward' : deck.direction === 'reverse' ? 'dirReverse' : 'dirBoth')}
+                </p>
+              </div>
+              <dl className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
+                <div className="flex items-center justify-between gap-2">
+                  <dt className="text-muted-foreground">{t('colCards')}</dt>
+                  <dd className="tabular-nums">{deck.cardCount}</dd>
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <dt className="text-muted-foreground">{t('colDue')}</dt>
+                  <dd className="tabular-nums font-medium">{deck.dueCount}</dd>
+                </div>
+                <div className="col-span-2 flex items-center justify-between gap-2">
+                  <dt className="text-muted-foreground">{t('colLastStudied')}</dt>
+                  <dd>{deck.lastStudiedAt ? formatDate(deck.lastStudiedAt) : tc('never')}</dd>
+                </div>
+                <div className="col-span-2 flex items-center justify-between gap-2">
+                  <dt className="shrink-0 text-muted-foreground">{t('colLastSession')}</dt>
+                  <dd className="min-w-0"><SessionPills s={deck.lastSession} /></dd>
+                </div>
+              </dl>
+              <div className="flex flex-wrap items-center gap-2 border-t pt-3">
+                <Button asChild size="sm" className="min-w-[7rem] flex-1">
+                  <Link href={deckFlashcardsPath(lang, deck.id)}>{t('flashcardsBtn')}</Link>
+                </Button>
+                <Button asChild size="sm" variant="outline" className="min-w-[7rem] flex-1">
+                  <Link href={deckAvatarPath(lang, deck.id)}>{t('aiChatBtn')}</Link>
+                </Button>
+                <div className="flex items-center gap-1">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-10 w-10"
+                    disabled={deck.source === 'manual' || busy}
+                    title={deck.source === 'manual' ? t('manualNoRefresh') : t('refreshFromSource')}
+                    aria-label={t('refreshAria')}
+                    onClick={() => onRefreshClick(deck)}
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-10 w-10"
+                    aria-label={t('deckSettings')}
+                    title={t('deckSettings')}
+                    onClick={() => setSettingsDeck(deck)}
+                  >
+                    <Settings2 className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-10 w-10 text-red-600 hover:bg-red-50 hover:text-red-700"
+                    aria-label={t('deleteAria')}
+                    title={t('deleteAria')}
+                    onClick={() => setDeleteDeck(deck)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Desktop (md+): the full table. */}
+        <div className="hidden w-full max-w-full overflow-x-auto rounded-md border md:block">
           <Table className="w-full">
             <TableHeader>
               <TableRow className="bg-muted border-b-2">
@@ -283,7 +361,7 @@ export default function FlashcardsPage() {
                             : t('refreshFromSource')
                         }
                         onClick={() => onRefreshClick(deck)}
-                        aria-label="Refresh deck"
+                        aria-label={t('refreshAria')}
                       >
                         <RefreshCw className="h-4 w-4" />
                       </Button>
@@ -291,8 +369,8 @@ export default function FlashcardsPage() {
                         size="xs"
                         variant="ghost"
                         onClick={() => setSettingsDeck(deck)}
-                        aria-label="Deck settings"
-                        title="Settings"
+                        aria-label={t('deckSettings')}
+                        title={t('deckSettings')}
                       >
                         <Settings2 className="h-4 w-4" />
                       </Button>
@@ -301,8 +379,8 @@ export default function FlashcardsPage() {
                         variant="ghost"
                         className="text-red-600 hover:bg-red-50 hover:text-red-700"
                         onClick={() => setDeleteDeck(deck)}
-                        aria-label="Delete deck"
-                        title="Delete"
+                        aria-label={t('deleteAria')}
+                        title={t('deleteAria')}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -324,6 +402,7 @@ export default function FlashcardsPage() {
             </TableBody>
           </Table>
         </div>
+        </>
       )}
 
       {totalPages > 1 && (

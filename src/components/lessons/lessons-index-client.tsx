@@ -192,7 +192,61 @@ export function LessonsIndexClient({ lang }: Props) {
         />
       )}
 
-      <div className="border rounded-md overflow-x-auto">
+      {/* Mobile (< md): stacked card per lesson — no horizontal scroll. */}
+      <div className="space-y-3 md:hidden">
+        {rows.map((r) => (
+          <div
+            key={r.id}
+            className="rounded-lg border bg-card p-4 active:bg-muted/40"
+            onClick={() => router.push(lessonPath(lang, r.id))}
+          >
+            <div className="flex items-start gap-3">
+              {canShareLessons && (
+                <span className="pt-0.5" onClick={(e) => e.stopPropagation()}>
+                  <Checkbox
+                    checked={selectedIds.has(r.id)}
+                    onCheckedChange={(c) => toggleSelected(r.id, c === true)}
+                    aria-label={t('selectAria', { name: r.name })}
+                  />
+                </span>
+              )}
+              <div className="min-w-0 flex-1">
+                <p className="font-medium break-words text-blue-700 dark:text-blue-400">{r.name}</p>
+                {r.topic && (
+                  <p className="mt-0.5 line-clamp-2 text-sm text-muted-foreground">{stripHtml(r.topic)}</p>
+                )}
+                <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                  <span>
+                    {t('colDate')}: {formatDate(r.date, locale)}
+                  </span>
+                  <span>
+                    {t('colVocab')}: {r.vocabCount}
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                aria-label={t('deleteAria')}
+                className="shrink-0 p-2 text-muted-foreground/50 hover:text-red-600"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setDeleteTarget({ id: r.id, name: r.name });
+                }}
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        ))}
+        {rows.length === 0 && !loading && (
+          <div className="rounded-md border bg-muted/30 p-8 text-center text-muted-foreground">
+            {t('empty')}
+          </div>
+        )}
+      </div>
+
+      {/* Desktop (md+): the full table. */}
+      <div className="hidden rounded-md border overflow-x-auto md:block">
         <Table>
           <TableHeader>
             <TableRow className="bg-muted border-b-2">

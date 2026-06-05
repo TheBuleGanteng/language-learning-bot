@@ -56,9 +56,15 @@ export function SpeechSpeedControl({ value, onChange, disabled, className }: Pro
         }}
       />
 
-      <div className="flex justify-between text-[11px] text-muted-foreground">
+      <div className="flex gap-1 text-[10px] text-muted-foreground sm:text-[11px]">
         {SPEECH_SPEED_LEVELS.map((lvl) => (
-          <span key={lvl} className={cn(lvl === value && 'font-semibold text-foreground')}>
+          <span
+            key={lvl}
+            className={cn(
+              'min-w-0 flex-1 break-words text-center leading-tight',
+              lvl === value && 'font-semibold text-foreground',
+            )}
+          >
             {t(`levels.${lvl}`)}
           </span>
         ))}

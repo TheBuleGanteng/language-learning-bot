@@ -28,7 +28,8 @@
     "lessons": "课程",
     "learn": "学习",
     "flashcards": "抽认卡",
-    "practice": "和 Kruu Bingo 练习"
+    "practice": "和 Kruu Bingo 练习",
+    "menu": "菜单"
   },
   "home": {
     "welcome": "欢迎回来",
@@ -157,7 +158,9 @@
     "srcLesson": "课程",
     "dirForward": "正向",
     "dirReverse": "反向",
-    "dirBoth": "双向"
+    "dirBoth": "双向",
+    "refreshAria": "刷新卡组",
+    "deleteAria": "删除卡组"
   },
   "flashcards": {
     "cardProgress": "第 {n} 张，共 {total} 张",
@@ -260,7 +263,9 @@
     "sortLessons": "课程",
     "sortTags": "标签",
     "deleteItemDesc": "此操作无法撤销。该词条及其课程和标签关联都将被移除。",
-    "deleteFailed": "删除失败"
+    "deleteFailed": "删除失败",
+    "selectRow": "选择此行",
+    "noMatch": "没有符合筛选条件的词汇。"
   },
   "extraction": {
     "title": "从照片提取词汇",

@@ -28,7 +28,8 @@
     "lessons": "수업",
     "learn": "학습",
     "flashcards": "플래시카드",
-    "practice": "Kruu Bingo와 연습"
+    "practice": "Kruu Bingo와 연습",
+    "menu": "메뉴"
   },
   "home": {
     "welcome": "다시 오신 것을 환영합니다",
@@ -157,7 +158,9 @@
     "srcLesson": "수업",
     "dirForward": "정방향",
     "dirReverse": "역방향",
-    "dirBoth": "양방향"
+    "dirBoth": "양방향",
+    "refreshAria": "덱 새로고침",
+    "deleteAria": "덱 삭제"
   },
   "flashcards": {
     "cardProgress": "{total}장 중 {n}장",
@@ -260,7 +263,9 @@
     "sortLessons": "수업",
     "sortTags": "태그",
     "deleteItemDesc": "이 작업은 되돌릴 수 없습니다. 항목과 해당 수업·태그 연결이 모두 삭제됩니다.",
-    "deleteFailed": "삭제 실패"
+    "deleteFailed": "삭제 실패",
+    "selectRow": "행 선택",
+    "noMatch": "필터에 맞는 어휘가 없습니다."
   },
   "extraction": {
     "title": "사진에서 어휘 추출",

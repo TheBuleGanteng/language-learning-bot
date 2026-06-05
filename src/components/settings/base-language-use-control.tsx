@@ -69,9 +69,17 @@ export function BaseLanguageUseControl({
         }}
       />
 
-      <div className="flex justify-between text-[11px] text-muted-foreground">
+      {/* Equal-width, wrap-safe tick labels so long localized words never push
+          the control past the viewport on mobile. */}
+      <div className="flex gap-1 text-[10px] text-muted-foreground sm:text-[11px]">
         {BASE_LANGUAGE_USE_LEVELS.map((lvl) => (
-          <span key={lvl} className={cn(lvl === value && 'font-semibold text-foreground')}>
+          <span
+            key={lvl}
+            className={cn(
+              'min-w-0 flex-1 break-words text-center leading-tight',
+              lvl === value && 'font-semibold text-foreground',
+            )}
+          >
             {t(`levels.${lvl}`)}
           </span>
         ))}

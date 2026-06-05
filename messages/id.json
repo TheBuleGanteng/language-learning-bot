@@ -28,7 +28,8 @@
     "lessons": "Pelajaran",
     "learn": "Belajar",
     "flashcards": "Kartu hafalan",
-    "practice": "Berlatih dengan Kruu Bingo"
+    "practice": "Berlatih dengan Kruu Bingo",
+    "menu": "Menu"
   },
   "home": {
     "welcome": "Selamat datang kembali",
@@ -157,7 +158,9 @@
     "srcLesson": "Pelajaran",
     "dirForward": "Maju",
     "dirReverse": "Mundur",
-    "dirBoth": "Keduanya"
+    "dirBoth": "Keduanya",
+    "refreshAria": "Segarkan dek",
+    "deleteAria": "Hapus dek"
   },
   "flashcards": {
     "cardProgress": "Kartu {n} dari {total}",
@@ -260,7 +263,9 @@
     "sortLessons": "Pelajaran",
     "sortTags": "Tag",
     "deleteItemDesc": "Tindakan ini tidak dapat dibatalkan. Item beserta penetapan pelajaran dan tag-nya akan dihapus.",
-    "deleteFailed": "Gagal menghapus"
+    "deleteFailed": "Gagal menghapus",
+    "selectRow": "Pilih baris",
+    "noMatch": "Tidak ada kosakata yang cocok dengan filter Anda."
   },
   "extraction": {
     "title": "Ekstrak kosakata dari foto",

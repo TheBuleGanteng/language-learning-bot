@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { eq } from 'drizzle-orm';
 import { getLocale } from 'next-intl/server';
@@ -6,10 +7,12 @@ import { db } from '@/db';
 import { users } from '@/db/schema';
 import { AppNav } from '@/components/app-nav';
 import { UserMenu } from '@/components/user-menu';
+import { MobileMenu } from '@/components/mobile-menu';
 import { AppFooter } from '@/components/app-footer';
 import { LanguageSelector } from '@/components/language-selector';
 import { BatchWatcher } from '@/components/batch-watcher';
 import { normalizeLanguageCode } from '@/lib/languages';
+import { homePath } from '@/lib/routes';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
@@ -30,12 +33,22 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <div className="min-h-svh flex flex-col">
       {/* Sticky header (§5) — stays visible while scrolling long pages. */}
-      <header className="sticky top-0 z-40 border-b bg-background">
-        <div className="container mx-auto flex items-center justify-between px-4 py-3">
-          <AppNav lang={lang} />
-          <div className="flex items-center gap-1">
+      <header className="sticky top-0 z-40 w-full border-b bg-background">
+        <div className="container mx-auto flex max-w-full items-center justify-between gap-2 px-4 py-3">
+          {/* Logo (always visible) + desktop nav (collapses into the mobile
+              master menu below md). */}
+          <div className="flex min-w-0 items-center gap-1">
+            <Link href={homePath()} className="font-semibold shrink-0">
+              Kaojai
+            </Link>
+            <AppNav lang={lang} className="ml-4 hidden md:flex" />
+          </div>
+          {/* Language selector stays visible (compacts on narrow); the account
+              menu is desktop-only and folds into the hamburger on mobile. */}
+          <div className="flex shrink-0 items-center gap-1">
             <LanguageSelector currentLocale={locale} authenticated />
-            <UserMenu email={session.user.email} />
+            <UserMenu email={session.user.email} className="hidden md:block" />
+            <MobileMenu lang={lang} email={session.user.email} className="md:hidden" />
           </div>
         </div>
       </header>

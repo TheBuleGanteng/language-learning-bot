@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { ChevronDown, GraduationCap, MessagesSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { homePath, vocabPath, lessonsPath, decksPath } from '@/lib/routes';
+import { vocabPath, lessonsPath, decksPath } from '@/lib/routes';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,9 +15,10 @@ import {
 
 interface Props {
   lang: string;
+  className?: string;
 }
 
-export function AppNav({ lang }: Props) {
+export function AppNav({ lang, className }: Props) {
   const pathname = usePathname();
   const t = useTranslations('nav');
   const langPrefix = `/language/${lang}`;
@@ -38,10 +39,7 @@ export function AppNav({ lang }: Props) {
     );
 
   return (
-    <nav className="flex items-center gap-1">
-      <Link href={homePath()} className="font-semibold mr-4">
-        Kaojai
-      </Link>
+    <nav className={cn('flex items-center gap-1', className)}>
       {items.map((i) => (
         <Link key={i.label} href={i.href} className={navItemClass(isActive(i.match))}>
           {i.label}
