@@ -1938,3 +1938,13 @@ missing. Menu group parts must be used within <Menu.Group> or <Menu.RadioGroup>.
 (`Menu.Group`), with the "Learn" and account-email labels inside their groups.
 Verified with `tsc --noEmit` (clean) and `pnpm lint` (clean). (Caught at runtime,
 not build time, because the invalid nesting compiles fine.)
+
+## 2026-06-05 — Fix: avatar/voice-chat unscrollable on mobile (mic button unreachable)
+On mobile the avatar view is `fixed inset-0` and its inner column was
+`flex-1 … overflow-hidden`, which pinned it to the viewport height and clipped
+everything below the fold — the "Tap to speak" mic button was cut off and the
+user couldn't start the chat. Fix: made the inner column a scroll container
+(`flex-1 min-h-0 overflow-y-auto`) and reduced the avatar block height on mobile
+(`h-[30vh] sm:h-[40vh]`) so less scrolling is needed. Desktop is unchanged
+(`sm:static` root has no fixed height, so flex-1/overflow are effectively no-ops
+there; the `sm:` avatar height keeps 40vh). Class-only change; `tsc` + `lint` clean.

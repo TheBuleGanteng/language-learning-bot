@@ -808,9 +808,9 @@ export function VoiceChat({ mode, lang, deckId }: VoiceChatProps) {
       {phase === 'loading' ? (
         <div className="m-auto text-sm text-muted-foreground">{t('preparing')}</div>
       ) : (
-        <div className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-4 overflow-hidden">
+        <div className="mx-auto flex w-full max-w-xl flex-1 min-h-0 flex-col gap-4 overflow-y-auto">
           {/* Avatar */}
-          <div className="flex shrink-0 items-center justify-center pt-2" style={{ height: '40vh' }}>
+          <div className="flex h-[30vh] shrink-0 items-center justify-center pt-2 sm:h-[40vh]">
             <KruuBingo state={avatarState} size={220} />
           </div>
 
