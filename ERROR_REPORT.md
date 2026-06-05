@@ -1965,3 +1965,17 @@ cases:
   keeps the labeled Captions row in the controls box.
 Catalogs 352 keys, identical across five locales. `tsc` + `lint` clean. Class/JSX/
 catalog-only change; no schema or logic change.
+
+## 2026-06-05 — Avatar sliders: wrapping label + grid-centered slider + ticks (both widths)
+Refined the `compact` slider layout (used by the avatar page on mobile AND
+desktop): a 2-column CSS grid `[7rem minmax(0,1fr)]` with `items-center` —
+- (1) the label sits in a narrow, wrapping 7rem column (`break-words`) so it
+  consumes less horizontal space and the slider gets the rest;
+- (2) `items-center` vertically centers the slider against the label, so a
+  wrapped (multi-line) label stays centered on the slider;
+- (3) the tick/increment labels are retained under the slider on both mobile and
+  desktop (no longer hidden on mobile);
+- (4) the compact grid is applied on all widths (no `sm:` revert), so the avatar
+  controls are compact on desktop too.
+Settings keeps the original stacked (non-compact) layout. `tsc` + `lint` clean,
+catalogs unchanged (352 keys). Class/JSX-only change.
