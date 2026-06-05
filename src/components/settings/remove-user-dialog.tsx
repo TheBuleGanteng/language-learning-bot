@@ -12,6 +12,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { withBase } from '@/lib/base-path';
 
 type UserAction = 'remove' | 'disable';
 type DataAction = 'delete' | 'reassign';
@@ -49,7 +50,7 @@ export function RemoveUserDialog({ open, onOpenChange, user, onDone }: Props) {
     if (!user) return;
     setBusy(true);
     try {
-      const res = await fetch(`/api/users/${user.id}/remove`, {
+      const res = await fetch(withBase(`/api/users/${user.id}/remove`), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userAction, dataAction }),

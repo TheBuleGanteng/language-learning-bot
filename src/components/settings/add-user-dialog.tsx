@@ -14,6 +14,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { withBase } from '@/lib/base-path';
 
 interface AddedUser {
   id: string;
@@ -47,7 +48,7 @@ export function AddUserDialog({ open, onOpenChange, onAdded }: Props) {
     setSaving(true);
     setError(null);
     try {
-      const res = await fetch('/api/users', {
+      const res = await fetch(withBase('/api/users'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: email.trim(), password }),

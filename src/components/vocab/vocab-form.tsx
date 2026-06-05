@@ -113,7 +113,7 @@ export function VocabForm({ initial, mode, onSuccess, onCancel }: Props) {
       };
       const url = mode === 'new' ? '/api/vocab' : `/api/vocab/${initial?.id}`;
       const method = mode === 'new' ? 'POST' : 'PATCH';
-      const res = await fetch(url, {
+      const res = await fetch(withBase(url), {
         method,
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify(payload),
