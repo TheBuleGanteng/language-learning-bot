@@ -374,10 +374,11 @@
       "moderate": "老师有时用{base}来澄清，力求{target}和{base}的平衡。",
       "rarely": "老师主要使用{target}；只有在你要求时才会改用{base}。",
       "never": "老师只说{target}，不使用{base}。"
-    }
+    },
+    "labelShort": "{base} 使用"
   },
   "speechSpeed": {
-    "label": "语速",
+    "label": "速度",
     "about": "关于语速",
     "intro": "控制 Kruu Bingo 说话的速度。“慢速”最适合初学者。",
     "levels": {

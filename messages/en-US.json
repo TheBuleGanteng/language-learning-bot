@@ -374,10 +374,11 @@
       "moderate": "The tutor sometimes uses {base} to clarify, aiming for a balance of {target} and {base}.",
       "rarely": "The tutor mostly uses {target}; it only falls back to {base} if you ask.",
       "never": "The tutor speaks only in {target} and does not use {base}."
-    }
+    },
+    "labelShort": "{base} use"
   },
   "speechSpeed": {
-    "label": "Speech speed",
+    "label": "Speed",
     "about": "About speech speed",
     "intro": "Controls how fast Kruu Bingo speaks. \"Slow\" is easiest for beginners.",
     "levels": {

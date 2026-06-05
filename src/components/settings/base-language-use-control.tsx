@@ -16,6 +16,12 @@ interface Props {
   baseLanguage: string;
   disabled?: boolean;
   className?: string;
+  /**
+   * Compact mode (e.g. the mobile avatar page): puts the label inline with the
+   * slider and hides the tick labels below `sm` to save vertical space. Desktop
+   * is unchanged.
+   */
+  compact?: boolean;
 }
 
 /**
@@ -32,16 +38,19 @@ export function BaseLanguageUseControl({
   baseLanguage,
   disabled,
   className,
+  compact,
 }: Props) {
   const t = useTranslations('baseLanguageUse');
   const names = { target: targetLanguage, base: baseLanguage };
+  const label = t('labelShort', { base: baseLanguage });
   const idx = Math.max(0, BASE_LANGUAGE_USE_LEVELS.indexOf(value));
 
   return (
     <div className={cn('space-y-2', className)}>
-      <div className="flex items-center gap-1.5">
-        <Label>{t('label')}</Label>
-        <InfoIcon label={t('about')}>
+      <div className={cn(compact ? 'flex items-center gap-3 sm:block sm:space-y-2' : 'space-y-2')}>
+      <div className="flex min-w-0 items-center gap-1.5">
+        <Label className="truncate">{label}</Label>
+        <InfoIcon label={label}>
           <p className="font-medium">{t(`levels.${value}`)}</p>
           <p className="text-muted-foreground">{t(`help.${value}`, names)}</p>
           <div className="mt-1 space-y-1 border-t pt-2">
@@ -56,7 +65,8 @@ export function BaseLanguageUseControl({
       </div>
 
       <Slider
-        aria-label={t('label')}
+        aria-label={label}
+        className={cn(compact && 'min-w-[7rem] flex-1 sm:w-full')}
         min={0}
         max={BASE_LANGUAGE_USE_LEVELS.length - 1}
         step={1}
@@ -68,10 +78,17 @@ export function BaseLanguageUseControl({
           if (lvl && lvl !== value) onChange(lvl);
         }}
       />
+      </div>
 
       {/* Equal-width, wrap-safe tick labels so long localized words never push
-          the control past the viewport on mobile. */}
-      <div className="flex gap-1 text-[10px] text-muted-foreground sm:text-[11px]">
+          the control past the viewport on mobile. Hidden on mobile in compact
+          mode (the info tooltip still lists every level). */}
+      <div
+        className={cn(
+          'flex gap-1 text-[10px] text-muted-foreground sm:text-[11px]',
+          compact && 'hidden sm:flex',
+        )}
+      >
         {BASE_LANGUAGE_USE_LEVELS.map((lvl) => (
           <span
             key={lvl}

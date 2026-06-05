@@ -374,10 +374,11 @@
       "moderate": "튜터가 가끔 {base}로 설명하며 {target}와(과) {base}의 균형을 맞춥니다.",
       "rarely": "튜터가 주로 {target}를 사용하며 요청할 때만 {base}로 돌아갑니다.",
       "never": "튜터가 {target}로만 말하고 {base}는 사용하지 않습니다."
-    }
+    },
+    "labelShort": "{base} 사용"
   },
   "speechSpeed": {
-    "label": "말하기 속도",
+    "label": "속도",
     "about": "말하기 속도 정보",
     "intro": "Kruu Bingo가 말하는 속도를 조절합니다. \"느림\"이 초보자에게 가장 쉽습니다.",
     "levels": {

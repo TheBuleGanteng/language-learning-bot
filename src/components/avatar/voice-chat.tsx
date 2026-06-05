@@ -810,8 +810,24 @@ export function VoiceChat({ mode, lang, deckId }: VoiceChatProps) {
       ) : (
         <div className="mx-auto flex w-full max-w-xl flex-1 min-h-0 flex-col gap-4 overflow-y-auto">
           {/* Avatar */}
-          <div className="flex h-[30vh] shrink-0 items-center justify-center pt-2 sm:h-[40vh]">
+          <div className="relative flex h-[30vh] shrink-0 items-center justify-center pt-2 sm:h-[40vh]">
             <KruuBingo state={avatarState} size={220} />
+            {/* Mobile: the CC control is overlaid top-right of the avatar (the
+                labeled "Captions" row in the controls box is hidden below sm),
+                saving vertical space. */}
+            <div className="absolute right-1 top-1 sm:hidden">
+              <CaptionCcMenu
+                enabled={captionsEnabled}
+                onToggle={onToggleCaptions}
+                captionLanguage={captionLanguage}
+                onCaptionLanguageChange={onCaptionLanguageChange}
+                targetCode={targetCode}
+                targetName={targetName}
+                baseName={baseName}
+                toggleDisabled={captionsSaving}
+                langDisabled={captionLangSaving}
+              />
+            </div>
           </div>
 
           {/* Captions — the ONE caption display, gated entirely by captionsEnabled. */}
@@ -880,15 +896,19 @@ export function VoiceChat({ mode, lang, deckId }: VoiceChatProps) {
               targetLanguage={targetName}
               baseLanguage={baseName}
               disabled={blSaving}
+              compact
             />
             <div className="border-t pt-3">
               <SpeechSpeedControl
                 value={speechSpeed}
                 onChange={onSpeechSpeedChange}
                 disabled={ssSaving}
+                compact
               />
             </div>
-            <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-3">
+            {/* Desktop: labeled Captions row. On mobile the CC control lives over
+                the avatar (above), so this row is hidden. */}
+            <div className="hidden flex-wrap items-center justify-between gap-2 border-t pt-3 sm:flex">
               <span className="text-sm font-medium">{t('captions')}</span>
               <CaptionCcMenu
                 enabled={captionsEnabled}

@@ -374,10 +374,11 @@
       "moderate": "Tutor kadang menggunakan {base} untuk memperjelas, menyeimbangkan {target} dan {base}.",
       "rarely": "Tutor sebagian besar menggunakan {target}; hanya beralih ke {base} jika Anda meminta.",
       "never": "Tutor hanya berbicara dalam {target} dan tidak menggunakan {base}."
-    }
+    },
+    "labelShort": "Penggunaan {base}"
   },
   "speechSpeed": {
-    "label": "Kecepatan bicara",
+    "label": "Kecepatan",
     "about": "Tentang kecepatan bicara",
     "intro": "Mengatur seberapa cepat Kruu Bingo berbicara. \"Lambat\" paling mudah untuk pemula.",
     "levels": {

@@ -1948,3 +1948,20 @@ user couldn't start the chat. Fix: made the inner column a scroll container
 (`h-[30vh] sm:h-[40vh]`) so less scrolling is needed. Desktop is unchanged
 (`sm:static` root has no fixed height, so flex-1/overflow are effectively no-ops
 there; the `sm:` avatar height keeps 40vh). Class-only change; `tsc` + `lint` clean.
+
+## 2026-06-05 — Compact avatar controls on mobile (reduce vertical scrolling)
+To keep the avatar page within the mobile viewport without scrolling in most
+cases:
+- Slider labels shortened (mobile + desktop): "Base language use" → "{base} use"
+  (new `baseLanguageUse.labelShort`, interpolating the base-language name) and
+  "Speech speed" → "Speed" (`speechSpeed.label` value). Localized in all five.
+- Both sliders gained a `compact` prop (passed by the avatar page): on mobile the
+  label sits **inline with the slider** and the tick labels are hidden (the info
+  tooltip still lists every level); desktop is unchanged. The label truncates and
+  the slider keeps a `min-w-[7rem]` floor so long base-language names don't squash
+  it.
+- The labeled "Captions" row is hidden on mobile; the CC control is now overlaid
+  **top-right of the Kruu Bingo avatar** (icon only, no text) below `sm`. Desktop
+  keeps the labeled Captions row in the controls box.
+Catalogs 352 keys, identical across five locales. `tsc` + `lint` clean. Class/JSX/
+catalog-only change; no schema or logic change.
