@@ -46,7 +46,21 @@ export async function GET(req: Request) {
       topic: lessons.topic,
       date: lessons.date,
       createdAt: lessons.createdAt,
+      lessonVisibility: lessons.visibility,
       vocabCount: sql<number>`count(${vocabLessons.vocabItemId})::int AS vocab_count`,
+      // Material counts for the shared/partial/private indicator (across vocab,
+      // files, and links). Correlated subqueries — independent of the groupBy.
+      totalMaterials: sql<number>`(
+        (SELECT count(*) FROM vocab_lessons vl WHERE vl.lesson_id = ${lessons.id})
+        + (SELECT count(*) FROM lesson_files lf WHERE lf.lesson_id = ${lessons.id})
+        + (SELECT count(*) FROM lesson_links ll WHERE ll.lesson_id = ${lessons.id})
+      )::int`,
+      sharedMaterials: sql<number>`(
+        (SELECT count(*) FROM vocab_lessons vl JOIN vocab_items vi ON vi.id = vl.vocab_item_id
+           WHERE vl.lesson_id = ${lessons.id} AND vi.visibility = 'shared')
+        + (SELECT count(*) FROM lesson_files lf WHERE lf.lesson_id = ${lessons.id} AND lf.visibility = 'shared')
+        + (SELECT count(*) FROM lesson_links ll WHERE ll.lesson_id = ${lessons.id} AND ll.visibility = 'shared')
+      )::int`,
     })
     .from(lessons)
     .leftJoin(vocabLessons, eq(vocabLessons.lessonId, lessons.id))
@@ -54,7 +68,23 @@ export async function GET(req: Request) {
     .groupBy(lessons.id)
     .orderBy(orderBy);
 
-  return NextResponse.json({ lessons: rows });
+  // Derive the per-lesson visibility status: shared (all materials shared),
+  // partial (some), or private (none). Empty lessons fall back to the flag.
+  const out = rows.map(({ totalMaterials, sharedMaterials, lessonVisibility, ...r }) => {
+    let visibility: 'private' | 'partial' | 'shared';
+    if (totalMaterials === 0) {
+      visibility = lessonVisibility === 'shared' ? 'shared' : 'private';
+    } else if (sharedMaterials === 0) {
+      visibility = 'private';
+    } else if (sharedMaterials >= totalMaterials) {
+      visibility = 'shared';
+    } else {
+      visibility = 'partial';
+    }
+    return { ...r, visibility };
+  });
+
+  return NextResponse.json({ lessons: out });
 }
 
 const createSchema = z.object({

@@ -4,6 +4,7 @@ import { and, asc, eq } from 'drizzle-orm';
 import { db } from '@/db';
 import { lessons, lessonLinks } from '@/db/schema';
 import { auth } from '@/lib/auth';
+import { lessonVisibleSql, lessonLinkVisibleSql } from '@/lib/visibility';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -57,20 +58,24 @@ export async function GET(
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
 
+  // Visibility-aware: lesson must be visible (own or shared); only links the
+  // viewer may see are returned (own, or shared).
   const [lesson] = await db
     .select({ id: lessons.id })
     .from(lessons)
-    .where(and(eq(lessons.id, lessonId), eq(lessons.userId, userId)))
+    .where(and(eq(lessons.id, lessonId), lessonVisibleSql(userId)))
     .limit(1);
   if (!lesson) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
   const rows = await db
     .select()
     .from(lessonLinks)
-    .where(eq(lessonLinks.lessonId, lessonId))
+    .where(and(eq(lessonLinks.lessonId, lessonId), lessonLinkVisibleSql(userId)))
     .orderBy(asc(lessonLinks.position), asc(lessonLinks.createdAt));
 
-  return NextResponse.json({ links: rows });
+  // Only the owner may edit/delete a shared link (Feature A rule).
+  const out = rows.map((r) => ({ ...r, canEdit: r.userId === userId }));
+  return NextResponse.json({ links: out });
 }
 
 const createSchema = z.object({

@@ -40,6 +40,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         // provider produces the generic "Invalid credentials" error without
         // leaking which condition failed.
         if (!user.emailVerifiedAt) return null;
+        // Reject disabled accounts (superuser user-management). Same generic
+        // null-return so we don't reveal the account's disabled state.
+        if (user.disabledAt) return null;
         const ok = await argonVerify(user.passwordHash, password);
         if (!ok) return null;
         return {
@@ -64,6 +67,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const [row] = await db
           .select({
             inv: users.sessionsInvalidatedAt,
+            disabled: users.disabledAt,
             target: users.targetLanguage,
             native: users.nativeLanguage,
             role: users.role,
@@ -77,6 +81,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           if (invSec > (token.iat as number)) {
             token.invalidated = true;
           }
+        }
+        // An account disabled mid-session is forced out on its next request
+        // (the session callback clears the email → the (app) layout redirects).
+        if (row?.disabled) {
+          token.invalidated = true;
         }
         if (row) {
           token.targetLanguage = normalizeLanguageCode(row.target);

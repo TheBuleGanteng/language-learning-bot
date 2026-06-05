@@ -330,7 +330,8 @@
     "clearSelection": "清除選擇",
     "empty": "還沒有課程。建立你的第一個課程。",
     "selectAria": "選擇 {name}",
-    "deleteAria": "刪除課程"
+    "deleteAria": "刪除課程",
+    "colVisibility": "可見性"
   },
   "lessonDelete": {
     "title": "刪除「{name}」？",
@@ -422,5 +423,87 @@
     "updated": "已更新 {count} 個項目。",
     "updatedSkipped": "已更新 {updated} 個項目。跳過 {skipped} 個（非你的內容）。",
     "genericError": "發生錯誤，請重試。"
+  },
+  "lessonVisibility": {
+    "shared": "已分享",
+    "partial": "部分分享",
+    "private": "私密",
+    "editSharing": "編輯分享設定"
+  },
+  "lessonShare": {
+    "title": "分享課程",
+    "desc": "選擇要與學習此語言的其他人分享的素材。",
+    "all": "全部",
+    "vocabulary": "詞彙",
+    "notes": "筆記",
+    "audio": "音訊",
+    "links": "連結",
+    "status_shared": "已分享",
+    "status_partial": "部分",
+    "status_private": "私密",
+    "save": "儲存",
+    "saving": "儲存中…",
+    "saved": "分享設定已更新",
+    "saveFailed": "無法更新分享設定",
+    "loadFailed": "無法載入分享設定"
+  },
+  "userManagement": {
+    "title": "使用者管理",
+    "desc": "管理員可以分享內容；超級使用者還可以管理角色與帳戶。",
+    "search": "依電子郵件或顯示名稱搜尋使用者",
+    "noUsers": "找不到使用者。",
+    "roles": {
+      "heading": "管理使用者角色",
+      "colDisplayName": "顯示名稱",
+      "colEmail": "電子郵件",
+      "colCurrentRole": "目前角色",
+      "colChangeRole": "變更角色",
+      "you": "{role}（你）",
+      "cannotChangeOwn": "無法變更自己的角色",
+      "updated": "角色已更新",
+      "updateFailed": "變更角色失敗"
+    },
+    "users": {
+      "heading": "管理使用者",
+      "addUser": "新增使用者",
+      "colEmail": "電子郵件",
+      "colRole": "角色",
+      "colStatus": "狀態",
+      "colActions": "操作",
+      "statusActive": "啟用",
+      "statusDisabled": "已停用",
+      "resetPassword": "重設密碼",
+      "resetSent": "密碼重設電子郵件已寄出",
+      "resetFailed": "無法寄送重設電子郵件",
+      "remove": "移除",
+      "you": "（你）"
+    },
+    "remove": {
+      "title": "移除使用者",
+      "userActionLegend": "使用者帳戶",
+      "actionRemove": "移除（刪除帳戶）",
+      "actionDisable": "停用（封鎖登入；保留記錄）",
+      "dataLegend": "他們的資料",
+      "dataReassign": "將他們的資料重新指派給我",
+      "dataDelete": "刪除他們的所有資料（包括分享的）",
+      "continue": "繼續",
+      "back": "返回",
+      "confirm": "確認",
+      "working": "處理中…",
+      "warning": "此操作無法復原。",
+      "done": "已完成",
+      "failed": "操作失敗"
+    },
+    "add": {
+      "title": "新增使用者",
+      "desc": "使用臨時密碼建立帳戶。可立即登入；不會寄送驗證電子郵件。",
+      "email": "電子郵件",
+      "password": "臨時密碼",
+      "passwordHint": "至少 8 個字元，包含一個字母與一個數字。",
+      "create": "建立帳戶",
+      "creating": "建立中…",
+      "created": "帳戶已建立",
+      "failed": "無法建立帳戶"
+    }
   }
 }

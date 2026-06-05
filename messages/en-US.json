@@ -330,7 +330,8 @@
     "clearSelection": "Clear selection",
     "empty": "No lessons yet. Create your first lesson.",
     "selectAria": "Select {name}",
-    "deleteAria": "Delete lesson"
+    "deleteAria": "Delete lesson",
+    "colVisibility": "Visibility"
   },
   "lessonDelete": {
     "title": "Delete \"{name}\"?",
@@ -422,5 +423,87 @@
     "updated": "Updated {count} items.",
     "updatedSkipped": "Updated {updated} items. {skipped} skipped (not your content).",
     "genericError": "Something went wrong. Please try again."
+  },
+  "lessonVisibility": {
+    "shared": "Shared",
+    "partial": "Partially shared",
+    "private": "Private",
+    "editSharing": "Edit sharing"
+  },
+  "lessonShare": {
+    "title": "Share lesson",
+    "desc": "Choose which materials to share with others studying this language.",
+    "all": "All",
+    "vocabulary": "Vocabulary",
+    "notes": "Notes",
+    "audio": "Audio",
+    "links": "Links",
+    "status_shared": "Shared",
+    "status_partial": "Partial",
+    "status_private": "Private",
+    "save": "Save",
+    "saving": "Saving…",
+    "saved": "Sharing updated",
+    "saveFailed": "Could not update sharing",
+    "loadFailed": "Could not load sharing"
+  },
+  "userManagement": {
+    "title": "User management",
+    "desc": "Admins can share content; superusers can also manage roles and accounts.",
+    "search": "Search users by email or display name",
+    "noUsers": "No users found.",
+    "roles": {
+      "heading": "Manage user roles",
+      "colDisplayName": "Display name",
+      "colEmail": "Email",
+      "colCurrentRole": "Current role",
+      "colChangeRole": "Change role",
+      "you": "{role} (you)",
+      "cannotChangeOwn": "Cannot change your own role",
+      "updated": "Role updated",
+      "updateFailed": "Failed to change role"
+    },
+    "users": {
+      "heading": "Manage users",
+      "addUser": "Add user",
+      "colEmail": "Email",
+      "colRole": "Role",
+      "colStatus": "Status",
+      "colActions": "Actions",
+      "statusActive": "Active",
+      "statusDisabled": "Disabled",
+      "resetPassword": "Reset password",
+      "resetSent": "Password reset email sent",
+      "resetFailed": "Could not send reset email",
+      "remove": "Remove",
+      "you": "(you)"
+    },
+    "remove": {
+      "title": "Remove user",
+      "userActionLegend": "User account",
+      "actionRemove": "Remove (delete the account)",
+      "actionDisable": "Disable (block login; keep the record)",
+      "dataLegend": "Their data",
+      "dataReassign": "Reassign their data to me",
+      "dataDelete": "Delete all their data (including shared)",
+      "continue": "Continue",
+      "back": "Back",
+      "confirm": "Confirm",
+      "working": "Working…",
+      "warning": "This cannot be undone.",
+      "done": "Done",
+      "failed": "Action failed"
+    },
+    "add": {
+      "title": "Add user",
+      "desc": "Create an account with a temporary password. It can log in immediately; no verification email is sent.",
+      "email": "Email",
+      "password": "Temporary password",
+      "passwordHint": "At least 8 characters, with a letter and a number.",
+      "create": "Create account",
+      "creating": "Creating…",
+      "created": "Account created",
+      "failed": "Could not create account"
+    }
   }
 }

@@ -330,7 +330,8 @@
     "clearSelection": "Hapus pilihan",
     "empty": "Belum ada pelajaran. Buat pelajaran pertama Anda.",
     "selectAria": "Pilih {name}",
-    "deleteAria": "Hapus pelajaran"
+    "deleteAria": "Hapus pelajaran",
+    "colVisibility": "Visibilitas"
   },
   "lessonDelete": {
     "title": "Hapus \"{name}\"?",
@@ -422,5 +423,87 @@
     "updated": "Memperbarui {count} item.",
     "updatedSkipped": "Memperbarui {updated} item. {skipped} dilewati (bukan konten Anda).",
     "genericError": "Terjadi kesalahan. Silakan coba lagi."
+  },
+  "lessonVisibility": {
+    "shared": "Dibagikan",
+    "partial": "Sebagian dibagikan",
+    "private": "Pribadi",
+    "editSharing": "Edit berbagi"
+  },
+  "lessonShare": {
+    "title": "Bagikan pelajaran",
+    "desc": "Pilih materi yang akan dibagikan kepada orang lain yang mempelajari bahasa ini.",
+    "all": "Semua",
+    "vocabulary": "Kosakata",
+    "notes": "Catatan",
+    "audio": "Audio",
+    "links": "Tautan",
+    "status_shared": "Dibagikan",
+    "status_partial": "Sebagian",
+    "status_private": "Pribadi",
+    "save": "Simpan",
+    "saving": "Menyimpan…",
+    "saved": "Pengaturan berbagi diperbarui",
+    "saveFailed": "Tidak dapat memperbarui berbagi",
+    "loadFailed": "Tidak dapat memuat berbagi"
+  },
+  "userManagement": {
+    "title": "Manajemen pengguna",
+    "desc": "Admin dapat berbagi konten; superuser juga dapat mengelola peran dan akun.",
+    "search": "Cari pengguna berdasarkan email atau nama tampilan",
+    "noUsers": "Tidak ada pengguna ditemukan.",
+    "roles": {
+      "heading": "Kelola peran pengguna",
+      "colDisplayName": "Nama tampilan",
+      "colEmail": "Email",
+      "colCurrentRole": "Peran saat ini",
+      "colChangeRole": "Ubah peran",
+      "you": "{role} (Anda)",
+      "cannotChangeOwn": "Tidak dapat mengubah peran Anda sendiri",
+      "updated": "Peran diperbarui",
+      "updateFailed": "Gagal mengubah peran"
+    },
+    "users": {
+      "heading": "Kelola pengguna",
+      "addUser": "Tambah pengguna",
+      "colEmail": "Email",
+      "colRole": "Peran",
+      "colStatus": "Status",
+      "colActions": "Tindakan",
+      "statusActive": "Aktif",
+      "statusDisabled": "Dinonaktifkan",
+      "resetPassword": "Atur ulang kata sandi",
+      "resetSent": "Email atur ulang kata sandi terkirim",
+      "resetFailed": "Tidak dapat mengirim email atur ulang",
+      "remove": "Hapus",
+      "you": "(Anda)"
+    },
+    "remove": {
+      "title": "Hapus pengguna",
+      "userActionLegend": "Akun pengguna",
+      "actionRemove": "Hapus (hapus akun)",
+      "actionDisable": "Nonaktifkan (blokir login; simpan catatan)",
+      "dataLegend": "Data mereka",
+      "dataReassign": "Tetapkan ulang data mereka ke saya",
+      "dataDelete": "Hapus semua data mereka (termasuk yang dibagikan)",
+      "continue": "Lanjutkan",
+      "back": "Kembali",
+      "confirm": "Konfirmasi",
+      "working": "Memproses…",
+      "warning": "Tindakan ini tidak dapat dibatalkan.",
+      "done": "Selesai",
+      "failed": "Tindakan gagal"
+    },
+    "add": {
+      "title": "Tambah pengguna",
+      "desc": "Buat akun dengan kata sandi sementara. Dapat langsung masuk; tidak ada email verifikasi yang dikirim.",
+      "email": "Email",
+      "password": "Kata sandi sementara",
+      "passwordHint": "Minimal 8 karakter, dengan satu huruf dan satu angka.",
+      "create": "Buat akun",
+      "creating": "Membuat…",
+      "created": "Akun dibuat",
+      "failed": "Tidak dapat membuat akun"
+    }
   }
 }

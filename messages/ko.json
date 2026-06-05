@@ -330,7 +330,8 @@
     "clearSelection": "선택 해제",
     "empty": "아직 수업이 없습니다. 첫 수업을 만드세요.",
     "selectAria": "{name} 선택",
-    "deleteAria": "수업 삭제"
+    "deleteAria": "수업 삭제",
+    "colVisibility": "공개 범위"
   },
   "lessonDelete": {
     "title": "\"{name}\"을(를) 삭제할까요?",
@@ -422,5 +423,87 @@
     "updated": "{count}개 항목을 업데이트했습니다.",
     "updatedSkipped": "{updated}개 항목을 업데이트했습니다. {skipped}개 건너뜀(내 콘텐츠 아님).",
     "genericError": "문제가 발생했습니다. 다시 시도하세요."
+  },
+  "lessonVisibility": {
+    "shared": "공유됨",
+    "partial": "일부 공유됨",
+    "private": "비공개",
+    "editSharing": "공유 설정 편집"
+  },
+  "lessonShare": {
+    "title": "수업 공유",
+    "desc": "이 언어를 학습하는 다른 사용자와 공유할 자료를 선택하세요.",
+    "all": "전체",
+    "vocabulary": "어휘",
+    "notes": "노트",
+    "audio": "오디오",
+    "links": "링크",
+    "status_shared": "공유됨",
+    "status_partial": "일부",
+    "status_private": "비공개",
+    "save": "저장",
+    "saving": "저장 중…",
+    "saved": "공유 설정이 업데이트되었습니다",
+    "saveFailed": "공유 설정을 업데이트할 수 없습니다",
+    "loadFailed": "공유 설정을 불러올 수 없습니다"
+  },
+  "userManagement": {
+    "title": "사용자 관리",
+    "desc": "관리자는 콘텐츠를 공유할 수 있고, 슈퍼유저는 역할과 계정도 관리할 수 있습니다.",
+    "search": "이메일 또는 표시 이름으로 사용자 검색",
+    "noUsers": "사용자를 찾을 수 없습니다.",
+    "roles": {
+      "heading": "사용자 역할 관리",
+      "colDisplayName": "표시 이름",
+      "colEmail": "이메일",
+      "colCurrentRole": "현재 역할",
+      "colChangeRole": "역할 변경",
+      "you": "{role} (나)",
+      "cannotChangeOwn": "자신의 역할은 변경할 수 없습니다",
+      "updated": "역할이 업데이트되었습니다",
+      "updateFailed": "역할 변경에 실패했습니다"
+    },
+    "users": {
+      "heading": "사용자 관리",
+      "addUser": "사용자 추가",
+      "colEmail": "이메일",
+      "colRole": "역할",
+      "colStatus": "상태",
+      "colActions": "작업",
+      "statusActive": "활성",
+      "statusDisabled": "비활성화됨",
+      "resetPassword": "비밀번호 재설정",
+      "resetSent": "비밀번호 재설정 이메일을 보냈습니다",
+      "resetFailed": "재설정 이메일을 보낼 수 없습니다",
+      "remove": "삭제",
+      "you": "(나)"
+    },
+    "remove": {
+      "title": "사용자 삭제",
+      "userActionLegend": "사용자 계정",
+      "actionRemove": "삭제(계정 삭제)",
+      "actionDisable": "비활성화(로그인 차단, 기록 유지)",
+      "dataLegend": "사용자 데이터",
+      "dataReassign": "데이터를 나에게 재할당",
+      "dataDelete": "모든 데이터 삭제(공유 항목 포함)",
+      "continue": "계속",
+      "back": "뒤로",
+      "confirm": "확인",
+      "working": "처리 중…",
+      "warning": "이 작업은 되돌릴 수 없습니다.",
+      "done": "완료",
+      "failed": "작업에 실패했습니다"
+    },
+    "add": {
+      "title": "사용자 추가",
+      "desc": "임시 비밀번호로 계정을 만듭니다. 즉시 로그인할 수 있으며 인증 이메일은 발송되지 않습니다.",
+      "email": "이메일",
+      "password": "임시 비밀번호",
+      "passwordHint": "문자와 숫자를 포함해 8자 이상.",
+      "create": "계정 만들기",
+      "creating": "만드는 중…",
+      "created": "계정이 생성되었습니다",
+      "failed": "계정을 만들 수 없습니다"
+    }
   }
 }

@@ -23,6 +23,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { NewLessonDialog } from '@/components/new-lesson-dialog';
 import { DeleteLessonDialog } from '@/components/delete-lesson-dialog';
 import { LessonsBulkShareDialog } from '@/components/lessons/bulk-share-dialog';
+import { LessonVisibilityBadge } from '@/components/lessons/visibility-badge';
 import { DisplayNameGate } from '@/components/display-name-gate';
 import { canShare, type UserRole } from '@/lib/roles';
 import { lessonPath } from '@/lib/routes';
@@ -36,6 +37,7 @@ interface LessonRow {
   topic: string | null;
   date: string | null;
   vocabCount: number;
+  visibility: 'private' | 'partial' | 'shared';
 }
 
 type SortCol = 'name' | 'topic' | 'date' | 'vocab_count';
@@ -222,6 +224,11 @@ export function LessonsIndexClient({ lang }: Props) {
                   <span>
                     {t('colVocab')}: {r.vocabCount}
                   </span>
+                  {canShareLessons && (
+                    <span className="inline-flex items-center gap-1">
+                      {t('colVisibility')}: <LessonVisibilityBadge status={r.visibility} />
+                    </span>
+                  )}
                 </div>
               </div>
               <button
@@ -261,6 +268,9 @@ export function LessonsIndexClient({ lang }: Props) {
                   {sortIcon(c.id)}
                 </TableHead>
               ))}
+              {canShareLessons && (
+                <TableHead className="font-semibold">{t('colVisibility')}</TableHead>
+              )}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -295,6 +305,11 @@ export function LessonsIndexClient({ lang }: Props) {
                 <TableCell className="align-top text-right tabular-nums">
                   {r.vocabCount}
                 </TableCell>
+                {canShareLessons && (
+                  <TableCell className="align-top text-xs">
+                    <LessonVisibilityBadge status={r.visibility} />
+                  </TableCell>
+                )}
                 <TableCell className="w-8 align-top">
                   <ChevronRight className="h-4 w-4 text-muted-foreground/40" />
                 </TableCell>
@@ -316,7 +331,7 @@ export function LessonsIndexClient({ lang }: Props) {
             {rows.length === 0 && !loading && (
               <TableRow>
                 <TableCell
-                  colSpan={COLS.length + 2 + (canShareLessons ? 1 : 0)}
+                  colSpan={COLS.length + 2 + (canShareLessons ? 2 : 0)}
                   className="text-center py-8 text-muted-foreground"
                 >
                   {t('empty')}

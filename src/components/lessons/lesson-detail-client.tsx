@@ -22,9 +22,16 @@ import { VocabTable } from '@/components/vocab/vocab-table';
 import { ExtractionFlow } from '@/components/extraction/extraction-flow';
 import { DeleteLessonDialog } from '@/components/delete-lesson-dialog';
 import { Camera, Trash2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { languageName } from '@/lib/languages';
 import { flashcardsPath, chatPath, lessonsPath } from '@/lib/routes';
 import { withBase } from '@/lib/base-path';
+import { canShare, type UserRole } from '@/lib/roles';
+import { LessonShareDialog } from './lesson-share-dialog';
+import {
+  LessonVisibilityBadge,
+  type LessonVisibilityStatus,
+} from './visibility-badge';
 
 interface LessonShape {
   id: string;
@@ -32,12 +39,32 @@ interface LessonShape {
   lessonNumber: number | null;
   topic: string | null;
   date: string | null;
+  visibility: 'shared' | 'private';
 }
 
 interface Props {
   lang: string;
   lesson: LessonShape;
+  /** Whether the viewer created this lesson (only the creator may edit sharing). */
+  isCreator: boolean;
   initialVocabCount: number;
+}
+
+/** Derive the overall lesson status from per-category shared/total counts. */
+function deriveStatus(
+  cats: Record<string, { total: number; shared: number }>,
+  lessonVisibility: 'shared' | 'private',
+): LessonVisibilityStatus {
+  let total = 0;
+  let shared = 0;
+  for (const c of Object.values(cats)) {
+    total += c.total;
+    shared += c.shared;
+  }
+  if (total === 0) return lessonVisibility === 'shared' ? 'shared' : 'private';
+  if (shared === 0) return 'private';
+  if (shared >= total) return 'shared';
+  return 'partial';
 }
 
 async function patchLesson(lessonId: string, body: Record<string, unknown>) {
@@ -60,22 +87,45 @@ function toLocalDateString(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
-export function LessonDetailClient({ lang, lesson, initialVocabCount }: Props) {
+export function LessonDetailClient({ lang, lesson, isCreator, initialVocabCount }: Props) {
   const router = useRouter();
+  const t = useTranslations('lessonVisibility');
   const [notesCount, setNotesCount] = useState(0);
   const [audioCount, setAudioCount] = useState(0);
   const [linksCount, setLinksCount] = useState(0);
   const [showExtraction, setShowExtraction] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const [me, setMe] = useState<{ targetLanguage: string; nativeLanguage: string } | null>(
-    null,
-  );
+  const [shareOpen, setShareOpen] = useState(false);
+  const [shareStatus, setShareStatus] = useState<LessonVisibilityStatus | null>(null);
+  const [me, setMe] = useState<{
+    targetLanguage: string;
+    nativeLanguage: string;
+    role: UserRole;
+  } | null>(null);
 
   useEffect(() => {
     fetch(withBase('/api/me'))
       .then((r) => (r.ok ? r.json() : null))
       .then((mr) => setMe(mr ?? null));
   }, []);
+
+  // Only a share-capable creator manages sharing; load the current status so the
+  // indicator can show Shared / Partially shared / Private.
+  const canEditSharing = isCreator && !!me && canShare(me.role);
+  useEffect(() => {
+    if (!canEditSharing) return;
+    let cancelled = false;
+    fetch(withBase(`/api/lessons/${lesson.id}/share`))
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (cancelled || !d) return;
+        setShareStatus(deriveStatus(d.categories, d.lessonVisibility));
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [canEditSharing, lesson.id]);
 
   const targetLabel = languageName(me?.targetLanguage ?? lang) || 'Target';
 
@@ -116,17 +166,33 @@ export function LessonDetailClient({ lang, lesson, initialVocabCount }: Props) {
           <span>·</span>
           <span>{initialVocabCount} vocab items</span>
         </div>
-        <div className="flex justify-end">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setDeleteOpen(true)}
-            className="gap-1.5 text-red-600 hover:text-red-700 hover:bg-red-50"
+        {/* Visibility status below the date — clickable for the share-capable
+            creator to adjust which material categories are shared. */}
+        {canEditSharing && (
+          <button
+            type="button"
+            onClick={() => setShareOpen(true)}
+            aria-label={t('editSharing')}
+            className="inline-flex items-center gap-1 rounded-md text-xs hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            <Trash2 className="h-3.5 w-3.5" />
-            Delete lesson
-          </Button>
-        </div>
+            <LessonVisibilityBadge
+              status={shareStatus ?? (lesson.visibility === 'shared' ? 'shared' : 'private')}
+            />
+          </button>
+        )}
+        {isCreator && (
+          <div className="flex justify-end">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setDeleteOpen(true)}
+              className="gap-1.5 text-red-600 hover:text-red-700 hover:bg-red-50"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Delete lesson
+            </Button>
+          </div>
+        )}
       </header>
 
       <Accordion
@@ -138,7 +204,7 @@ export function LessonDetailClient({ lang, lesson, initialVocabCount }: Props) {
             <span className="text-sm font-semibold">Notes ({notesCount})</span>
           </AccordionTrigger>
           <AccordionContent>
-            <NotesSection lessonId={lesson.id} onCountChange={setNotesCount} />
+            <NotesSection lessonId={lesson.id} onCountChange={setNotesCount} canEdit={isCreator} />
           </AccordionContent>
         </AccordionItem>
 
@@ -147,7 +213,7 @@ export function LessonDetailClient({ lang, lesson, initialVocabCount }: Props) {
             <span className="text-sm font-semibold">Audio ({audioCount})</span>
           </AccordionTrigger>
           <AccordionContent>
-            <AudioSection lessonId={lesson.id} onCountChange={setAudioCount} />
+            <AudioSection lessonId={lesson.id} onCountChange={setAudioCount} canEdit={isCreator} />
           </AccordionContent>
         </AccordionItem>
 
@@ -156,7 +222,7 @@ export function LessonDetailClient({ lang, lesson, initialVocabCount }: Props) {
             <span className="text-sm font-semibold">Useful Links ({linksCount})</span>
           </AccordionTrigger>
           <AccordionContent>
-            <LinksSection lessonId={lesson.id} onCountChange={setLinksCount} />
+            <LinksSection lessonId={lesson.id} onCountChange={setLinksCount} canEdit={isCreator} />
           </AccordionContent>
         </AccordionItem>
 
@@ -247,6 +313,22 @@ export function LessonDetailClient({ lang, lesson, initialVocabCount }: Props) {
         lessonName={lesson.name}
         onDeleted={() => router.push(lessonsPath(lang))}
       />
+
+      {canEditSharing && (
+        <LessonShareDialog
+          open={shareOpen}
+          onOpenChange={setShareOpen}
+          lessonId={lesson.id}
+          onSaved={() => {
+            // Refresh the status badge + any visibility-filtered sections.
+            fetch(withBase(`/api/lessons/${lesson.id}/share`))
+              .then((r) => (r.ok ? r.json() : null))
+              .then((d) => d && setShareStatus(deriveStatus(d.categories, d.lessonVisibility)))
+              .catch(() => {});
+            router.refresh();
+          }}
+        />
+      )}
     </div>
   );
 }

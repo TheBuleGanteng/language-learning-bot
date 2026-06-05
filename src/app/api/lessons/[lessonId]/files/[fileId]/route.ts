@@ -4,6 +4,7 @@ import { db } from '@/db';
 import { lessonFiles } from '@/db/schema';
 import { auth } from '@/lib/auth';
 import { storage } from '@/lib/storage';
+import { lessonFileVisibleSql } from '@/lib/visibility';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -19,6 +20,7 @@ export async function GET(
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
 
+  // Visibility-aware read: the owner, or anyone who may see this shared file.
   const [row] = await db
     .select()
     .from(lessonFiles)
@@ -26,7 +28,7 @@ export async function GET(
       and(
         eq(lessonFiles.id, fileId),
         eq(lessonFiles.lessonId, lessonId),
-        eq(lessonFiles.userId, userId),
+        lessonFileVisibleSql(userId),
       ),
     )
     .limit(1);

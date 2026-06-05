@@ -50,6 +50,10 @@ export const users = pgTable('users', {
   // earlier than this timestamp are rejected in the auth callback. This is
   // how we invalidate sessions under a stateless JWT strategy.
   sessionsInvalidatedAt: timestamp('sessions_invalidated_at', { withTimezone: true }),
+  // Account disable (superuser user-management). NULL = active; non-null =
+  // disabled at that time. Login is rejected for disabled accounts (auth.ts),
+  // and the jwt callback forces an already-logged-in disabled user out.
+  disabledAt: timestamp('disabled_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
@@ -353,6 +357,10 @@ export const lessonFiles = pgTable(
     filename: text('filename').notNull(),
     contentType: text('content_type').notNull(),
     sizeBytes: integer('size_bytes').notNull(),
+    // Per-material sharing (granular lesson sharing). Backfilled from the parent
+    // lesson's visibility. A non-owner viewing a shared lesson sees only files
+    // whose visibility is 'shared'.
+    visibility: visibilityEnum('visibility').notNull().default('private'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
@@ -381,6 +389,9 @@ export const lessonLinks = pgTable(
     kind: text('kind').notNull().default('generic'),
     youtubeVideoId: text('youtube_video_id'),
     position: integer('position').notNull().default(0),
+    // Per-material sharing (granular lesson sharing). Backfilled from the parent
+    // lesson's visibility.
+    visibility: visibilityEnum('visibility').notNull().default('private'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [

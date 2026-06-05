@@ -5,6 +5,7 @@ import { db } from '@/db';
 import { lessons, vocabLessons } from '@/db/schema';
 import { auth } from '@/lib/auth';
 import { lessonsPath } from '@/lib/routes';
+import { lessonVisibleSql } from '@/lib/visibility';
 import { LessonDetailClient } from '@/components/lessons/lesson-detail-client';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -21,10 +22,11 @@ export default async function LessonDetailPage({ params }: PageProps) {
   const userId = (session?.user as { id?: string } | undefined)?.id;
   if (!userId) notFound();
 
+  // Visibility-aware: the owner, or anyone the lesson is shared with, can open it.
   const [lesson] = await db
     .select()
     .from(lessons)
-    .where(and(eq(lessons.id, lessonId), eq(lessons.userId, userId)))
+    .where(and(eq(lessons.id, lessonId), lessonVisibleSql(userId)))
     .limit(1);
   if (!lesson) notFound();
 
@@ -49,7 +51,9 @@ export default async function LessonDetailPage({ params }: PageProps) {
           lessonNumber: lesson.lessonNumber,
           topic: lesson.topic,
           date: lesson.date,
+          visibility: lesson.visibility,
         }}
+        isCreator={lesson.createdBy === userId}
         initialVocabCount={count ?? 0}
       />
     </div>

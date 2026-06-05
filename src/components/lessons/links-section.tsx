@@ -15,6 +15,8 @@ import { withBase } from '@/lib/base-path';
 interface Props {
   lessonId: string;
   onCountChange: (n: number) => void;
+  /** Only the lesson creator may add/delete; consumers view shared links. */
+  canEdit?: boolean;
 }
 
 interface LinkRow {
@@ -27,7 +29,7 @@ interface LinkRow {
   createdAt: string;
 }
 
-export function LinksSection({ lessonId, onCountChange }: Props) {
+export function LinksSection({ lessonId, onCountChange, canEdit = true }: Props) {
   const [links, setLinks] = useState<LinkRow[]>([]);
   const [url, setUrl] = useState('');
   const [title, setTitle] = useState('');
@@ -102,6 +104,7 @@ export function LinksSection({ lessonId, onCountChange }: Props) {
 
   return (
     <div className="space-y-4">
+      {canEdit && (
       <form
         onSubmit={onAdd}
         className="space-y-2 border rounded-md p-3 bg-muted/30"
@@ -135,6 +138,7 @@ export function LinksSection({ lessonId, onCountChange }: Props) {
           {busy ? 'Adding…' : 'Add link'}
         </Button>
       </form>
+      )}
 
       {links.length === 0 ? (
         <p className="text-sm text-muted-foreground italic">No links yet.</p>
@@ -172,14 +176,16 @@ export function LinksSection({ lessonId, onCountChange }: Props) {
                         >
                           Collapse
                         </Button>
-                        <Button
-                          size="xs"
-                          variant="ghost"
-                          className="text-red-600 hover:bg-red-50 hover:text-red-700"
-                          onClick={() => setPending(l)}
-                        >
-                          Delete
-                        </Button>
+                        {canEdit && (
+                          <Button
+                            size="xs"
+                            variant="ghost"
+                            className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                            onClick={() => setPending(l)}
+                          >
+                            Delete
+                          </Button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -215,14 +221,16 @@ export function LinksSection({ lessonId, onCountChange }: Props) {
                         />
                       )}
                     </div>
-                    <Button
-                      size="xs"
-                      variant="ghost"
-                      className="text-red-600 hover:bg-red-50 hover:text-red-700"
-                      onClick={() => setPending(l)}
-                    >
-                      Delete
-                    </Button>
+                    {canEdit && (
+                      <Button
+                        size="xs"
+                        variant="ghost"
+                        className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                        onClick={() => setPending(l)}
+                      >
+                        Delete
+                      </Button>
+                    )}
                   </div>
                 )
               ) : (

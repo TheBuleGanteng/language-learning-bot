@@ -11,6 +11,8 @@ import { withBase } from '@/lib/base-path';
 interface Props {
   lessonId: string;
   onCountChange: (n: number) => void;
+  /** Only the lesson creator may upload/delete; consumers view shared files. */
+  canEdit?: boolean;
 }
 
 interface FileRow {
@@ -37,7 +39,7 @@ function formatDate(iso: string): string {
   }
 }
 
-export function AudioSection({ lessonId, onCountChange }: Props) {
+export function AudioSection({ lessonId, onCountChange, canEdit = true }: Props) {
   const [files, setFiles] = useState<FileRow[]>([]);
   const [pending, setPending] = useState<FileRow | null>(null);
 
@@ -68,22 +70,24 @@ export function AudioSection({ lessonId, onCountChange }: Props) {
 
   return (
     <div className="space-y-4">
-      <FileUploader
-        lessonId={lessonId}
-        kind="audio"
-        accept={{
-          'audio/mpeg': ['.mp3'],
-          'audio/mp4': ['.m4a'],
-          'audio/x-m4a': ['.m4a'],
-          'audio/wav': ['.wav'],
-          'audio/x-wav': ['.wav'],
-          'audio/ogg': ['.ogg'],
-        }}
-        maxBytes={50 * 1024 * 1024}
-        hint="Drop audio file here or click to upload"
-        sizeHint="Max 50MB · MP3, M4A, WAV, OGG"
-        onUploaded={load}
-      />
+      {canEdit && (
+        <FileUploader
+          lessonId={lessonId}
+          kind="audio"
+          accept={{
+            'audio/mpeg': ['.mp3'],
+            'audio/mp4': ['.m4a'],
+            'audio/x-m4a': ['.m4a'],
+            'audio/wav': ['.wav'],
+            'audio/x-wav': ['.wav'],
+            'audio/ogg': ['.ogg'],
+          }}
+          maxBytes={50 * 1024 * 1024}
+          hint="Drop audio file here or click to upload"
+          sizeHint="Max 50MB · MP3, M4A, WAV, OGG"
+          onUploaded={load}
+        />
+      )}
       {files.length === 0 ? (
         <p className="text-sm text-muted-foreground italic">
           No audio yet. Upload your first track.
@@ -105,14 +109,16 @@ export function AudioSection({ lessonId, onCountChange }: Props) {
                       Download
                     </a>
                   </Button>
-                  <Button
-                    size="xs"
-                    variant="ghost"
-                    className="text-red-600 hover:bg-red-50 hover:text-red-700"
-                    onClick={() => setPending(f)}
-                  >
-                    Delete
-                  </Button>
+                  {canEdit && (
+                    <Button
+                      size="xs"
+                      variant="ghost"
+                      className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                      onClick={() => setPending(f)}
+                    >
+                      Delete
+                    </Button>
+                  )}
                 </div>
               </div>
               <div className="rhap-shadcn">
