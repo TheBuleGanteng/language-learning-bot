@@ -14,14 +14,13 @@ import {
 import { apiUser } from '@/lib/api-auth';
 import { canShare } from '@/lib/roles';
 
-// Granular lesson sharing (PART 1). The shareable material categories that
-// actually exist on a lesson are: vocabulary (vocab_items), notes
-// (lesson_files kind='pdf'), audio (lesson_files kind='audio'), and links
-// (lesson_links). lesson_files has no "images" category — vocab-item images
-// travel with the Vocabulary category — so there is no separate Images flag.
+// Granular lesson sharing. Shareable material categories: vocabulary
+// (vocab_items), notes (lesson_files kind='pdf'), photos/images (lesson_files
+// kind='image'), audio (lesson_files kind='audio'), and links (lesson_links).
 const shareSchema = z.object({
   vocabulary: z.boolean(),
   notes: z.boolean(),
+  images: z.boolean(),
   audio: z.boolean(),
   links: z.boolean(),
 });
@@ -80,6 +79,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ lessonId: strin
     categories: {
       vocabulary: countShared(vocabRows),
       notes: countShared(fileRows.filter((f) => f.kind === 'pdf')),
+      images: countShared(fileRows.filter((f) => f.kind === 'image')),
       audio: countShared(fileRows.filter((f) => f.kind === 'audio')),
       links: countShared(linkRows),
     },
@@ -104,7 +104,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ lessonId: str
   }
   const parsed = shareSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: 'Invalid input' }, { status: 400 });
-  const { vocabulary, notes, audio, links } = parsed.data;
+  const { vocabulary, notes, images, audio, links } = parsed.data;
 
   const lrow = await loadOwnedLesson(lessonId);
   if (!lrow) return NextResponse.json({ error: 'Not found' }, { status: 404 });
@@ -113,7 +113,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ lessonId: str
   }
 
   const lessonVisibility: 'shared' | 'private' =
-    vocabulary || notes || audio || links ? 'shared' : 'private';
+    vocabulary || notes || images || audio || links ? 'shared' : 'private';
   const vis = (on: boolean): 'shared' | 'private' => (on ? 'shared' : 'private');
 
   const lesson = await db.transaction(async (tx) => {
@@ -160,6 +160,16 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ lessonId: str
           eq(lessonFiles.lessonId, lessonId),
           eq(lessonFiles.userId, user.id),
           eq(lessonFiles.kind, 'pdf'),
+        ),
+      );
+    await tx
+      .update(lessonFiles)
+      .set({ visibility: vis(images) })
+      .where(
+        and(
+          eq(lessonFiles.lessonId, lessonId),
+          eq(lessonFiles.userId, user.id),
+          eq(lessonFiles.kind, 'image'),
         ),
       );
     await tx

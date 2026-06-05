@@ -40,19 +40,30 @@ export async function GET(
     .orderBy(asc(lessonFiles.createdAt));
 
   const provider = storage();
+  // Sign each URL INDIVIDUALLY with error handling: a single failed signature
+  // must not reject the whole batch and blank the section (ERROR_REPORT history).
+  // A failed sign yields url:null; the client renders a placeholder for that one.
   const out = await Promise.all(
-    rows.map(async (r) => ({
-      id: r.id,
-      kind: r.kind,
-      filename: r.filename,
-      contentType: r.contentType,
-      sizeBytes: r.sizeBytes,
-      visibility: r.visibility,
-      // Only the owner may edit/delete a shared item (Feature A rule).
-      canEdit: r.userId === userId,
-      createdAt: r.createdAt,
-      url: await provider.getUrl(r.storageKey),
-    })),
+    rows.map(async (r) => {
+      let url: string | null = null;
+      try {
+        url = await provider.getUrl(r.storageKey);
+      } catch (err) {
+        console.error(`Failed to sign URL for file ${r.id}:`, err);
+      }
+      return {
+        id: r.id,
+        kind: r.kind,
+        filename: r.filename,
+        contentType: r.contentType,
+        sizeBytes: r.sizeBytes,
+        visibility: r.visibility,
+        // Only the owner may edit/delete a shared item (Feature A rule).
+        canEdit: r.userId === userId,
+        createdAt: r.createdAt,
+        url,
+      };
+    }),
   );
 
   return NextResponse.json({ files: out });

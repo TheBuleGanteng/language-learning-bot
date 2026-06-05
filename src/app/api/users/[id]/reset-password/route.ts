@@ -34,8 +34,14 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string }>
     expiresAt: new Date(Date.now() + 60 * 60 * 1000), // 1 hour
   });
   const link = `${env.APP_URL}${env.NEXT_PUBLIC_BASE_PATH ?? ''}/reset-password?token=${token}`;
-  // Fire-and-forget; sendPasswordResetEmail swallows + logs its own errors.
-  void sendPasswordResetEmail(target.email, link, target.native);
+  // Await the send and surface a real failure — no false success toast.
+  const result = await sendPasswordResetEmail(target.email, link, target.native);
+  if (!result.ok) {
+    return NextResponse.json(
+      { error: result.error ?? 'Could not send the reset email' },
+      { status: 502 },
+    );
+  }
 
   return NextResponse.json({ ok: true });
 }

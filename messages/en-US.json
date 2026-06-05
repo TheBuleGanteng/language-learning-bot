@@ -74,7 +74,8 @@
       "submit": "Send reset link",
       "submitting": "Sending…",
       "sent": "If that email exists, a reset link is on its way.",
-      "backToLogin": "Back to log in"
+      "backToLogin": "Back to log in",
+      "failed": "Couldn't send the reset email. Please try again."
     },
     "reset": {
       "title": "Set a new password",
@@ -445,7 +446,8 @@
     "saving": "Saving…",
     "saved": "Sharing updated",
     "saveFailed": "Could not update sharing",
-    "loadFailed": "Could not load sharing"
+    "loadFailed": "Could not load sharing",
+    "images": "Images"
   },
   "userManagement": {
     "title": "User management",
@@ -476,7 +478,9 @@
       "resetSent": "Password reset email sent",
       "resetFailed": "Could not send reset email",
       "remove": "Remove",
-      "you": "(you)"
+      "you": "(you)",
+      "updateUser": "Update user",
+      "updateRole": "Update role"
     },
     "remove": {
       "title": "Remove user",
@@ -505,5 +509,18 @@
       "created": "Account created",
       "failed": "Could not create account"
     }
+  },
+  "photos": {
+    "heading": "Photos",
+    "hint": "Drop a photo here or click to upload",
+    "sizeHint": "Max 10MB each · 50MB total · JPEG, PNG, WebP, GIF, HEIC",
+    "empty": "No photos yet.",
+    "totalExceeded": "Adding this photo would exceed the 50MB lesson limit.",
+    "enlarge": "Enlarge photo",
+    "unavailable": "Image unavailable",
+    "deletePhoto": "Delete photo",
+    "close": "Close",
+    "deleteTitle": "Delete this photo?",
+    "deleteDesc": "This will permanently delete this photo. This cannot be undone."
   }
 }

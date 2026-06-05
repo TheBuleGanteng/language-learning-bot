@@ -74,7 +74,8 @@
       "submit": "发送重置链接",
       "submitting": "发送中…",
       "sent": "如果该邮箱存在，重置链接已发送。",
-      "backToLogin": "返回登录"
+      "backToLogin": "返回登录",
+      "failed": "无法发送重置邮件，请重试。"
     },
     "reset": {
       "title": "设置新密码",
@@ -445,7 +446,8 @@
     "saving": "保存中…",
     "saved": "共享设置已更新",
     "saveFailed": "无法更新共享设置",
-    "loadFailed": "无法加载共享设置"
+    "loadFailed": "无法加载共享设置",
+    "images": "图片"
   },
   "userManagement": {
     "title": "用户管理",
@@ -476,7 +478,9 @@
       "resetSent": "密码重置邮件已发送",
       "resetFailed": "无法发送重置邮件",
       "remove": "移除",
-      "you": "（你）"
+      "you": "（你）",
+      "updateUser": "更新用户",
+      "updateRole": "更新角色"
     },
     "remove": {
       "title": "移除用户",
@@ -505,5 +509,18 @@
       "created": "账户已创建",
       "failed": "无法创建账户"
     }
+  },
+  "photos": {
+    "heading": "照片",
+    "hint": "将照片拖到此处或点击上传",
+    "sizeHint": "每张最大 10MB · 共 50MB · JPEG、PNG、WebP、GIF、HEIC",
+    "empty": "还没有照片。",
+    "totalExceeded": "添加此照片将超出 50MB 的课程上限。",
+    "enlarge": "放大照片",
+    "unavailable": "图片不可用",
+    "deletePhoto": "删除照片",
+    "close": "关闭",
+    "deleteTitle": "删除这张照片？",
+    "deleteDesc": "这将永久删除此照片，且无法撤销。"
   }
 }

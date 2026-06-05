@@ -74,7 +74,8 @@
       "submit": "재설정 링크 보내기",
       "submitting": "보내는 중…",
       "sent": "해당 이메일이 존재하면 재설정 링크가 발송됩니다.",
-      "backToLogin": "로그인으로 돌아가기"
+      "backToLogin": "로그인으로 돌아가기",
+      "failed": "재설정 이메일을 보낼 수 없습니다. 다시 시도하세요."
     },
     "reset": {
       "title": "새 비밀번호 설정",
@@ -445,7 +446,8 @@
     "saving": "저장 중…",
     "saved": "공유 설정이 업데이트되었습니다",
     "saveFailed": "공유 설정을 업데이트할 수 없습니다",
-    "loadFailed": "공유 설정을 불러올 수 없습니다"
+    "loadFailed": "공유 설정을 불러올 수 없습니다",
+    "images": "이미지"
   },
   "userManagement": {
     "title": "사용자 관리",
@@ -476,7 +478,9 @@
       "resetSent": "비밀번호 재설정 이메일을 보냈습니다",
       "resetFailed": "재설정 이메일을 보낼 수 없습니다",
       "remove": "삭제",
-      "you": "(나)"
+      "you": "(나)",
+      "updateUser": "사용자 업데이트",
+      "updateRole": "역할 업데이트"
     },
     "remove": {
       "title": "사용자 삭제",
@@ -505,5 +509,18 @@
       "created": "계정이 생성되었습니다",
       "failed": "계정을 만들 수 없습니다"
     }
+  },
+  "photos": {
+    "heading": "사진",
+    "hint": "사진을 여기에 끌어다 놓거나 클릭하여 업로드",
+    "sizeHint": "각 최대 10MB · 총 50MB · JPEG, PNG, WebP, GIF, HEIC",
+    "empty": "아직 사진이 없습니다.",
+    "totalExceeded": "이 사진을 추가하면 수업 50MB 한도를 초과합니다.",
+    "enlarge": "사진 확대",
+    "unavailable": "이미지를 사용할 수 없음",
+    "deletePhoto": "사진 삭제",
+    "close": "닫기",
+    "deleteTitle": "이 사진을 삭제할까요?",
+    "deleteDesc": "이 사진이 영구적으로 삭제되며 되돌릴 수 없습니다."
   }
 }

@@ -28,58 +28,75 @@ function logMock(label: string, to: string, link: string) {
   );
 }
 
+/** Outcome of an email send so callers can surface real failures (no false success). */
+export interface SendResult {
+  ok: boolean;
+  error?: string;
+}
+
+/**
+ * Single send path. CRITICAL: Resend's SDK returns API failures in the resolved
+ * `{ data, error }` object — it does NOT throw — so a domain/recipient rejection
+ * (e.g. an unverified `from`) was previously invisible. We now inspect `error`
+ * and return a real result.
+ */
+async function deliver(
+  label: string,
+  to: string,
+  link: string,
+  subject: string,
+  html: string,
+): Promise<SendResult> {
+  if (env.MOCK_EMAIL) {
+    logMock(label, to, link);
+    return { ok: true };
+  }
+  try {
+    const { error } = await resend().emails.send({ from: env.EMAIL_FROM, to, subject, html });
+    if (error) {
+      console.error(`Failed to send ${label} email:`, error);
+      return { ok: false, error: error.message ?? 'Email provider rejected the send' };
+    }
+    return { ok: true };
+  } catch (err) {
+    console.error(`Failed to send ${label} email:`, err);
+    return { ok: false, error: err instanceof Error ? err.message : 'Email send failed' };
+  }
+}
+
 // Transactional emails are sent in the recipient's base language (C1). The
 // caller passes the recipient's locale; we load that locale's `email` catalog.
 export async function sendVerificationEmail(
   to: string,
   link: string,
   locale?: string | null,
-): Promise<void> {
-  if (env.MOCK_EMAIL) {
-    logMock('Verification', to, link);
-    return;
-  }
-  try {
-    const t = await getTranslations({ locale: normalizeLocale(locale), namespace: 'email.verify' });
-    await resend().emails.send({
-      from: env.EMAIL_FROM,
-      to,
-      subject: t('subject'),
-      html: [
-        `<p>${t('body')}</p>`,
-        `<p><a href="${link}">${t('cta')}</a></p>`,
-        `<p>${link}</p>`,
-      ].join('\n'),
-    });
-  } catch (err) {
-    console.error('Failed to send verification email:', err);
-    // Swallow — caller returns generic success to user.
-  }
+): Promise<SendResult> {
+  const t = await getTranslations({ locale: normalizeLocale(locale), namespace: 'email.verify' });
+  return deliver(
+    'Verification',
+    to,
+    link,
+    t('subject'),
+    [`<p>${t('body')}</p>`, `<p><a href="${link}">${t('cta')}</a></p>`, `<p>${link}</p>`].join('\n'),
+  );
 }
 
 export async function sendPasswordResetEmail(
   to: string,
   link: string,
   locale?: string | null,
-): Promise<void> {
-  if (env.MOCK_EMAIL) {
-    logMock('Password reset', to, link);
-    return;
-  }
-  try {
-    const t = await getTranslations({ locale: normalizeLocale(locale), namespace: 'email.reset' });
-    await resend().emails.send({
-      from: env.EMAIL_FROM,
-      to,
-      subject: t('subject'),
-      html: [
-        `<p>${t('body')}</p>`,
-        `<p><a href="${link}">${t('cta')}</a></p>`,
-        `<p>${link}</p>`,
-        `<p>${t('ignore')}</p>`,
-      ].join('\n'),
-    });
-  } catch (err) {
-    console.error('Failed to send password reset email:', err);
-  }
+): Promise<SendResult> {
+  const t = await getTranslations({ locale: normalizeLocale(locale), namespace: 'email.reset' });
+  return deliver(
+    'Password reset',
+    to,
+    link,
+    t('subject'),
+    [
+      `<p>${t('body')}</p>`,
+      `<p><a href="${link}">${t('cta')}</a></p>`,
+      `<p>${link}</p>`,
+      `<p>${t('ignore')}</p>`,
+    ].join('\n'),
+  );
 }

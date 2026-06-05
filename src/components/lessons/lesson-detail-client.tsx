@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { GraduationCap, MessagesSquare } from 'lucide-react';
 import { NotesSection } from './notes-section';
+import { PhotosSection } from './photos-section';
 import { AudioSection } from './audio-section';
 import { LinksSection } from './links-section';
 import { InlineEdit } from '@/components/inline-edit';
@@ -90,7 +91,9 @@ function toLocalDateString(d: Date): string {
 export function LessonDetailClient({ lang, lesson, isCreator, initialVocabCount }: Props) {
   const router = useRouter();
   const t = useTranslations('lessonVisibility');
+  const tp = useTranslations('photos');
   const [notesCount, setNotesCount] = useState(0);
+  const [photosCount, setPhotosCount] = useState(0);
   const [audioCount, setAudioCount] = useState(0);
   const [linksCount, setLinksCount] = useState(0);
   const [showExtraction, setShowExtraction] = useState(false);
@@ -196,7 +199,7 @@ export function LessonDetailClient({ lang, lesson, isCreator, initialVocabCount 
       </header>
 
       <Accordion
-        defaultValue={['notes', 'audio', 'links', 'practice', 'vocab']}
+        defaultValue={['notes', 'photos', 'audio', 'links', 'practice', 'vocab']}
         className="space-y-3"
       >
         <AccordionItem value="notes" className="border rounded-md overflow-hidden">
@@ -205,6 +208,17 @@ export function LessonDetailClient({ lang, lesson, isCreator, initialVocabCount 
           </AccordionTrigger>
           <AccordionContent>
             <NotesSection lessonId={lesson.id} onCountChange={setNotesCount} canEdit={isCreator} />
+          </AccordionContent>
+        </AccordionItem>
+
+        <AccordionItem value="photos" className="border rounded-md overflow-hidden">
+          <AccordionTrigger>
+            <span className="text-sm font-semibold">
+              {tp('heading')} ({photosCount})
+            </span>
+          </AccordionTrigger>
+          <AccordionContent>
+            <PhotosSection lessonId={lesson.id} onCountChange={setPhotosCount} canEdit={isCreator} />
           </AccordionContent>
         </AccordionItem>
 

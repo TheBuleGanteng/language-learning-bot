@@ -14,17 +14,26 @@ export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
   const [sent, setSent] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
+    setError(null);
     try {
-      await fetch(withBase('/api/auth/forgot-password'), {
+      const res = await fetch(withBase('/api/auth/forgot-password'), {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ email }),
       });
+      // A genuine delivery failure now returns non-ok — don't claim success.
+      if (!res.ok) {
+        setError(t('failed'));
+        return;
+      }
       setSent(true);
+    } catch {
+      setError(t('failed'));
     } finally {
       setBusy(false);
     }
@@ -59,6 +68,7 @@ export default function ForgotPasswordPage() {
                 autoComplete="email"
               />
             </div>
+            {error && <p className="text-sm text-red-600">{error}</p>}
             <Button type="submit" disabled={busy} className="w-full">
               {busy ? t('submitting') : t('submit')}
             </Button>

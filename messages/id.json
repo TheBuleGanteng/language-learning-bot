@@ -74,7 +74,8 @@
       "submit": "Kirim tautan",
       "submitting": "Mengirim…",
       "sent": "Jika email itu ada, tautan pengaturan ulang sedang dikirim.",
-      "backToLogin": "Kembali ke masuk"
+      "backToLogin": "Kembali ke masuk",
+      "failed": "Tidak dapat mengirim email atur ulang. Coba lagi."
     },
     "reset": {
       "title": "Atur kata sandi baru",
@@ -445,7 +446,8 @@
     "saving": "Menyimpan…",
     "saved": "Pengaturan berbagi diperbarui",
     "saveFailed": "Tidak dapat memperbarui berbagi",
-    "loadFailed": "Tidak dapat memuat berbagi"
+    "loadFailed": "Tidak dapat memuat berbagi",
+    "images": "Gambar"
   },
   "userManagement": {
     "title": "Manajemen pengguna",
@@ -476,7 +478,9 @@
       "resetSent": "Email atur ulang kata sandi terkirim",
       "resetFailed": "Tidak dapat mengirim email atur ulang",
       "remove": "Hapus",
-      "you": "(Anda)"
+      "you": "(Anda)",
+      "updateUser": "Perbarui pengguna",
+      "updateRole": "Perbarui peran"
     },
     "remove": {
       "title": "Hapus pengguna",
@@ -505,5 +509,18 @@
       "created": "Akun dibuat",
       "failed": "Tidak dapat membuat akun"
     }
+  },
+  "photos": {
+    "heading": "Foto",
+    "hint": "Letakkan foto di sini atau klik untuk mengunggah",
+    "sizeHint": "Maks 10MB per foto · total 50MB · JPEG, PNG, WebP, GIF, HEIC",
+    "empty": "Belum ada foto.",
+    "totalExceeded": "Menambahkan foto ini akan melebihi batas 50MB pelajaran.",
+    "enlarge": "Perbesar foto",
+    "unavailable": "Gambar tidak tersedia",
+    "deletePhoto": "Hapus foto",
+    "close": "Tutup",
+    "deleteTitle": "Hapus foto ini?",
+    "deleteDesc": "Ini akan menghapus foto ini secara permanen. Tindakan ini tidak dapat dibatalkan."
   }
 }

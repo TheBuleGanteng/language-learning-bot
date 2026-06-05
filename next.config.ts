@@ -12,6 +12,10 @@ const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 const nextConfig: NextConfig = {
   basePath: basePath || undefined,
   output: 'standalone',
+  // Keep packages with native/wasm assets out of the webpack bundle — they're
+  // loaded from node_modules at runtime. heic-convert ships a libheif wasm;
+  // sharp is a native addon.
+  serverExternalPackages: ['heic-convert', 'sharp'],
   experimental: {
     serverActions: { bodySizeLimit: '10mb' },
   },

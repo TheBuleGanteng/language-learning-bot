@@ -36,7 +36,10 @@ export async function POST(req: Request) {
   const normEmail = parsed.data.email.toLowerCase().trim();
   const [user] = await db.select().from(users).where(eq(users.email, normEmail)).limit(1);
 
-  // Always return ok — never leak account existence
+  // For a real (verified) account we await the send and surface a genuine
+  // delivery failure so the user isn't told "sent" when nothing went out. For a
+  // non-existent / unverified account we still return generic ok (no send was
+  // attempted), preserving the no-account-existence-leak posture.
   if (user && user.emailVerifiedAt) {
     const { token, tokenHash } = generateToken();
     await db.insert(verificationTokens).values({
@@ -46,8 +49,13 @@ export async function POST(req: Request) {
       expiresAt: new Date(Date.now() + 60 * 60 * 1000),
     });
     const link = `${env.APP_URL}${env.NEXT_PUBLIC_BASE_PATH ?? ''}/reset-password?token=${token}`;
-    // Fire-and-forget — never block the response on outbound mail.
-    void sendPasswordResetEmail(user.email, link, user.nativeLanguage);
+    const result = await sendPasswordResetEmail(user.email, link, user.nativeLanguage);
+    if (!result.ok) {
+      return NextResponse.json(
+        { error: result.error ?? 'Could not send the reset email' },
+        { status: 502 },
+      );
+    }
   }
 
   return NextResponse.json({ ok: true });

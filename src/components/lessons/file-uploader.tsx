@@ -9,13 +9,15 @@ import { withBase } from '@/lib/base-path';
 
 interface Props {
   lessonId: string;
-  kind: 'pdf' | 'audio';
+  kind: 'pdf' | 'audio' | 'image';
   accept: Record<string, string[]>;
   maxBytes: number;
   /** Default-state instruction text, e.g. "Drop PDF here or click to upload". */
   hint: string;
   /** Right-aligned muted detail, e.g. "Max 20MB" or "Max 50MB · MP3, M4A". */
   sizeHint?: string;
+  /** Optional pre-upload check (e.g. per-lesson total). Return an error string to block. */
+  validate?: (file: File) => string | null;
   onUploaded: () => void;
 }
 
@@ -31,6 +33,7 @@ export function FileUploader({
   maxBytes,
   hint,
   sizeHint,
+  validate,
   onUploaded,
 }: Props) {
   const [uploading, setUploading] = useState<string | null>(null);
@@ -41,6 +44,11 @@ export function FileUploader({
       if (!file) return;
       if (file.size > maxBytes) {
         toast.error(`File exceeds limit (${Math.round(maxBytes / 1024 / 1024)}MB)`);
+        return;
+      }
+      const validationError = validate?.(file);
+      if (validationError) {
+        toast.error(validationError);
         return;
       }
       setUploading(file.name);
@@ -63,7 +71,7 @@ export function FileUploader({
         setUploading(null);
       }
     },
-    [lessonId, kind, maxBytes, onUploaded],
+    [lessonId, kind, maxBytes, validate, onUploaded],
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({

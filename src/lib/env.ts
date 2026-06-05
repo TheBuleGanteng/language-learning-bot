@@ -19,7 +19,10 @@ const schema = z
       .transform((v) => v === 'true' || v === '1'),
     APP_ENCRYPTION_KEY: z.string().min(32),
     RESEND_API_KEY: z.string().startsWith('re_').or(z.literal('')).optional(),
-    EMAIL_FROM: z.string().min(1).default('Language Learning Bot <onboarding@resend.dev>'),
+    // Must be an address on a domain VERIFIED for the Resend key. The shared
+    // `onboarding@resend.dev` sender only delivers to the Resend account owner,
+    // which silently broke resets to any other inbox.
+    EMAIL_FROM: z.string().min(1).default('Kaojai <noreply@mattmcdonnell.net>'),
     APP_URL: z.string().url().default('http://localhost:3000'),
     NEXT_PUBLIC_BASE_PATH: z.string().default(''),
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),

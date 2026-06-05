@@ -16,9 +16,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import { withBase } from '@/lib/base-path';
 
-// The four real material categories on a lesson (lesson_files has no images
-// category; vocab-item images travel with Vocabulary).
-const CATEGORIES = ['vocabulary', 'notes', 'audio', 'links'] as const;
+// The material categories on a lesson: vocab, notes (pdf), images, audio, links.
+const CATEGORIES = ['vocabulary', 'notes', 'images', 'audio', 'links'] as const;
 type Category = (typeof CATEGORIES)[number];
 type Flags = Record<Category, boolean>;
 
@@ -46,6 +45,7 @@ export function LessonShareDialog({ open, onOpenChange, lessonId, onSaved }: Pro
   const [flags, setFlags] = useState<Flags>({
     vocabulary: true,
     notes: true,
+    images: true,
     audio: true,
     links: true,
   });
@@ -87,7 +87,7 @@ export function LessonShareDialog({ open, onOpenChange, lessonId, onSaved }: Pro
   const someChecked = CATEGORIES.some((c) => flags[c]);
 
   function toggleAll(next: boolean) {
-    setFlags({ vocabulary: next, notes: next, audio: next, links: next });
+    setFlags({ vocabulary: next, notes: next, images: next, audio: next, links: next });
   }
 
   function categoryStatus(c: Category): 'shared' | 'partial' | 'private' | 'none' {

@@ -365,7 +365,7 @@ export const lessonFiles = pgTable(
   },
   (t) => [
     index('lesson_files_lesson_kind_idx').on(t.lessonId, t.kind),
-    check('lesson_files_kind_check', sql`${t.kind} IN ('pdf', 'audio')`),
+    check('lesson_files_kind_check', sql`${t.kind} IN ('pdf', 'audio', 'image')`),
   ],
 );
 

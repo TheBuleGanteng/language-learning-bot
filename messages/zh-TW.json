@@ -74,7 +74,8 @@
       "submit": "寄送重設連結",
       "submitting": "寄送中…",
       "sent": "如果該電子郵件存在，重設連結已寄出。",
-      "backToLogin": "返回登入"
+      "backToLogin": "返回登入",
+      "failed": "無法寄送重設電子郵件，請重試。"
     },
     "reset": {
       "title": "設定新密碼",
@@ -445,7 +446,8 @@
     "saving": "儲存中…",
     "saved": "分享設定已更新",
     "saveFailed": "無法更新分享設定",
-    "loadFailed": "無法載入分享設定"
+    "loadFailed": "無法載入分享設定",
+    "images": "圖片"
   },
   "userManagement": {
     "title": "使用者管理",
@@ -476,7 +478,9 @@
       "resetSent": "密碼重設電子郵件已寄出",
       "resetFailed": "無法寄送重設電子郵件",
       "remove": "移除",
-      "you": "（你）"
+      "you": "（你）",
+      "updateUser": "更新使用者",
+      "updateRole": "更新角色"
     },
     "remove": {
       "title": "移除使用者",
@@ -505,5 +509,18 @@
       "created": "帳戶已建立",
       "failed": "無法建立帳戶"
     }
+  },
+  "photos": {
+    "heading": "照片",
+    "hint": "將照片拖曳到此處或點擊上傳",
+    "sizeHint": "每張最大 10MB · 共 50MB · JPEG、PNG、WebP、GIF、HEIC",
+    "empty": "還沒有照片。",
+    "totalExceeded": "新增此照片將超出 50MB 的課程上限。",
+    "enlarge": "放大照片",
+    "unavailable": "圖片無法顯示",
+    "deletePhoto": "刪除照片",
+    "close": "關閉",
+    "deleteTitle": "刪除這張照片？",
+    "deleteDesc": "這將永久刪除此照片，且無法復原。"
   }
 }

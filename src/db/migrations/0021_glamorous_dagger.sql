@@ -1,0 +1,2 @@
+ALTER TABLE "lesson_files" DROP CONSTRAINT "lesson_files_kind_check";--> statement-breakpoint
+ALTER TABLE "lesson_files" ADD CONSTRAINT "lesson_files_kind_check" CHECK ("lesson_files"."kind" IN ('pdf', 'audio', 'image'));
