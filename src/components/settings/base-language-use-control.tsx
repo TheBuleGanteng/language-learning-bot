@@ -51,7 +51,7 @@ export function BaseLanguageUseControl({
     (lvl) => lvl === 'all' || lvl === 'moderate' || lvl === 'never',
   );
   const info = (
-    <InfoIcon label={label} align="end">
+    <InfoIcon label={label} side="bottom" align="start">
       <p className="font-medium">{t(`levels.${value}`)}</p>
       <p className="text-muted-foreground">{t(`help.${value}`, names)}</p>
       <div className="mt-1 space-y-1 border-t pt-2">

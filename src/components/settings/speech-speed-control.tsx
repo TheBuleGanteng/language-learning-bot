@@ -31,7 +31,7 @@ export function SpeechSpeedControl({ value, onChange, disabled, className, compa
   const idx = Math.max(0, SPEECH_SPEED_LEVELS.indexOf(value));
 
   const info = (
-    <InfoIcon label={label} align="end">
+    <InfoIcon label={label} side="bottom" align="start">
       <p className="font-medium">{t(`levels.${value}`)}</p>
       <p className="text-muted-foreground">{t('intro')}</p>
       <div className="mt-1 space-y-1 border-t pt-2">

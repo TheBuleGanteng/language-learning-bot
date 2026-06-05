@@ -2041,3 +2041,52 @@ Gates: `pnpm lint` clean, `pnpm test` 75/75 passed, `pnpm build` "Compiled
 successfully" + "Finished TypeScript" (stopped at the documented benign
 "Collecting page data" hang, exit 143 = SIGTERM). Catalogs 356 keys, identical
 across all five locales (+4 keys this batch). No missing-key errors.
+
+## 2026-06-05 — UI refinements: banner color, chevron, exit dest, X style, tooltip, hamburger, avatar scroll
+Seven-part follow-up to the prior batch (no schema change):
+1. **Deck-builder notification recolor** — swapped the solid `bg-primary`
+   (black) banner for a soft, semi-transparent amber/warning toast aesthetic:
+   `border-amber-500/40 bg-amber-50/90 text-amber-900 backdrop-blur-sm` (+ dark
+   variants `bg-amber-950/50 text-amber-50`). No `--warning`/amber CSS token
+   exists (sonner's `richColors` supplies toast amber internally and isn't
+   reusable on a div), so Tailwind amber utilities reproduce that look. Buttons
+   switched to token-based variants — Add/Exit `outline`, Create deck `default`
+   (primary CTA) — for contrast on amber. Content/actions/sticky unchanged.
+2. **Desktop email chevron wrap — root cause + fix.** The earlier
+   `flex-nowrap`/`whitespace-nowrap` didn't take because the layout passed
+   `className="hidden md:block"` to `<UserMenu>`, and `md:block` overrode the
+   Button's base `inline-flex` at ≥md → the trigger was a block, so the email
+   span + chevron flowed as inline content and the chevron wrapped. Fix: layout
+   now passes `hidden md:inline-flex`, restoring the flex row (span `min-w-0
+   max-w-[200px] truncate`, chevron `shrink-0`) → one line, no wrap.
+3. **Exit deck builder → Decks.** The notification's Exit action now routes to
+   `decksPath(lang)` (was `vocabPath`) — where deck-builder is entered from.
+4. **Avatar X restyle.** The close X changed from a light/bordered box to the
+   CC control's black fill: `border-primary bg-primary text-primary-foreground
+   hover:bg-primary/90`, so the top-left X and top-right CC read as a pair.
+   Position/behavior (exit → decks) unchanged.
+5. **Tooltip anchoring.** Root cause: `side="top" align="end"` on a ~14px info
+   icon made the `w-72` popover extend up-and-left, looking detached. Changed to
+   `side="bottom" align="start"` (default sideOffset 4) on both slider controls,
+   so it hangs directly off the icon's bottom-left, tight to the label edge; no
+   hardcoded transform/offset was present. (`InfoIcon` already forwards
+   `side`/`align` to the base-ui Positioner.)
+6. **Hamburger email removed.** Dropped the email `DropdownMenuLabel`; Settings +
+   Sign out now sit under a localized **Account** section title (styled like
+   Learn/Materials). New `nav.account` ×5; the unused `email` prop was removed
+   from `MobileMenu` and the layout call site.
+7. **Avatar scroll regression + mobile spacing.** The prior pass's mobile
+   `fixed inset-x-0 bottom-0 top-16` container (a fixed viewport-height box with
+   an internal `overflow-y-auto` column) could clip the Tap-to-speak button.
+   Replaced it with normal document flow: root is `mx-auto flex
+   min-h-[calc(100svh-9rem)] max-w-xl flex-col gap-2 sm:min-h-0 sm:-mb-10` and
+   the content is a fragment (no fixed height, no `overflow-y-auto`), so the page
+   scrolls naturally when content exceeds the viewport — nothing cut off. The
+   avatar block dropped its `h-[30vh]/sm:h-[28vh]` box (which could be shorter
+   than the 220px avatar) for content height; gaps tightened to `gap-2`. Desktop
+   stays content-sized + `sm:-mb-10` → no-scroll, unchanged. The mobile `min-h`
+   fills the area under the header; the captions-off `flex-1` spacer absorbs slack.
+
+Gates: `pnpm lint` clean, `pnpm test` 75/75 passed, `pnpm build` compiled
+successfully + TypeScript finished (benign collecting-page-data hang). Catalogs
+357 keys, identical across all five locales (+1 this batch).

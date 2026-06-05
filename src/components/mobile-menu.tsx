@@ -27,7 +27,6 @@ import { vocabPath, lessonsPath, decksPath } from '@/lib/routes';
 
 interface Props {
   lang: string;
-  email: string;
   className?: string;
 }
 
@@ -38,7 +37,7 @@ interface Props {
  * selector stay outside it. base-ui's Menu handles focus, Escape, outside-tap,
  * and aria; the menu closes on item selection automatically.
  */
-export function MobileMenu({ lang, email, className }: Props) {
+export function MobileMenu({ lang, className }: Props) {
   const t = useTranslations('nav');
   const tc = useTranslations('common');
 
@@ -72,7 +71,7 @@ export function MobileMenu({ lang, email, className }: Props) {
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          <DropdownMenuLabel className="truncate font-normal text-muted-foreground">{email}</DropdownMenuLabel>
+          <DropdownMenuLabel>{t('account')}</DropdownMenuLabel>
           <DropdownMenuItem render={<Link href="/settings"><Settings className="mr-2 h-4 w-4" />{tc('settings')}</Link>} />
           <DropdownMenuItem onClick={() => void signOut({ callbackUrl: withBase('/login') })}>
             <LogOut className="mr-2 h-4 w-4" />

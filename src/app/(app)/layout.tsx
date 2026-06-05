@@ -47,8 +47,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               menu is desktop-only and folds into the hamburger on mobile. */}
           <div className="flex shrink-0 items-center gap-1">
             <LanguageSelector currentLocale={locale} authenticated />
-            <UserMenu email={session.user.email} className="hidden md:block" />
-            <MobileMenu lang={lang} email={session.user.email} className="md:hidden" />
+            <UserMenu email={session.user.email} className="hidden md:inline-flex" />
+            <MobileMenu lang={lang} className="md:hidden" />
           </div>
         </div>
       </header>

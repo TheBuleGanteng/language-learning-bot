@@ -38,7 +38,7 @@ import {
 } from '@/components/ui/dialog';
 import { colorForLesson, colorForTag } from '@/lib/colors';
 import { cn } from '@/lib/utils';
-import { vocabPath, lessonPath } from '@/lib/routes';
+import { vocabPath, lessonPath, decksPath } from '@/lib/routes';
 import { languageName, normalizeLanguageCode } from '@/lib/languages';
 import { localeEnglishName, displayLanguageName, localeLanguageSubtag } from '@/lib/locales';
 import { useTranslations, useLocale } from 'next-intl';
@@ -559,11 +559,13 @@ function VocabInner() {
           panel with mode title, instructions, live count, and the in-place
           Add-vocabulary / Create-deck / Exit actions. */}
       {deckBuilderMode && (
-        <div className="sticky top-16 z-30 mb-6 rounded-lg bg-primary px-4 py-3 text-primary-foreground shadow-lg ring-1 ring-primary/40">
+        <div className="sticky top-16 z-30 mb-6 rounded-lg border border-amber-500/40 bg-amber-50/90 px-4 py-3 text-amber-900 shadow-sm backdrop-blur-sm dark:border-amber-500/30 dark:bg-amber-950/50 dark:text-amber-50">
           <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
             <div className="min-w-0 space-y-0.5">
               <p className="text-base font-bold leading-tight">{tdb('title')}</p>
-              <p className="text-xs text-primary-foreground/80">{tdb('instructions')}</p>
+              <p className="text-xs text-amber-800/90 dark:text-amber-100/80">
+                {tdb('instructions')}
+              </p>
               <p className="text-sm font-semibold">
                 {tdb('selected', { count: selectedIds.size })}
               </p>
@@ -572,7 +574,7 @@ function VocabInner() {
               <Button
                 size="sm"
                 variant="outline"
-                className="gap-1.5 border-primary-foreground/40 bg-transparent text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground"
+                className="gap-1.5"
                 onClick={() => setAddVocabOpen(true)}
               >
                 <Plus className="h-3.5 w-3.5" />
@@ -580,7 +582,6 @@ function VocabInner() {
               </Button>
               <Button
                 size="sm"
-                variant="secondary"
                 disabled={selectedIds.size === 0}
                 onClick={() => setDeckBuilderDialogOpen(true)}
               >
@@ -589,8 +590,7 @@ function VocabInner() {
               <Button
                 size="sm"
                 variant="outline"
-                className="border-primary-foreground/40 bg-transparent text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground"
-                onClick={() => router.push(vocabPath(lang))}
+                onClick={() => router.push(decksPath(lang))}
               >
                 {tdb('exit')}
               </Button>

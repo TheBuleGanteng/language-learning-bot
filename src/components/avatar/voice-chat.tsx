@@ -804,13 +804,16 @@ export function VoiceChat({ mode, lang, deckId }: VoiceChatProps) {
       : t('speaking');
 
   return (
-    <div className="fixed inset-x-0 bottom-0 top-16 z-30 flex flex-col bg-background p-4 sm:static sm:z-auto sm:p-0 sm:-mb-10">
+    <div className="mx-auto flex min-h-[calc(100svh-9rem)] w-full max-w-xl flex-col gap-2 sm:-mb-10 sm:min-h-0">
       {phase === 'loading' ? (
         <div className="m-auto text-sm text-muted-foreground">{t('preparing')}</div>
       ) : (
-        <div className="mx-auto flex w-full max-w-xl flex-1 min-h-0 flex-col gap-3 overflow-y-auto sm:gap-2">
-          {/* Avatar */}
-          <div className="relative flex h-[30vh] shrink-0 items-center justify-center pt-2 sm:h-[28vh] sm:pt-0">
+        <>
+          {/* Avatar — content-height (no fixed vh box that could clip it); the
+              page lives in normal document flow so it scrolls when content
+              exceeds the viewport. On short screens the spacer below fills the
+              slack; the min-h fills the area under the header on mobile. */}
+          <div className="relative flex shrink-0 items-center justify-center">
             <KruuBingo state={avatarState} size={220} />
             {/* Exit X — top-left of the avatar, mirroring the CC control's
                 top-right placement/style. Ends the session and returns to decks. */}
@@ -818,7 +821,7 @@ export function VoiceChat({ mode, lang, deckId }: VoiceChatProps) {
               type="button"
               aria-label={t('exitChat')}
               onClick={exitToDecks}
-              className="absolute left-1 top-1 inline-flex items-center justify-center rounded-md border border-input bg-background p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="absolute left-1 top-1 inline-flex items-center justify-center rounded-md border border-primary bg-primary p-1.5 text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <X className="h-4 w-4" />
             </button>
@@ -918,7 +921,7 @@ export function VoiceChat({ mode, lang, deckId }: VoiceChatProps) {
           </div>
 
           {/* Mic + End */}
-          <div className="flex shrink-0 flex-col gap-2 pb-2 sm:pb-0">
+          <div className="flex shrink-0 flex-col gap-2">
             <Button
               size="lg"
               onClick={startSession}
@@ -940,7 +943,7 @@ export function VoiceChat({ mode, lang, deckId }: VoiceChatProps) {
               </Button>
             )}
           </div>
-        </div>
+        </>
       )}
 
       <AlertDialog open={endOpen} onOpenChange={setEndOpen}>
