@@ -313,7 +313,6 @@
     "title": "Building a deck",
     "desc": "Select vocabulary to add to your new deck.",
     "instructions": "Select the vocabulary items to include — use the filters to find them.",
-    "addVocab": "Add vocabulary",
     "selected": "{count} selected",
     "done": "Done",
     "exit": "Exit deck builder",

@@ -29,13 +29,6 @@ import {
 import { FilterAccordion } from '@/components/vocab/filter-accordion';
 import { BulkSelectBar } from '@/components/vocab/bulk-select-bar';
 import { AddToDeckDialog } from '@/components/vocab/add-to-deck-dialog';
-import { VocabForm } from '@/components/vocab/vocab-form';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { colorForLesson, colorForTag } from '@/lib/colors';
 import { cn } from '@/lib/utils';
 import { vocabPath, lessonPath, decksPath } from '@/lib/routes';
@@ -159,9 +152,6 @@ function VocabInner() {
   const [showExtraction, setShowExtraction] = useState(false);
   const [newLessonOpen, setNewLessonOpen] = useState(false);
   const [deckBuilderDialogOpen, setDeckBuilderDialogOpen] = useState(false);
-  // In-place "Add vocabulary" dialog, used from the deck-builder notification so
-  // the in-progress selection is preserved (no navigation away).
-  const [addVocabOpen, setAddVocabOpen] = useState(false);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const selectedLessons = useMemo(() => new Set(search.getAll('lesson')), [search]);
@@ -571,15 +561,6 @@ function VocabInner() {
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                className="gap-1.5"
-                onClick={() => setAddVocabOpen(true)}
-              >
-                <Plus className="h-3.5 w-3.5" />
-                {tdb('addVocab')}
-              </Button>
               <Button
                 size="sm"
                 disabled={selectedIds.size === 0}
@@ -1079,24 +1060,6 @@ function VocabInner() {
         onOpenChange={setNewLessonOpen}
         lang={lang}
       />
-
-      {/* In-place Add-vocabulary dialog (deck-builder §7a-#3): saving refreshes
-          the list so the new item is selectable, with prior selections intact. */}
-      <Dialog open={addVocabOpen} onOpenChange={setAddVocabOpen}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>{t('addVocab')}</DialogTitle>
-          </DialogHeader>
-          <VocabForm
-            mode="new"
-            onSuccess={() => {
-              setAddVocabOpen(false);
-              refreshItems();
-            }}
-            onCancel={() => setAddVocabOpen(false)}
-          />
-        </DialogContent>
-      </Dialog>
       </div>
     </>
   );

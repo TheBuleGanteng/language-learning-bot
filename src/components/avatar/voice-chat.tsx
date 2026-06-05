@@ -804,7 +804,7 @@ export function VoiceChat({ mode, lang, deckId }: VoiceChatProps) {
       : t('speaking');
 
   return (
-    <div className="mx-auto flex min-h-[calc(100svh-9rem)] w-full max-w-xl flex-col gap-2 sm:-mb-10 sm:min-h-0">
+    <div className="mx-auto flex min-h-[calc(100svh-9rem)] w-full max-w-xl flex-col gap-1.5 sm:-mb-10 sm:min-h-0 sm:gap-2">
       {phase === 'loading' ? (
         <div className="m-auto text-sm text-muted-foreground">{t('preparing')}</div>
       ) : (
@@ -814,7 +814,9 @@ export function VoiceChat({ mode, lang, deckId }: VoiceChatProps) {
               exceeds the viewport. On short screens the spacer below fills the
               slack; the min-h fills the area under the header on mobile. */}
           <div className="relative flex shrink-0 items-center justify-center">
-            <KruuBingo state={avatarState} size={220} />
+            {/* Smaller on mobile (size-44 = 176px) to cut vertical space; full
+                size on desktop (sm:size-56 = 224px). */}
+            <KruuBingo state={avatarState} className="size-44 sm:size-56" />
             {/* Exit X — top-left of the avatar, mirroring the CC control's
                 top-right placement/style. Ends the session and returns to decks. */}
             <button
@@ -901,7 +903,7 @@ export function VoiceChat({ mode, lang, deckId }: VoiceChatProps) {
 
           {/* Controls — base language use + speech speed (both live-applied).
               The CC control lives over the avatar (above) on all widths. */}
-          <div className="shrink-0 space-y-2 rounded-md border bg-muted/20 px-3 py-2">
+          <div className="shrink-0 space-y-1.5 rounded-md border bg-muted/20 px-3 py-1.5 sm:space-y-2 sm:py-2">
             <BaseLanguageUseControl
               value={baseLanguageUse}
               onChange={onBaseLanguageChange}
@@ -910,7 +912,7 @@ export function VoiceChat({ mode, lang, deckId }: VoiceChatProps) {
               disabled={blSaving}
               compact
             />
-            <div className="border-t pt-2">
+            <div className="border-t pt-1.5 sm:pt-2">
               <SpeechSpeedControl
                 value={speechSpeed}
                 onChange={onSpeechSpeedChange}

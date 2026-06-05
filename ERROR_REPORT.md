@@ -2090,3 +2090,21 @@ Seven-part follow-up to the prior batch (no schema change):
 Gates: `pnpm lint` clean, `pnpm test` 75/75 passed, `pnpm build` compiled
 successfully + TypeScript finished (benign collecting-page-data hang). Catalogs
 357 keys, identical across all five locales (+1 this batch).
+
+## 2026-06-05 — Drop deck-builder "Add vocabulary" + tighten avatar mobile spacing
+- Removed the **Add vocabulary** button from the deck-builder notification (the
+  in-place add-vocab flow is no longer offered there). Cleaned up the now-orphaned
+  `addVocabOpen` state, the in-place `<Dialog>`/`VocabForm` block, the unused
+  `Dialog`/`VocabForm` imports, and the orphaned `deckBuilder.addVocab` key ×5
+  (catalogs back to 356, in sync). `VocabForm`'s optional `onSuccess`/`onCancel`
+  props are left in place (harmless, reusable; the standalone `/vocab/new` page
+  passes neither).
+- Avatar page mobile spacing: `KruuBingo` gained an optional `className` so its
+  size can be class-driven (and responsive) instead of fixed-px; the avatar now
+  renders `size-44` (176px) on mobile, `sm:size-56` (224px) on desktop. Root gap
+  tightened to `gap-1.5 sm:gap-2`; controls box to `space-y-1.5 py-1.5`
+  (`sm:space-y-2 sm:py-2`) and the inter-slider divider to `pt-1.5 sm:pt-2`. Net
+  effect: mobile content fits without scrolling in practice while scroll stays
+  enabled (normal document flow from the prior pass). Desktop layout unchanged.
+`tsc` + `lint` clean, `pnpm test` 75/75. Full `pnpm build` skipped to preserve the
+live dev server's `.next` cache (JSX/CSS-class + key-removal change only).

@@ -313,7 +313,6 @@
     "title": "正在创建卡组",
     "desc": "选择要添加到新卡组的词汇。",
     "instructions": "选择要包含的词汇 —— 使用筛选器查找它们。",
-    "addVocab": "添加词汇",
     "selected": "已选 {count}",
     "done": "完成",
     "exit": "退出卡组创建",

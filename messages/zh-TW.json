@@ -313,7 +313,6 @@
     "title": "正在建立卡組",
     "desc": "選擇要新增到新卡組的詞彙。",
     "instructions": "選擇要包含的詞彙 —— 使用篩選器尋找它們。",
-    "addVocab": "新增詞彙",
     "selected": "已選 {count}",
     "done": "完成",
     "exit": "退出卡組建立",

@@ -10,10 +10,16 @@ type AvatarState = 'idle' | 'speaking' | 'listening';
 
 interface KruuBingoProps {
   state: AvatarState;
-  size?: number; // px, default 200
+  size?: number; // px, default 200 — used only when `className` is not given
+  /**
+   * When provided, controls sizing via classes (e.g. responsive `size-44
+   * sm:size-52`) instead of the fixed-px `size`, so the avatar can shrink on
+   * mobile to save vertical space.
+   */
+  className?: string;
 }
 
-export function KruuBingo({ state, size = 200 }: KruuBingoProps) {
+export function KruuBingo({ state, size = 200, className }: KruuBingoProps) {
   const animation =
     state === 'speaking'
       ? speakingAnimation
@@ -23,7 +29,8 @@ export function KruuBingo({ state, size = 200 }: KruuBingoProps) {
 
   return (
     <div
-      style={{ width: size, height: size }}
+      style={className ? undefined : { width: size, height: size }}
+      className={className}
       aria-label="Kruu Bingo, your Thai language tutor"
       role="img"
     >

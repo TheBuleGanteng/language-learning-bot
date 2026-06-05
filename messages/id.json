@@ -313,7 +313,6 @@
     "title": "Membuat dek",
     "desc": "Pilih kosakata untuk ditambahkan ke dek baru Anda.",
     "instructions": "Pilih item kosakata yang ingin disertakan — gunakan filter untuk menemukannya.",
-    "addVocab": "Tambah kosakata",
     "selected": "{count} dipilih",
     "done": "Selesai",
     "exit": "Keluar dari pembuat dek",
