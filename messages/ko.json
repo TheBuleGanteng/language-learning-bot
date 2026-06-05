@@ -27,6 +27,7 @@
     "vocab": "어휘",
     "lessons": "수업",
     "learn": "학습",
+    "materials": "학습 자료",
     "flashcards": "플래시카드",
     "practice": "Kruu Bingo와 연습",
     "menu": "메뉴"
@@ -185,6 +186,7 @@
   },
   "practice": {
     "backToDecks": "덱으로 돌아가기",
+    "exitChat": "세션을 종료하고 덱으로 돌아가기",
     "title": "Kruu Bingo",
     "freeTitle": "Kruu Bingo · 자유 대화",
     "preparing": "튜터를 준비하는 중…",
@@ -309,6 +311,8 @@
   "deckBuilder": {
     "title": "덱 만드는 중",
     "desc": "새 덱에 추가할 어휘를 선택하세요.",
+    "instructions": "포함할 어휘 항목을 선택하세요 — 필터를 사용해 찾을 수 있습니다.",
+    "addVocab": "어휘 추가",
     "selected": "{count}개 선택됨",
     "done": "완료",
     "exit": "덱 빌더 종료",

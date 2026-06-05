@@ -29,6 +29,13 @@ import {
 import { FilterAccordion } from '@/components/vocab/filter-accordion';
 import { BulkSelectBar } from '@/components/vocab/bulk-select-bar';
 import { AddToDeckDialog } from '@/components/vocab/add-to-deck-dialog';
+import { VocabForm } from '@/components/vocab/vocab-form';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { colorForLesson, colorForTag } from '@/lib/colors';
 import { cn } from '@/lib/utils';
 import { vocabPath, lessonPath } from '@/lib/routes';
@@ -152,6 +159,9 @@ function VocabInner() {
   const [showExtraction, setShowExtraction] = useState(false);
   const [newLessonOpen, setNewLessonOpen] = useState(false);
   const [deckBuilderDialogOpen, setDeckBuilderDialogOpen] = useState(false);
+  // In-place "Add vocabulary" dialog, used from the deck-builder notification so
+  // the in-progress selection is preserved (no navigation away).
+  const [addVocabOpen, setAddVocabOpen] = useState(false);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const selectedLessons = useMemo(() => new Set(search.getAll('lesson')), [search]);
@@ -543,34 +553,84 @@ function VocabInner() {
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[16rem,1fr] gap-6">
-      <aside className="space-y-4">
-        <div className="flex gap-2 flex-wrap">
-          <Button asChild size="sm">
-            <Link href={vocabPath(lang, '/new')}>{t('addVocab')}</Link>
-          </Button>
-          <Button asChild size="sm" variant="outline">
-            <Link href={vocabPath(lang, '/import')}>{t('importCsv')}</Link>
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setShowExtraction(true)}
-            className="gap-1.5"
-          >
-            <Camera className="h-3.5 w-3.5" />
-            {t('addFromPhoto')}
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setNewLessonOpen(true)}
-            className="gap-1.5"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            {t('newLesson')}
-          </Button>
+    <>
+      {/* Deck-builder notification (§7a): pinned to the top of the content area
+          (just below the global header) for the whole flow — prominent accent
+          panel with mode title, instructions, live count, and the in-place
+          Add-vocabulary / Create-deck / Exit actions. */}
+      {deckBuilderMode && (
+        <div className="sticky top-16 z-30 mb-6 rounded-lg bg-primary px-4 py-3 text-primary-foreground shadow-lg ring-1 ring-primary/40">
+          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+            <div className="min-w-0 space-y-0.5">
+              <p className="text-base font-bold leading-tight">{tdb('title')}</p>
+              <p className="text-xs text-primary-foreground/80">{tdb('instructions')}</p>
+              <p className="text-sm font-semibold">
+                {tdb('selected', { count: selectedIds.size })}
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5 border-primary-foreground/40 bg-transparent text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground"
+                onClick={() => setAddVocabOpen(true)}
+              >
+                <Plus className="h-3.5 w-3.5" />
+                {tdb('addVocab')}
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={selectedIds.size === 0}
+                onClick={() => setDeckBuilderDialogOpen(true)}
+              >
+                {tdb('finish')}
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="border-primary-foreground/40 bg-transparent text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground"
+                onClick={() => router.push(vocabPath(lang))}
+              >
+                {tdb('exit')}
+              </Button>
+            </div>
+          </div>
         </div>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-[16rem,1fr] gap-6">
+        <aside className="space-y-4">
+        {/* The create/import actions don't belong in deck-builder mode — adding
+            vocab there happens via the sticky notification's in-place dialog. */}
+        {!deckBuilderMode && (
+          <div className="flex gap-2 flex-wrap">
+            <Button asChild size="sm">
+              <Link href={vocabPath(lang, '/new')}>{t('addVocab')}</Link>
+            </Button>
+            <Button asChild size="sm" variant="outline">
+              <Link href={vocabPath(lang, '/import')}>{t('importCsv')}</Link>
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setShowExtraction(true)}
+              className="gap-1.5"
+            >
+              <Camera className="h-3.5 w-3.5" />
+              {t('addFromPhoto')}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setNewLessonOpen(true)}
+              className="gap-1.5"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              {t('newLesson')}
+            </Button>
+          </div>
+        )}
 
         <div className="space-y-2 border rounded-md p-3">
           <div className="flex items-center gap-3 text-sm">
@@ -707,38 +767,7 @@ function VocabInner() {
           </div>
         </div>
 
-        {deckBuilderMode && (
-          <div className="sticky top-16 z-30 rounded-lg bg-primary px-4 py-3 text-primary-foreground shadow-lg ring-1 ring-primary/40">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="min-w-0">
-                <p className="text-base font-bold">{tdb('title')}</p>
-                <p className="text-xs text-primary-foreground/80">
-                  {tdb('desc')} · {tdb('selected', { count: selectedIds.size })}
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  disabled={selectedIds.size === 0}
-                  onClick={() => setDeckBuilderDialogOpen(true)}
-                >
-                  {tdb('finish')}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="border-primary-foreground/40 bg-transparent text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground"
-                  onClick={() => router.push(vocabPath(lang))}
-                >
-                  {tdb('exit')}
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Create-deck dialog reachable from the banner's finish action — the
+        {/* Create-deck dialog reachable from the notification's finish action — the
             same AddToDeckDialog the selection bar uses (forceManual in builder). */}
         {deckBuilderMode && (
           <AddToDeckDialog
@@ -837,24 +866,25 @@ function VocabInner() {
                     </div>
                   )}
                 </div>
-              </div>
-              <div className="mt-3 flex items-center justify-end gap-2 border-t pt-2">
-                <Button
-                  asChild
-                  size="sm"
-                  variant="outline"
-                  className="border-blue-300 text-blue-700 hover:bg-blue-50 hover:text-blue-800"
-                >
-                  <Link href={vocabPath(lang, `/${i.id}`)}>{tc('edit')}</Link>
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="text-red-600 hover:bg-red-50 hover:text-red-700"
-                  onClick={() => setDeleteId(i.id)}
-                >
-                  {tc('delete')}
-                </Button>
+                {/* Actions on the right of the same row (mobile-compact). */}
+                <div className="flex shrink-0 flex-col items-end gap-2">
+                  <Button
+                    asChild
+                    size="sm"
+                    variant="outline"
+                    className="border-blue-300 text-blue-700 hover:bg-blue-50 hover:text-blue-800"
+                  >
+                    <Link href={vocabPath(lang, `/${i.id}`)}>{tc('edit')}</Link>
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                    onClick={() => setDeleteId(i.id)}
+                  >
+                    {tc('delete')}
+                  </Button>
+                </div>
               </div>
             </div>
           ))}
@@ -1049,7 +1079,26 @@ function VocabInner() {
         onOpenChange={setNewLessonOpen}
         lang={lang}
       />
-    </div>
+
+      {/* In-place Add-vocabulary dialog (deck-builder §7a-#3): saving refreshes
+          the list so the new item is selectable, with prior selections intact. */}
+      <Dialog open={addVocabOpen} onOpenChange={setAddVocabOpen}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{t('addVocab')}</DialogTitle>
+          </DialogHeader>
+          <VocabForm
+            mode="new"
+            onSuccess={() => {
+              setAddVocabOpen(false);
+              refreshItems();
+            }}
+            onCancel={() => setAddVocabOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
+      </div>
+    </>
   );
 }
 

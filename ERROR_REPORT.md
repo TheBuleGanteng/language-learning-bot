@@ -1993,3 +1993,51 @@ widths (desktop included); the labeled "Captions" row was removed, and the
 controls-box and inner-column spacing tightened (space-y-3→2, pt-3→2, gap-4→3) to
 reduce vertical scrolling on desktop.
 `tsc` + `lint` clean; catalogs 352 keys, in sync. Class/JSX-only change.
+
+## 2026-06-05 — UI/mobile polish batch (nav, vocab cards, toasts, deck-builder, avatar)
+Eight-part local batch (no schema change):
+1. **Mobile hamburger "Materials" group** — the Vocabulary/Lessons links now sit
+   under a localized **Materials** section title, ordered *after* the **Learn**
+   section (Flashcards / Practice). New `nav.materials` key in all five locales.
+2. **Vocab cards (mobile)** — Edit/Delete moved from their own bottom row into a
+   right-aligned vertical stack on the same row as the content, shrinking card
+   height. Desktop table untouched.
+3. **Desktop header chevron** — the account trigger is now `flex-nowrap
+   whitespace-nowrap` with a `shrink-0` chevron, so the email + caret stay on one
+   line (no wrap) and the navbar is shorter.
+4. **Toasts** — `closeButton` enabled globally on the sonner `<Toaster />`, so
+   every toast has a dismiss X (auto-dismiss kept as fallback).
+5. **Deck-builder notification** — replaced the mid-page bar with a full-width
+   sticky panel pinned to the top of the content area (`sticky top-16 z-30`,
+   above the two-column grid). It carries the mode title, brief instructions,
+   live "N selected" count, and three actions: **Add vocabulary** (opens the
+   existing `VocabForm` in an in-place Dialog — on save it calls a new
+   `onSuccess` callback that closes the dialog and `refreshItems()` instead of
+   navigating, so the in-progress selection is preserved and the new item becomes
+   selectable), **Create deck**, and **Exit**. While in deck-builder mode the
+   four create/import buttons (Add vocab, Import CSV, Add from photo, New Lesson)
+   are hidden. New `deckBuilder.instructions` + `deckBuilder.addVocab` keys ×5.
+   Assumption resolved: the add-vocab flow was a full page (`/vocab/new`); rather
+   than a sessionStorage round-trip, `VocabForm` was made dialog-capable via
+   optional `onSuccess`/`onCancel` props (no behavior change for the standalone
+   page, which passes neither).
+6. **Base-language slider tooltip** — the explanation list is filtered to the
+   labelled stops only (all / moderate / never; Frequent & Rarely dropped to match
+   the de-labelled ticks). `InfoIcon` gained an `align` pass-through and the
+   tooltip now uses `align="end"`, anchoring it to the label/info-icon's right
+   edge instead of drifting right (applied to the speech-speed tooltip too).
+7. **Avatar page navbar + exit X** — the immersive view no longer covers the app
+   header: the mobile overlay starts below it (`fixed inset-x-0 bottom-0 top-16
+   z-30`, was `inset-0 z-50`), so the standard navbar shows. The in-component
+   "Back to decks" top bar was removed; an **X** button sits top-left of the
+   avatar (mirroring the CC control top-right) and calls a new `exitToDecks`
+   handler that stops the realtime session cleanly and routes to the decks page.
+   Localized `practice.exitChat` aria-label ×5; keyboard-focusable.
+8. **Avatar desktop spacing** — desktop-only tightening (`sm:` gaps/heights,
+   `sm:-mb-10` reclaiming the layout's `pb-16`, top-bar removal) so the page fits
+   without vertical scroll; mobile spacing unchanged.
+
+Gates: `pnpm lint` clean, `pnpm test` 75/75 passed, `pnpm build` "Compiled
+successfully" + "Finished TypeScript" (stopped at the documented benign
+"Collecting page data" hang, exit 143 = SIGTERM). Catalogs 356 keys, identical
+across all five locales (+4 keys this batch). No missing-key errors.

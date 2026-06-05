@@ -25,9 +25,13 @@ export function UserMenu({ email, className }: Props) {
     <DropdownMenu>
       <DropdownMenuTrigger
         render={
-          <Button variant="ghost" size="sm" className={cn('gap-2', className)}>
-            <span className="max-w-[200px] truncate">{email}</span>
-            <ChevronDown className="h-4 w-4" />
+          <Button
+            variant="ghost"
+            size="sm"
+            className={cn('flex-nowrap gap-2 whitespace-nowrap', className)}
+          >
+            <span className="min-w-0 max-w-[200px] truncate">{email}</span>
+            <ChevronDown className="h-4 w-4 shrink-0" />
           </Button>
         }
       />

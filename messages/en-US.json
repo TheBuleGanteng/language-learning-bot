@@ -27,6 +27,7 @@
     "vocab": "Vocabulary",
     "lessons": "Lessons",
     "learn": "Learn",
+    "materials": "Materials",
     "flashcards": "Flashcards",
     "practice": "Practice with Kruu Bingo",
     "menu": "Menu"
@@ -185,6 +186,7 @@
   },
   "practice": {
     "backToDecks": "Back to decks",
+    "exitChat": "End session and return to decks",
     "title": "Kruu Bingo",
     "freeTitle": "Kruu Bingo · Free conversation",
     "preparing": "Preparing your tutor…",
@@ -309,6 +311,8 @@
   "deckBuilder": {
     "title": "Building a deck",
     "desc": "Select vocabulary to add to your new deck.",
+    "instructions": "Select the vocabulary items to include — use the filters to find them.",
+    "addVocab": "Add vocabulary",
     "selected": "{count} selected",
     "done": "Done",
     "exit": "Exit deck builder",

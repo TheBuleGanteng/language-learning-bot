@@ -60,14 +60,15 @@ export function MobileMenu({ lang, email, className }: Props) {
       />
       <DropdownMenuContent align="end" className="min-w-56">
         <DropdownMenuGroup>
-          <DropdownMenuItem render={<Link href={vocabPath(lang)}><BookOpen className="mr-2 h-4 w-4" />{t('vocab')}</Link>} />
-          <DropdownMenuItem render={<Link href={lessonsPath(lang)}><Library className="mr-2 h-4 w-4" />{t('lessons')}</Link>} />
-        </DropdownMenuGroup>
-        <DropdownMenuSeparator />
-        <DropdownMenuGroup>
           <DropdownMenuLabel>{t('learn')}</DropdownMenuLabel>
           <DropdownMenuItem render={<Link href={decksPath(lang)}><GraduationCap className="mr-2 h-4 w-4" />{t('flashcards')}</Link>} />
           <DropdownMenuItem render={<Link href={decksPath(lang)}><MessagesSquare className="mr-2 h-4 w-4" />{t('practice')}</Link>} />
+        </DropdownMenuGroup>
+        <DropdownMenuSeparator />
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>{t('materials')}</DropdownMenuLabel>
+          <DropdownMenuItem render={<Link href={vocabPath(lang)}><BookOpen className="mr-2 h-4 w-4" />{t('vocab')}</Link>} />
+          <DropdownMenuItem render={<Link href={lessonsPath(lang)}><Library className="mr-2 h-4 w-4" />{t('lessons')}</Link>} />
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>

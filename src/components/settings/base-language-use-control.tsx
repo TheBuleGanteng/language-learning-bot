@@ -44,12 +44,18 @@ export function BaseLanguageUseControl({
   const label = t('labelShort', { base: baseLanguage });
   const idx = Math.max(0, BASE_LANGUAGE_USE_LEVELS.indexOf(value));
 
+  // The tooltip lists only the levels whose tick labels are still visible on the
+  // slider (all / moderate / never); the intermediate frequent/rarely stops were
+  // de-labelled to declutter, so their explanation lines are omitted here too.
+  const explainedLevels = BASE_LANGUAGE_USE_LEVELS.filter(
+    (lvl) => lvl === 'all' || lvl === 'moderate' || lvl === 'never',
+  );
   const info = (
-    <InfoIcon label={label}>
+    <InfoIcon label={label} align="end">
       <p className="font-medium">{t(`levels.${value}`)}</p>
       <p className="text-muted-foreground">{t(`help.${value}`, names)}</p>
       <div className="mt-1 space-y-1 border-t pt-2">
-        {BASE_LANGUAGE_USE_LEVELS.map((lvl) => (
+        {explainedLevels.map((lvl) => (
           <p key={lvl} className="text-xs leading-snug">
             <span className="font-medium">{t(`levels.${lvl}`)}:</span>{' '}
             <span className="text-muted-foreground">{t(`help.${lvl}`, names)}</span>

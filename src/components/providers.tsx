@@ -9,7 +9,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <SessionProvider basePath={`${basePath}/api/auth`}>
       {children}
-      <Toaster richColors position="top-right" />
+      <Toaster richColors closeButton position="top-right" />
     </SessionProvider>
   );
 }

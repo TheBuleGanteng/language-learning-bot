@@ -27,6 +27,7 @@
     "vocab": "詞彙",
     "lessons": "課程",
     "learn": "學習",
+    "materials": "學習資料",
     "flashcards": "字卡",
     "practice": "和 Kruu Bingo 練習",
     "menu": "選單"
@@ -185,6 +186,7 @@
   },
   "practice": {
     "backToDecks": "返回卡組",
+    "exitChat": "結束會話並返回卡組",
     "title": "Kruu Bingo",
     "freeTitle": "Kruu Bingo · 自由對話",
     "preparing": "正在準備你的老師…",
@@ -309,6 +311,8 @@
   "deckBuilder": {
     "title": "正在建立卡組",
     "desc": "選擇要新增到新卡組的詞彙。",
+    "instructions": "選擇要包含的詞彙 —— 使用篩選器尋找它們。",
+    "addVocab": "新增詞彙",
     "selected": "已選 {count}",
     "done": "完成",
     "exit": "退出卡組建立",

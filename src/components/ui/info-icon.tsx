@@ -15,12 +15,15 @@ export function InfoIcon({
   children,
   label = 'More info',
   side = 'top',
+  align = 'center',
   className,
   contentClassName,
 }: {
   children: React.ReactNode;
   label?: string;
   side?: 'top' | 'bottom' | 'left' | 'right';
+  /** Alignment of the popover relative to the trigger along the side axis. */
+  align?: 'start' | 'center' | 'end';
   className?: string;
   contentClassName?: string;
 }) {
@@ -41,7 +44,11 @@ export function InfoIcon({
       >
         <Info className="h-3.5 w-3.5" />
       </PopoverTrigger>
-      <PopoverContent side={side} className={cn('w-72 text-sm leading-snug', contentClassName)}>
+      <PopoverContent
+        side={side}
+        align={align}
+        className={cn('w-72 text-sm leading-snug', contentClassName)}
+      >
         {children}
       </PopoverContent>
     </Popover>

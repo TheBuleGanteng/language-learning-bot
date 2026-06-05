@@ -27,6 +27,7 @@
     "vocab": "Kosakata",
     "lessons": "Pelajaran",
     "learn": "Belajar",
+    "materials": "Materi",
     "flashcards": "Kartu hafalan",
     "practice": "Berlatih dengan Kruu Bingo",
     "menu": "Menu"
@@ -185,6 +186,7 @@
   },
   "practice": {
     "backToDecks": "Kembali ke dek",
+    "exitChat": "Akhiri sesi dan kembali ke dek",
     "title": "Kruu Bingo",
     "freeTitle": "Kruu Bingo · Percakapan bebas",
     "preparing": "Menyiapkan tutor Anda…",
@@ -309,6 +311,8 @@
   "deckBuilder": {
     "title": "Membuat dek",
     "desc": "Pilih kosakata untuk ditambahkan ke dek baru Anda.",
+    "instructions": "Pilih item kosakata yang ingin disertakan — gunakan filter untuk menemukannya.",
+    "addVocab": "Tambah kosakata",
     "selected": "{count} dipilih",
     "done": "Selesai",
     "exit": "Keluar dari pembuat dek",

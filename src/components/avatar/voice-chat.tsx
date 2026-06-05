@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { ArrowLeft, Mic, Square, CheckCircle2, ChevronDown } from 'lucide-react';
+import { X, Mic, Square, CheckCircle2, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -382,6 +382,21 @@ export function VoiceChat({ mode, lang, deckId }: VoiceChatProps) {
     setCompletion(result);
     setPhase('completed');
   }, [saveSession, clearInactivityTimer, clearCountdown]);
+
+  // The corner X (top-left of the avatar): tear the realtime session down
+  // cleanly and return to the decks page — an immediate exit, no completion
+  // screen. Unmount cleanup also stops the session; doing it here is explicit.
+  const exitToDecks = useCallback(async () => {
+    clearInactivityTimer();
+    clearCountdown();
+    try {
+      await sessionRef.current?.stop();
+    } catch {
+      // best-effort teardown
+    }
+    sessionRef.current = null;
+    router.push(decksPath(lang));
+  }, [clearInactivityTimer, clearCountdown, router, lang]);
 
   // Show the warning popup and run the 30s countdown; auto-end at zero.
   const fireInactivityWarning = useCallback(() => {
@@ -789,22 +804,7 @@ export function VoiceChat({ mode, lang, deckId }: VoiceChatProps) {
       : t('speaking');
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-background p-4 sm:static sm:z-auto sm:p-0 sm:-mb-10">
-      {/* Top bar */}
-      <div className="flex items-center justify-between">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => router.push(decksPath(lang))}
-          className="gap-1.5"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          {t('backToDecks')}
-        </Button>
-        <span className="font-semibold">{mode === 'free' ? t('freeTitle') : t('title')}</span>
-        <span className="w-24" />
-      </div>
-
+    <div className="fixed inset-x-0 bottom-0 top-16 z-30 flex flex-col bg-background p-4 sm:static sm:z-auto sm:p-0 sm:-mb-10">
       {phase === 'loading' ? (
         <div className="m-auto text-sm text-muted-foreground">{t('preparing')}</div>
       ) : (
@@ -812,6 +812,16 @@ export function VoiceChat({ mode, lang, deckId }: VoiceChatProps) {
           {/* Avatar */}
           <div className="relative flex h-[30vh] shrink-0 items-center justify-center pt-2 sm:h-[28vh] sm:pt-0">
             <KruuBingo state={avatarState} size={220} />
+            {/* Exit X — top-left of the avatar, mirroring the CC control's
+                top-right placement/style. Ends the session and returns to decks. */}
+            <button
+              type="button"
+              aria-label={t('exitChat')}
+              onClick={exitToDecks}
+              className="absolute left-1 top-1 inline-flex items-center justify-center rounded-md border border-input bg-background p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <X className="h-4 w-4" />
+            </button>
             {/* The CC control is overlaid top-right of the avatar on all widths
                 (the labeled "Captions" row is removed), saving vertical space. */}
             <div className="absolute right-1 top-1">

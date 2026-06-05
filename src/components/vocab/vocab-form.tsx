@@ -49,9 +49,17 @@ const EMPTY: VocabTextFields = {
 interface Props {
   initial?: VocabFormInitial;
   mode: 'new' | 'edit';
+  /**
+   * When provided (e.g. the form is hosted inside a dialog), called after a
+   * successful save INSTEAD of navigating away — letting the caller close the
+   * dialog and refresh its own list while preserving surrounding state.
+   */
+  onSuccess?: () => void;
+  /** When provided, the Cancel button calls this instead of navigating away. */
+  onCancel?: () => void;
 }
 
-export function VocabForm({ initial, mode }: Props) {
+export function VocabForm({ initial, mode, onSuccess, onCancel }: Props) {
   const router = useRouter();
   const params = useParams<{ lang?: string }>();
   const lang = params.lang ?? 'th';
@@ -116,8 +124,14 @@ export function VocabForm({ initial, mode }: Props) {
         return;
       }
       toast.success(mode === 'new' ? 'Vocab added' : 'Vocab updated');
-      router.push(vocabPath(lang));
-      router.refresh();
+      if (onSuccess) {
+        // Hosted in a dialog: hand control back rather than navigating away, so
+        // the caller can refresh its list and keep its in-progress state.
+        onSuccess();
+      } else {
+        router.push(vocabPath(lang));
+        router.refresh();
+      }
     } finally {
       setBusy(false);
     }
@@ -197,7 +211,11 @@ export function VocabForm({ initial, mode }: Props) {
         <Button type="submit" disabled={busy}>
           {busy ? 'Saving…' : mode === 'new' ? 'Add vocab' : 'Save changes'}
         </Button>
-        <Button type="button" variant="outline" onClick={() => router.push(vocabPath(lang))}>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => (onCancel ? onCancel() : router.push(vocabPath(lang)))}
+        >
           Cancel
         </Button>
       </div>
