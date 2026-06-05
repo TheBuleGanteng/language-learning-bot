@@ -59,24 +59,12 @@ export function BaseLanguageUseControl({
     </InfoIcon>
   );
 
-  // Tick labels — equal-width, wrap-safe so long localized words never overflow.
-  // The intermediate steps (frequent / rarely) show only a tick mark on the
-  // slider, not a text label (the spans are kept blank to preserve alignment).
-  const labelledTicks = new Set(['all', 'moderate', 'never']);
-  const ticks = (
-    <div className="flex gap-1 text-[10px] text-muted-foreground sm:text-[11px]">
-      {BASE_LANGUAGE_USE_LEVELS.map((lvl) => (
-        <span
-          key={lvl}
-          className={cn(
-            'min-w-0 flex-1 break-words text-center leading-tight',
-            lvl === value && 'font-semibold text-foreground',
-          )}
-        >
-          {labelledTicks.has(lvl) ? t(`levels.${lvl}`) : ''}
-        </span>
-      ))}
-    </div>
+  // Per-tick labels — only the endpoints and midpoint are labelled; the
+  // intermediate steps (frequent / rarely) render a tick mark but no text
+  // (null), so the slider stays readable. Labels are centered under their tick
+  // by the Slider itself.
+  const tickLabels = BASE_LANGUAGE_USE_LEVELS.map((lvl) =>
+    lvl === 'all' || lvl === 'moderate' || lvl === 'never' ? t(`levels.${lvl}`) : null,
   );
 
   const slider = (
@@ -84,6 +72,8 @@ export function BaseLanguageUseControl({
       aria-label={label}
       className={cn(compact && 'col-start-2 row-start-1 min-w-0')}
       tickCount={BASE_LANGUAGE_USE_LEVELS.length}
+      tickLabels={tickLabels}
+      activeIndex={idx}
       min={0}
       max={BASE_LANGUAGE_USE_LEVELS.length - 1}
       step={1}
@@ -101,19 +91,19 @@ export function BaseLanguageUseControl({
     return (
       <div
         className={cn(
-          'grid grid-cols-[7rem_minmax(0,1fr)] items-center gap-x-3 gap-y-1',
+          'grid grid-cols-[7rem_minmax(0,1fr)] items-start gap-x-3',
           className,
         )}
       >
-        {/* Label cell (col 1) — narrow + wrapping so the slider gets the width. */}
-        <div className="col-start-1 row-start-1 flex items-center gap-1 text-sm font-medium leading-tight">
+        {/* Label cell (col 1) — narrow + wrapping so the slider gets the width.
+            `h-8` matches the slider's control row so the label's text centers on
+            the track (the tick labels hang below, outside this height). */}
+        <div className="flex h-8 items-center gap-1 text-sm font-medium leading-tight">
           <span className="break-words">{label}</span>
           {info}
         </div>
-        {/* Slider (col 2, row 1) — `items-center` centers it against the label. */}
+        {/* Slider (col 2) — its tick labels live inside, under each tick. */}
         {slider}
-        {/* Tick labels under the slider (col 2, row 2). */}
-        <div className="col-start-2 row-start-2">{ticks}</div>
       </div>
     );
   }
@@ -125,7 +115,6 @@ export function BaseLanguageUseControl({
         {info}
       </div>
       {slider}
-      {ticks}
     </div>
   );
 }

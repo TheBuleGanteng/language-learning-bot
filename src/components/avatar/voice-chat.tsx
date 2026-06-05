@@ -789,7 +789,7 @@ export function VoiceChat({ mode, lang, deckId }: VoiceChatProps) {
       : t('speaking');
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-background p-4 sm:static sm:z-auto sm:p-0">
+    <div className="fixed inset-0 z-50 flex flex-col bg-background p-4 sm:static sm:z-auto sm:p-0 sm:-mb-10">
       {/* Top bar */}
       <div className="flex items-center justify-between">
         <Button
@@ -808,9 +808,9 @@ export function VoiceChat({ mode, lang, deckId }: VoiceChatProps) {
       {phase === 'loading' ? (
         <div className="m-auto text-sm text-muted-foreground">{t('preparing')}</div>
       ) : (
-        <div className="mx-auto flex w-full max-w-xl flex-1 min-h-0 flex-col gap-3 overflow-y-auto">
+        <div className="mx-auto flex w-full max-w-xl flex-1 min-h-0 flex-col gap-3 overflow-y-auto sm:gap-2">
           {/* Avatar */}
-          <div className="relative flex h-[30vh] shrink-0 items-center justify-center pt-2 sm:h-[40vh]">
+          <div className="relative flex h-[30vh] shrink-0 items-center justify-center pt-2 sm:h-[28vh] sm:pt-0">
             <KruuBingo state={avatarState} size={220} />
             {/* The CC control is overlaid top-right of the avatar on all widths
                 (the labeled "Captions" row is removed), saving vertical space. */}
@@ -908,7 +908,7 @@ export function VoiceChat({ mode, lang, deckId }: VoiceChatProps) {
           </div>
 
           {/* Mic + End */}
-          <div className="flex shrink-0 flex-col gap-2 pb-2">
+          <div className="flex shrink-0 flex-col gap-2 pb-2 sm:pb-0">
             <Button
               size="lg"
               onClick={startSession}

@@ -45,27 +45,15 @@ export function SpeechSpeedControl({ value, onChange, disabled, className, compa
     </InfoIcon>
   );
 
-  const ticks = (
-    <div className="flex gap-1 text-[10px] text-muted-foreground sm:text-[11px]">
-      {SPEECH_SPEED_LEVELS.map((lvl) => (
-        <span
-          key={lvl}
-          className={cn(
-            'min-w-0 flex-1 break-words text-center leading-tight',
-            lvl === value && 'font-semibold text-foreground',
-          )}
-        >
-          {t(`levels.${lvl}`)}
-        </span>
-      ))}
-    </div>
-  );
+  const tickLabels = SPEECH_SPEED_LEVELS.map((lvl) => t(`levels.${lvl}`));
 
   const slider = (
     <Slider
       aria-label={label}
       className={cn(compact && 'col-start-2 row-start-1 min-w-0')}
       tickCount={SPEECH_SPEED_LEVELS.length}
+      tickLabels={tickLabels}
+      activeIndex={idx}
       min={0}
       max={SPEECH_SPEED_LEVELS.length - 1}
       step={1}
@@ -83,16 +71,17 @@ export function SpeechSpeedControl({ value, onChange, disabled, className, compa
     return (
       <div
         className={cn(
-          'grid grid-cols-[7rem_minmax(0,1fr)] items-center gap-x-3 gap-y-1',
+          'grid grid-cols-[7rem_minmax(0,1fr)] items-start gap-x-3',
           className,
         )}
       >
-        <div className="col-start-1 row-start-1 flex items-center gap-1 text-sm font-medium leading-tight">
+        {/* `h-8` matches the slider's control row so the label centers on the
+            track; the tick labels hang below, outside this height. */}
+        <div className="flex h-8 items-center gap-1 text-sm font-medium leading-tight">
           <span className="break-words">{label}</span>
           {info}
         </div>
         {slider}
-        <div className="col-start-2 row-start-2">{ticks}</div>
       </div>
     );
   }
@@ -104,7 +93,6 @@ export function SpeechSpeedControl({ value, onChange, disabled, className, compa
         {info}
       </div>
       {slider}
-      {ticks}
     </div>
   );
 }
