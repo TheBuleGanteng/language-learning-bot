@@ -65,6 +65,7 @@ export function SpeechSpeedControl({ value, onChange, disabled, className, compa
     <Slider
       aria-label={label}
       className={cn(compact && 'col-start-2 row-start-1 min-w-0')}
+      tickCount={SPEECH_SPEED_LEVELS.length}
       min={0}
       max={SPEECH_SPEED_LEVELS.length - 1}
       step={1}

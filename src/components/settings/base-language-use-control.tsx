@@ -60,6 +60,9 @@ export function BaseLanguageUseControl({
   );
 
   // Tick labels — equal-width, wrap-safe so long localized words never overflow.
+  // The intermediate steps (frequent / rarely) show only a tick mark on the
+  // slider, not a text label (the spans are kept blank to preserve alignment).
+  const labelledTicks = new Set(['all', 'moderate', 'never']);
   const ticks = (
     <div className="flex gap-1 text-[10px] text-muted-foreground sm:text-[11px]">
       {BASE_LANGUAGE_USE_LEVELS.map((lvl) => (
@@ -70,7 +73,7 @@ export function BaseLanguageUseControl({
             lvl === value && 'font-semibold text-foreground',
           )}
         >
-          {t(`levels.${lvl}`)}
+          {labelledTicks.has(lvl) ? t(`levels.${lvl}`) : ''}
         </span>
       ))}
     </div>
@@ -80,6 +83,7 @@ export function BaseLanguageUseControl({
     <Slider
       aria-label={label}
       className={cn(compact && 'col-start-2 row-start-1 min-w-0')}
+      tickCount={BASE_LANGUAGE_USE_LEVELS.length}
       min={0}
       max={BASE_LANGUAGE_USE_LEVELS.length - 1}
       step={1}

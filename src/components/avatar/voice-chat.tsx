@@ -808,14 +808,13 @@ export function VoiceChat({ mode, lang, deckId }: VoiceChatProps) {
       {phase === 'loading' ? (
         <div className="m-auto text-sm text-muted-foreground">{t('preparing')}</div>
       ) : (
-        <div className="mx-auto flex w-full max-w-xl flex-1 min-h-0 flex-col gap-4 overflow-y-auto">
+        <div className="mx-auto flex w-full max-w-xl flex-1 min-h-0 flex-col gap-3 overflow-y-auto">
           {/* Avatar */}
           <div className="relative flex h-[30vh] shrink-0 items-center justify-center pt-2 sm:h-[40vh]">
             <KruuBingo state={avatarState} size={220} />
-            {/* Mobile: the CC control is overlaid top-right of the avatar (the
-                labeled "Captions" row in the controls box is hidden below sm),
-                saving vertical space. */}
-            <div className="absolute right-1 top-1 sm:hidden">
+            {/* The CC control is overlaid top-right of the avatar on all widths
+                (the labeled "Captions" row is removed), saving vertical space. */}
+            <div className="absolute right-1 top-1">
               <CaptionCcMenu
                 enabled={captionsEnabled}
                 onToggle={onToggleCaptions}
@@ -887,9 +886,9 @@ export function VoiceChat({ mode, lang, deckId }: VoiceChatProps) {
             <div className="flex-1" />
           )}
 
-          {/* Controls — base language use + speech speed (both live-applied) +
-              captions toggle. */}
-          <div className="shrink-0 space-y-3 rounded-md border bg-muted/20 px-3 py-2">
+          {/* Controls — base language use + speech speed (both live-applied).
+              The CC control lives over the avatar (above) on all widths. */}
+          <div className="shrink-0 space-y-2 rounded-md border bg-muted/20 px-3 py-2">
             <BaseLanguageUseControl
               value={baseLanguageUse}
               onChange={onBaseLanguageChange}
@@ -898,28 +897,12 @@ export function VoiceChat({ mode, lang, deckId }: VoiceChatProps) {
               disabled={blSaving}
               compact
             />
-            <div className="border-t pt-3">
+            <div className="border-t pt-2">
               <SpeechSpeedControl
                 value={speechSpeed}
                 onChange={onSpeechSpeedChange}
                 disabled={ssSaving}
                 compact
-              />
-            </div>
-            {/* Desktop: labeled Captions row. On mobile the CC control lives over
-                the avatar (above), so this row is hidden. */}
-            <div className="hidden flex-wrap items-center justify-between gap-2 border-t pt-3 sm:flex">
-              <span className="text-sm font-medium">{t('captions')}</span>
-              <CaptionCcMenu
-                enabled={captionsEnabled}
-                onToggle={onToggleCaptions}
-                captionLanguage={captionLanguage}
-                onCaptionLanguageChange={onCaptionLanguageChange}
-                targetCode={targetCode}
-                targetName={targetName}
-                baseName={baseName}
-                toggleDisabled={captionsSaving}
-                langDisabled={captionLangSaving}
               />
             </div>
           </div>

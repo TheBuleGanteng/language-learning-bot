@@ -362,7 +362,7 @@
     "label": "母语使用程度",
     "about": "关于母语使用程度",
     "levels": {
-      "all": "全部",
+      "all": "经常",
       "frequent": "频繁",
       "moderate": "适中",
       "rarely": "很少",

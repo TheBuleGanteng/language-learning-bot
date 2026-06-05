@@ -1979,3 +1979,17 @@ desktop): a 2-column CSS grid `[7rem minmax(0,1fr)]` with `items-center` —
   controls are compact on desktop too.
 Settings keeps the original stacked (non-compact) layout. `tsc` + `lint` clean,
 catalogs unchanged (352 keys). Class/JSX-only change.
+
+## 2026-06-05 — Slider step ticks, base-language label trim, avatar CC on desktop
+(1) The shared `Slider` gained a `tickCount` prop that renders evenly-spaced step
+marks on the track; both controls pass it (base = 5, speed = 3), so step ticks
+show everywhere the sliders appear, mobile and desktop.
+(2) Base-language-use slider: only the endpoints + middle are text-labelled now —
+`levels.all` renamed to "Frequently", and the "Frequent"/"Rarely" tick text is
+blanked (their spans kept for alignment; their step ticks remain via #1);
+"Moderate"/"Never" unchanged. The info tooltip still lists every level.
+(3) Avatar page: the CC control is now overlaid top-right of the avatar on ALL
+widths (desktop included); the labeled "Captions" row was removed, and the
+controls-box and inner-column spacing tightened (space-y-3→2, pt-3→2, gap-4→3) to
+reduce vertical scrolling on desktop.
+`tsc` + `lint` clean; catalogs 352 keys, in sync. Class/JSX-only change.
