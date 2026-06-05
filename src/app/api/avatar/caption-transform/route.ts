@@ -4,7 +4,7 @@ import { eq } from 'drizzle-orm';
 import { db } from '@/db';
 import { users, userSettings } from '@/db/schema';
 import { auth } from '@/lib/auth';
-import { decryptString } from '@/lib/crypto';
+import { resolveApiKey } from '@/lib/api-keys';
 import { normalizeLanguageCode, languageName } from '@/lib/languages';
 import { localeToTranslateCode } from '@/lib/locales';
 import { translateText } from '@/lib/translation';
@@ -16,20 +16,12 @@ import {
   isRomanizationModel,
 } from '@/lib/romanization-models';
 import { enforceHardStop, logSpend, HardStopExceededError } from '@/lib/cost-tracking';
-import type { Provider } from '@/lib/models';
 
 const schema = z.object({
   text: z.string().min(1).max(2000),
   mode: z.enum(['base', 'target', 'target_romanized']),
   speaker: z.enum(['tutor', 'user']),
 });
-
-// Maps a provider to the aliased column selected below.
-const KEY_ALIAS: Record<Provider, 'anth' | 'openai' | 'gemini'> = {
-  anthropic: 'anth',
-  openai: 'openai',
-  google: 'gemini',
-};
 
 /**
  * POST /api/avatar/caption-transform — transform one finalized caption line.
@@ -107,12 +99,7 @@ export async function POST(req: Request) {
   }
 
   const [s] = await db
-    .select({
-      romanizationModel: userSettings.romanizationModel,
-      anth: userSettings.anthropicApiKeyEncrypted,
-      openai: userSettings.openaiApiKeyEncrypted,
-      gemini: userSettings.geminiApiKeyEncrypted,
-    })
+    .select({ romanizationModel: userSettings.romanizationModel })
     .from(userSettings)
     .where(eq(userSettings.userId, userId))
     .limit(1);
@@ -121,16 +108,12 @@ export async function POST(req: Request) {
     ? s.romanizationModel
     : defaultRomanizationModel();
   const provider = romanizationModelProvider(model);
-  const encrypted = s?.[KEY_ALIAS[provider]] ?? null;
-  if (!encrypted) {
+  // Resolve the provider key: personal → eligible global → none.
+  const resolved = await resolveApiKey(userId, provider);
+  if (!resolved.key) {
     return NextResponse.json({ error: 'no_key' }, { status: 400 });
   }
-  let apiKey: string;
-  try {
-    apiKey = decryptString(encrypted);
-  } catch {
-    return NextResponse.json({ error: 'key_decrypt_failed' }, { status: 500 });
-  }
+  const apiKey = resolved.key;
 
   // Estimate cost from the (possibly translated) text length and enforce the
   // hard stop before spending.

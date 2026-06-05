@@ -124,7 +124,8 @@
       "captions": "Captions",
       "imageGen": "Image generation",
       "photoAnalysis": "Photo analysis"
-    }
+    },
+    "usingGlobalKey": "Using global API key. Enter personal API key here."
   },
   "decks": {
     "title": "Flashcards",
@@ -522,5 +523,18 @@
     "close": "Close",
     "deleteTitle": "Delete this photo?",
     "deleteDesc": "This will permanently delete this photo. This cannot be undone."
+  },
+  "globalApiKeys": {
+    "heading": "Global API keys",
+    "desc": "Set a fallback key per provider for users who have never added their own. Stored encrypted; never shown to non-superusers.",
+    "placeholder": "Paste API key",
+    "set": "Set",
+    "notSet": "Not set",
+    "reveal": "Reveal",
+    "hide": "Hide",
+    "saved": "Global key saved",
+    "removed": "Global key removed",
+    "saveFailed": "Could not save the global key",
+    "revealFailed": "Could not reveal the key"
   }
 }

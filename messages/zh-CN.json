@@ -124,7 +124,8 @@
       "captions": "字幕",
       "imageGen": "图像生成",
       "photoAnalysis": "照片分析"
-    }
+    },
+    "usingGlobalKey": "正在使用全局 API 密钥。在此输入个人 API 密钥。"
   },
   "decks": {
     "title": "抽认卡",
@@ -522,5 +523,18 @@
     "close": "关闭",
     "deleteTitle": "删除这张照片？",
     "deleteDesc": "这将永久删除此照片，且无法撤销。"
+  },
+  "globalApiKeys": {
+    "heading": "全局 API 密钥",
+    "desc": "为从未添加自己密钥的用户设置每个提供商的后备密钥。加密存储；不会向非超级用户显示。",
+    "placeholder": "粘贴 API 密钥",
+    "set": "已设置",
+    "notSet": "未设置",
+    "reveal": "显示",
+    "hide": "隐藏",
+    "saved": "全局密钥已保存",
+    "removed": "全局密钥已移除",
+    "saveFailed": "无法保存全局密钥",
+    "revealFailed": "无法显示密钥"
   }
 }

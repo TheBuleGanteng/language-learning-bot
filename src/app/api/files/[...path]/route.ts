@@ -1,11 +1,16 @@
 import { NextResponse } from 'next/server';
+import { and, eq } from 'drizzle-orm';
+import { db } from '@/db';
+import { lessonFiles } from '@/db/schema';
 import { auth } from '@/lib/auth';
+import { lessonFileVisibleSql } from '@/lib/visibility';
 import { LocalStorageProvider, storage } from '@/lib/storage';
 
 /**
  * Local-storage streaming route. Only used when STORAGE_DRIVER=local —
- * GCS uses signed URLs directly. Auth-checks that the requested key
- * is owned by the current user via the `users/{userId}/...` prefix.
+ * GCS uses signed URLs directly. The requester must own the key path
+ * (`users/{userId}/...`) OR be able to see the file under the lesson-file
+ * visibility rules (shared + same target language) — matching the list reads.
  */
 export async function GET(
   _req: Request,
@@ -23,8 +28,19 @@ export async function GET(
     const session = await auth();
     const userId = (session?.user as { id?: string } | undefined)?.id;
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // Owner of the key path is always allowed. Otherwise allow only if this key
+    // is a lesson file the viewer may see (shared with them in their language) —
+    // so a shared consumer can preview/download/thumbnail it, but writes and
+    // private files stay protected.
     if (!key.startsWith(`users/${userId}/`)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      const [row] = await db
+        .select({ id: lessonFiles.id })
+        .from(lessonFiles)
+        .where(and(eq(lessonFiles.storageKey, key), lessonFileVisibleSql(userId)))
+        .limit(1);
+      if (!row) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
     }
   }
 

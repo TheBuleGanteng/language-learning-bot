@@ -75,6 +75,9 @@ interface SettingsState {
   aiSpendReminderUsd: number;
   aiSpendHardStopUsd: number;
   keys: Record<Provider, KeyInfo | null>;
+  // Per-provider: the user has no personal key and falls back to a superuser
+  // global key. The global value is never sent — this is just a boolean.
+  usingGlobalKey?: Record<Provider, boolean>;
 }
 
 interface SpendSnapshot {
@@ -882,7 +885,11 @@ export default function SettingsPage() {
                   <div className="relative flex-1">
                     <Input
                       type={revealed ? 'text' : 'password'}
-                      placeholder="Paste API key"
+                      placeholder={
+                        !info && state.usingGlobalKey?.[provider]
+                          ? t('usingGlobalKey')
+                          : 'Paste API key'
+                      }
                       value={keyDrafts[provider]}
                       onChange={(e) =>
                         setKeyDrafts({ ...keyDrafts, [provider]: e.target.value })

@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
-import { eq } from 'drizzle-orm';
-import { db } from '@/db';
-import { userSettings } from '@/db/schema';
 import { apiUser } from '@/lib/api-auth';
+import { providerKeyStatus } from '@/lib/api-keys';
 import { checkSpendLimits } from '@/lib/cost-tracking';
 
 /**
@@ -15,12 +13,9 @@ export async function GET() {
   const user = await apiUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const [s] = await db
-    .select({ openai: userSettings.openaiApiKeyEncrypted })
-    .from(userSettings)
-    .where(eq(userSettings.userId, user.id))
-    .limit(1);
-  const hasKey = !!s?.openai;
+  // A usable OpenAI key = personal OR an eligible global fallback.
+  const status = await providerKeyStatus(user.id, 'openai');
+  const hasKey = status.hasPersonalKey || status.usingGlobalKey;
 
   const limits = await checkSpendLimits(user.id);
 

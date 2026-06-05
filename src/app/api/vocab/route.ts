@@ -82,13 +82,20 @@ export async function GET(req: Request) {
     );
   }
 
-  // EXISTS subqueries — IDs already validated to be UUIDs above, so safe to
-  // interpolate via sql.raw.
+  // EXISTS subqueries. The ids are already UUID-validated above; we also
+  // PARAMETERIZE each value (sql.join of bound params) instead of string
+  // interpolation, so this is safe by construction, not just by upstream filter.
   const lessonClause = lessonIds.length
-    ? sql`EXISTS (SELECT 1 FROM vocab_lessons vl WHERE vl.vocab_item_id = ${vocabItems.id} AND vl.lesson_id IN ${sql.raw(`(${lessonIds.map((id) => `'${id}'`).join(',')})`)})`
+    ? sql`EXISTS (SELECT 1 FROM vocab_lessons vl WHERE vl.vocab_item_id = ${vocabItems.id} AND vl.lesson_id IN (${sql.join(
+        lessonIds.map((id) => sql`${id}`),
+        sql`, `,
+      )}))`
     : null;
   const tagClause = tagIds.length
-    ? sql`EXISTS (SELECT 1 FROM vocab_tags vt WHERE vt.vocab_item_id = ${vocabItems.id} AND vt.tag_id IN ${sql.raw(`(${tagIds.map((id) => `'${id}'`).join(',')})`)})`
+    ? sql`EXISTS (SELECT 1 FROM vocab_tags vt WHERE vt.vocab_item_id = ${vocabItems.id} AND vt.tag_id IN (${sql.join(
+        tagIds.map((id) => sql`${id}`),
+        sql`, `,
+      )}))`
     : null;
 
   if (lessonClause && tagClause) {

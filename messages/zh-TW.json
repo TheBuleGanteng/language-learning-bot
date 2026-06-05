@@ -124,7 +124,8 @@
       "captions": "字幕",
       "imageGen": "圖片生成",
       "photoAnalysis": "照片分析"
-    }
+    },
+    "usingGlobalKey": "正在使用全域 API 金鑰。在此輸入個人 API 金鑰。"
   },
   "decks": {
     "title": "字卡",
@@ -522,5 +523,18 @@
     "close": "關閉",
     "deleteTitle": "刪除這張照片？",
     "deleteDesc": "這將永久刪除此照片，且無法復原。"
+  },
+  "globalApiKeys": {
+    "heading": "全域 API 金鑰",
+    "desc": "為從未新增自己金鑰的使用者設定各供應商的後備金鑰。加密儲存；不會向非超級使用者顯示。",
+    "placeholder": "貼上 API 金鑰",
+    "set": "已設定",
+    "notSet": "未設定",
+    "reveal": "顯示",
+    "hide": "隱藏",
+    "saved": "全域金鑰已儲存",
+    "removed": "全域金鑰已移除",
+    "saveFailed": "無法儲存全域金鑰",
+    "revealFailed": "無法顯示金鑰"
   }
 }

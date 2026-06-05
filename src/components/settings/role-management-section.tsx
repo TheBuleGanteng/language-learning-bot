@@ -31,6 +31,7 @@ import { UserPlus, ChevronDown } from 'lucide-react';
 import { AddUserDialog } from './add-user-dialog';
 import { RemoveUserDialog } from './remove-user-dialog';
 import { UpdateRoleDialog } from './update-role-dialog';
+import { GlobalApiKeysSection } from './global-api-keys-section';
 import { withBase } from '@/lib/base-path';
 
 type Role = 'regular' | 'admin' | 'superuser';
@@ -44,6 +45,7 @@ interface UserRow {
 
 export function RoleManagementSection() {
   const t = useTranslations('userManagement');
+  const tg = useTranslations('globalApiKeys');
   const [me, setMe] = useState<{ id: string; role: Role } | null>(null);
   const [q, setQ] = useState('');
   const [rows, setRows] = useState<UserRow[] | null>(null);
@@ -120,7 +122,9 @@ export function RoleManagementSection() {
         <CardTitle>{t('title')}</CardTitle>
         <CardDescription>{t('desc')}</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-6">
+        <section className="space-y-4">
+        <h3 className="text-sm font-medium">{t('users.heading')}</h3>
         <div className="flex flex-wrap items-center justify-between gap-2">
           <Input
             placeholder={t('search')}
@@ -209,6 +213,13 @@ export function RoleManagementSection() {
             </Table>
           </div>
         )}
+        </section>
+
+        {/* Subsection: Global API keys (superuser-only; the whole card is gated). */}
+        <section className="space-y-4 border-t pt-6">
+          <h3 className="text-sm font-medium">{tg('heading')}</h3>
+          <GlobalApiKeysSection />
+        </section>
       </CardContent>
 
       <AddUserDialog open={addOpen} onOpenChange={setAddOpen} onAdded={() => search(q.trim())} />

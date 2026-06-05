@@ -124,7 +124,8 @@
       "captions": "Teks",
       "imageGen": "Pembuatan gambar",
       "photoAnalysis": "Analisis foto"
-    }
+    },
+    "usingGlobalKey": "Menggunakan kunci API global. Masukkan kunci API pribadi di sini."
   },
   "decks": {
     "title": "Kartu hafalan",
@@ -522,5 +523,18 @@
     "close": "Tutup",
     "deleteTitle": "Hapus foto ini?",
     "deleteDesc": "Ini akan menghapus foto ini secara permanen. Tindakan ini tidak dapat dibatalkan."
+  },
+  "globalApiKeys": {
+    "heading": "Kunci API global",
+    "desc": "Tetapkan kunci cadangan per penyedia untuk pengguna yang belum pernah menambahkan kunci sendiri. Disimpan terenkripsi; tidak pernah ditampilkan ke non-superuser.",
+    "placeholder": "Tempel kunci API",
+    "set": "Disetel",
+    "notSet": "Belum disetel",
+    "reveal": "Tampilkan",
+    "hide": "Sembunyikan",
+    "saved": "Kunci global disimpan",
+    "removed": "Kunci global dihapus",
+    "saveFailed": "Tidak dapat menyimpan kunci global",
+    "revealFailed": "Tidak dapat menampilkan kunci"
   }
 }

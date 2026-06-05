@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { eq } from 'drizzle-orm';
 import { db } from '@/db';
-import { userSettings, users } from '@/db/schema';
+import { userSettings, users, globalApiKeys } from '@/db/schema';
 import { auth } from '@/lib/auth';
 import {
   PROVIDERS,
@@ -39,6 +39,13 @@ const PROVIDER_KEY_COL = {
   anthropic: 'anthropicApiKeyEncrypted',
   openai: 'openaiApiKeyEncrypted',
   google: 'geminiApiKeyEncrypted',
+} as const satisfies Record<Provider, keyof typeof userSettings.$inferSelect>;
+
+// "Ever set a personal key" flag column per provider (drives global eligibility).
+const PROVIDER_EVER_SET_COL = {
+  anthropic: 'anthropicKeyEverSet',
+  openai: 'openaiKeyEverSet',
+  google: 'googleKeyEverSet',
 } as const satisfies Record<Provider, keyof typeof userSettings.$inferSelect>;
 
 async function getOrCreateSettings(userId: string) {
@@ -82,6 +89,19 @@ export async function GET() {
     .where(eq(users.id, userId))
     .limit(1);
 
+  // A user falls back to the global key for a provider iff: no personal key now,
+  // never set one, AND a global key exists. The global value is NEVER returned.
+  const globalRows = await db
+    .select({ provider: globalApiKeys.provider })
+    .from(globalApiKeys);
+  const globalSet = new Set(globalRows.map((r) => r.provider));
+  const usingGlobalKey = {
+    anthropic:
+      !s.anthropicApiKeyEncrypted && !s.anthropicKeyEverSet && globalSet.has('anthropic'),
+    openai: !s.openaiApiKeyEncrypted && !s.openaiKeyEverSet && globalSet.has('openai'),
+    google: !s.geminiApiKeyEncrypted && !s.googleKeyEverSet && globalSet.has('google'),
+  };
+
   return NextResponse.json({
     llmProvider: s.llmProvider,
     llmModel: s.llmModel,
@@ -108,6 +128,9 @@ export async function GET() {
       openai: formatKey(s.openaiApiKeyEncrypted, true),
       google: formatKey(s.geminiApiKeyEncrypted, true),
     },
+    // Per-provider boolean — when true, the user's personal field shows the
+    // "Using global API key" placeholder. Never includes the global value.
+    usingGlobalKey,
   });
 }
 
@@ -307,6 +330,12 @@ export async function PATCH(req: Request) {
     const { provider, value } = parsed.data.apiKey;
     const col = PROVIDER_KEY_COL[provider];
     updates[col] = value ? encryptString(value) : null;
+    // Saving a personal key marks the provider "ever set" permanently — so a
+    // user who later DELETES it does NOT fall back to the global key. Removal
+    // (value=null) deliberately leaves the flag untouched.
+    if (value) {
+      updates[PROVIDER_EVER_SET_COL[provider]] = true;
+    }
   }
 
   const userUpdates: Record<string, unknown> = {};

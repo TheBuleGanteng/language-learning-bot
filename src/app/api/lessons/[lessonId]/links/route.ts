@@ -79,7 +79,15 @@ export async function GET(
 }
 
 const createSchema = z.object({
-  url: z.string().url().max(2000),
+  // Require an http(s) scheme — zod's .url() alone still accepts javascript:/data:
+  // URLs, which would be an XSS vector once rendered into an <a href>.
+  url: z
+    .string()
+    .url()
+    .max(2000)
+    .refine((u) => /^https?:\/\//i.test(u.trim()), {
+      message: 'URL must start with http:// or https://',
+    }),
   title: z.string().max(300).optional(),
   notes: z.string().max(2000).optional(),
 });

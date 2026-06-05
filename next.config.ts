@@ -19,6 +19,22 @@ const nextConfig: NextConfig = {
   experimental: {
     serverActions: { bodySizeLimit: '10mb' },
   },
+  // Baseline security headers (the safe subset). CSP + HSTS are intentionally
+  // left to the edge/proxy — see SECURITY_AUDIT.md — to avoid breaking the app's
+  // inline/runtime scripts and because HSTS must only be sent over verified TLS.
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          { key: 'X-DNS-Prefetch-Control', value: 'off' },
+        ],
+      },
+    ];
+  },
 };
 
 // next-pwa relies on webpack. In dev we want Turbopack (Next 16 default), so

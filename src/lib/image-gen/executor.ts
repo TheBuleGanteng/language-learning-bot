@@ -8,7 +8,7 @@ import {
   vocabItems,
 } from '@/db/schema';
 import { storage } from '@/lib/storage';
-import { decryptString } from '@/lib/crypto';
+import { resolveApiKey } from '@/lib/api-keys';
 import { languageName } from '@/lib/languages';
 import {
   HardStopExceededError,
@@ -88,9 +88,6 @@ async function loadUserConfig(userId: string): Promise<UserImageConfig | null> {
       provider: userSettings.imageProvider,
       model: userSettings.imageModel,
       hardStop: userSettings.aiSpendHardStopUsd,
-      anth: userSettings.anthropicApiKeyEncrypted,
-      openai: userSettings.openaiApiKeyEncrypted,
-      gemini: userSettings.geminiApiKeyEncrypted,
     })
     .from(userSettings)
     .where(eq(userSettings.userId, userId))
@@ -99,14 +96,10 @@ async function loadUserConfig(userId: string): Promise<UserImageConfig | null> {
 
   if (!isImageProvider(s.provider)) return null;
   const provider = s.provider;
-  const encrypted = provider === 'google' ? s.gemini : s.openai;
-  if (!encrypted) return null;
-  let apiKey: string;
-  try {
-    apiKey = decryptString(encrypted);
-  } catch {
-    return null;
-  }
+  // Resolve the provider key: personal → eligible global → none.
+  const resolved = await resolveApiKey(userId, provider);
+  if (!resolved.key) return null;
+  const apiKey = resolved.key;
 
   const [u] = await db
     .select({ target: users.targetLanguage })

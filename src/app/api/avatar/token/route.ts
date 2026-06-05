@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm';
 import { db } from '@/db';
 import { userSettings } from '@/db/schema';
 import { auth } from '@/lib/auth';
-import { decryptString } from '@/lib/crypto';
+import { resolveApiKey } from '@/lib/api-keys';
 import { checkSpendLimits } from '@/lib/cost-tracking';
 import { isVoiceModel, defaultVoiceModel } from '@/lib/voice-models';
 
@@ -25,33 +25,26 @@ export async function POST() {
     return NextResponse.json({ error: 'hard_stop' }, { status: 402 });
   }
 
-  // Get the user's OpenAI key + their selected voice model.
+  // Resolve the OpenAI key: personal → eligible global → none. Also read the
+  // selected voice model.
   const [settings] = await db
-    .select({
-      openaiKey: userSettings.openaiApiKeyEncrypted,
-      voiceModel: userSettings.voiceModel,
-    })
+    .select({ voiceModel: userSettings.voiceModel })
     .from(userSettings)
     .where(eq(userSettings.userId, userId))
     .limit(1);
 
-  if (!settings?.openaiKey) {
+  const resolved = await resolveApiKey(userId, 'openai');
+  if (!resolved.key) {
     return NextResponse.json({ error: 'no_openai_key' }, { status: 402 });
   }
+  const apiKey = resolved.key;
 
   // Apply the user's choice; fall back to the default if unset/invalid. The
   // model is bound to the ephemeral token, so this is the only place to set it.
   const model =
-    settings.voiceModel && isVoiceModel(settings.voiceModel)
+    settings?.voiceModel && isVoiceModel(settings.voiceModel)
       ? settings.voiceModel
       : defaultVoiceModel();
-
-  let apiKey: string;
-  try {
-    apiKey = decryptString(settings.openaiKey);
-  } catch {
-    return NextResponse.json({ error: 'key_decrypt_failed' }, { status: 500 });
-  }
 
   // Exchange for an ephemeral token server-side.
   try {

@@ -141,6 +141,13 @@ export const userSettings = pgTable('user_settings', {
   anthropicApiKeyEncrypted: text('anthropic_api_key_encrypted'),
   openaiApiKeyEncrypted: text('openai_api_key_encrypted'),
   geminiApiKeyEncrypted: text('gemini_api_key_encrypted'),
+  // "Has this user ever set a personal key for this provider?" — drives global-
+  // key eligibility. Set true permanently when a personal key is saved; deleting
+  // a personal key does NOT clear it, so set-then-deleted users don't fall back
+  // to the global key. (`google` flag tracks the Gemini column.)
+  anthropicKeyEverSet: boolean('anthropic_key_ever_set').notNull().default(false),
+  openaiKeyEverSet: boolean('openai_key_ever_set').notNull().default(false),
+  googleKeyEverSet: boolean('google_key_ever_set').notNull().default(false),
   imageProvider: text('image_provider').notNull().default('google'),
   imageModel: text('image_model').notNull().default('imagen-4-fast'),
   extractionProvider: text('extraction_provider').notNull().default('anthropic'),
@@ -182,6 +189,27 @@ export const userSettings = pgTable('user_settings', {
   imageSpendLastReminderAt: text('image_spend_last_reminder_at'),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
+
+// =============================================================================
+// global_api_keys — one superuser-managed encrypted key per provider, used as a
+// fallback for eligible users (never exposed to non-superusers). Encrypted with
+// APP_ENCRYPTION_KEY exactly like personal keys.
+// =============================================================================
+
+export const globalApiKeys = pgTable(
+  'global_api_keys',
+  {
+    // provider id — one row per provider (the PK enforces uniqueness).
+    provider: text('provider').primaryKey(),
+    encryptedKey: text('encrypted_key').notNull(),
+    createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    check('global_api_keys_provider_check', sql`${t.provider} IN ('anthropic', 'openai', 'google')`),
+  ],
+);
 
 // =============================================================================
 // lessons

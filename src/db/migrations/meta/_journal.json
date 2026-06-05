@@ -155,6 +155,13 @@
       "when": 1780643906270,
       "tag": "0021_glamorous_dagger",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1780646750675,
+      "tag": "0022_long_madame_masque",
+      "breakpoints": true
     }
   ]
 }

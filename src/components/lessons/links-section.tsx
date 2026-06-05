@@ -12,6 +12,12 @@ import { RenderedHtml } from '@/components/rendered-html';
 import { stripHtml } from '@/lib/strip-html';
 import { withBase } from '@/lib/base-path';
 
+/** Defense in depth: only render http(s) links as a clickable href (the API
+ * also rejects non-http(s) URLs on create), neutralizing javascript:/data: XSS. */
+function safeHref(url: string): string {
+  return /^https?:\/\//i.test(url.trim()) ? url : '#';
+}
+
 interface Props {
   lessonId: string;
   onCountChange: (n: number) => void;
@@ -237,7 +243,7 @@ export function LinksSection({ lessonId, onCountChange, canEdit = true }: Props)
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <a
-                      href={l.url}
+                      href={safeHref(l.url)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-sm font-medium hover:underline"

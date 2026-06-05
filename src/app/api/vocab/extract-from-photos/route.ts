@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm';
 import { db } from '@/db';
 import { userSettings } from '@/db/schema';
 import { auth } from '@/lib/auth';
-import { decryptString } from '@/lib/crypto';
+import { resolveApiKey } from '@/lib/api-keys';
 import {
   isExtractionProvider,
   isValidExtractionModel,
@@ -67,9 +67,6 @@ export async function POST(req: Request) {
     .select({
       provider: userSettings.extractionProvider,
       model: userSettings.extractionModel,
-      anth: userSettings.anthropicApiKeyEncrypted,
-      openai: userSettings.openaiApiKeyEncrypted,
-      gemini: userSettings.geminiApiKeyEncrypted,
     })
     .from(userSettings)
     .where(eq(userSettings.userId, userId))
@@ -81,23 +78,15 @@ export async function POST(req: Request) {
     );
   }
 
-  const encrypted =
-    s.provider === 'anthropic' ? s.anth : s.provider === 'openai' ? s.openai : s.gemini;
-  if (!encrypted) {
+  // Resolve the provider key: personal → eligible global → none.
+  const resolved = await resolveApiKey(userId, s.provider);
+  if (!resolved.key) {
     return NextResponse.json(
       { error: `No API key for ${s.provider}. Add one in Settings to use this model.` },
       { status: 400 },
     );
   }
-  let apiKey: string;
-  try {
-    apiKey = decryptString(encrypted);
-  } catch {
-    return NextResponse.json(
-      { error: 'Stored API key could not be decrypted' },
-      { status: 500 },
-    );
-  }
+  const apiKey = resolved.key;
 
   // Convert each image to base64
   const imageBase64s: string[] = [];

@@ -5,6 +5,7 @@ import { and, eq, gt, isNull } from 'drizzle-orm';
 import { db } from '@/db';
 import { users, verificationTokens } from '@/db/schema';
 import { sha256Hex } from '@/lib/crypto';
+import { checkRateLimit, ipFromRequest } from '@/lib/rate-limit';
 
 const schema = z.object({
   token: z.string().min(8),
@@ -17,6 +18,18 @@ const schema = z.object({
 });
 
 export async function POST(req: Request) {
+  // Throttle token-guessing / submission floods (the token itself is 256-bit,
+  // so this is defense in depth alongside single-use + expiry).
+  const rl = checkRateLimit({
+    bucket: 'reset-password',
+    ip: ipFromRequest(req),
+    limit: 10,
+    windowMs: 15 * 60 * 1000,
+  });
+  if (!rl.allowed) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+  }
+
   let body: unknown;
   try {
     body = await req.json();
