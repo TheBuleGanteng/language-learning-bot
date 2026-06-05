@@ -106,6 +106,7 @@ DEPLOY_CLAUDE.md
 CLAUDE.md
 DEPLOYMENT.md
 ERROR_REPORT.md
+SECURITY_AUDIT.md
 
 # Local build log artifact
 build.log

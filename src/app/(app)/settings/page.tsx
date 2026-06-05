@@ -417,7 +417,11 @@ export default function SettingsPage() {
 
   if (!state) return <p className="text-sm text-muted-foreground">Loading settings…</p>;
 
-  const imageProviderHasKey = !!state.keys[IMAGE_PROVIDER_KEY[state.imageProvider]];
+  // "Has a usable key" = a personal key OR a covering global key (the server
+  // resolves personal → global), so a global-key user doesn't see the warning.
+  const imageProviderKey = IMAGE_PROVIDER_KEY[state.imageProvider];
+  const imageProviderHasKey =
+    !!state.keys[imageProviderKey] || !!state.usingGlobalKey?.[imageProviderKey];
   const imageCostPerImage = imageModelCost(state.imageProvider, state.imageModel);
   const voiceCostPerMin = voiceModelCostPerMinute(state.voiceModel);
   const romanizationCostPer1k = romanizationModelCostPer1kChars(state.romanizationModel);
@@ -743,7 +747,8 @@ export default function SettingsPage() {
                   ))}
                 </SelectContent>
               </Select>
-              {!state.keys[EXTRACTION_PROVIDER_KEY[state.extractionProvider]] && (
+              {!state.keys[EXTRACTION_PROVIDER_KEY[state.extractionProvider]] &&
+                !state.usingGlobalKey?.[EXTRACTION_PROVIDER_KEY[state.extractionProvider]] && (
                 <p className="text-xs text-amber-700">
                   No API key for {EXTRACTION_PROVIDER_LABELS[state.extractionProvider]}. Add
                   one below.
