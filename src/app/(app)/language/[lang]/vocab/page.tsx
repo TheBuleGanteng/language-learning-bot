@@ -877,6 +877,11 @@ function VocabInner() {
           deckBuilderMode={deckBuilderMode}
           onGenerateConfirm={confirmBulkGenerate}
           onShareDone={refreshItems}
+          showEditTagsLessons
+          selectedItems={items
+            .filter((i) => selectedIds.has(i.id))
+            .map((i) => ({ id: i.id, tags: i.tags, lessons: i.lessons }))}
+          onBulkEdited={refreshItems}
         />
 
         {/* Mobile (< md): stacked card per item — no horizontal scroll. */}

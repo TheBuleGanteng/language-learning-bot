@@ -82,6 +82,10 @@ interface Props {
   showPageSize?: boolean;
   /** Enable the bulk-select toolbar + per-row checkboxes (§4). */
   enableBulkSelect?: boolean;
+  /** Show the "Edit tags & lessons" bulk action in the selection toolbar. */
+  showEditTagsLessons?: boolean;
+  /** Called after a bulk edit mutates items, so the host can refresh (count etc.). */
+  onMutated?: () => void;
 }
 
 interface MeShape {
@@ -98,6 +102,8 @@ export function VocabTable({
   showSearch = true,
   showPageSize = true,
   enableBulkSelect = false,
+  showEditTagsLessons = false,
+  onMutated,
 }: Props) {
   const params = useParams<{ lang?: string }>();
   const lang = params.lang ?? 'th';
@@ -237,6 +243,15 @@ export function VocabTable({
     [items],
   );
 
+  // Selected items' tags/lessons feed the bulk-edit "Remove" options.
+  const selectedItems = useMemo(
+    () =>
+      items
+        .filter((i) => selectedIds.has(i.id))
+        .map((i) => ({ id: i.id, tags: i.tags, lessons: i.lessons })),
+    [items, selectedIds],
+  );
+
   function toggleSelect(id: string, checked: boolean) {
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -298,6 +313,12 @@ export function VocabTable({
           userId={me.id}
           userDisplayName={me.displayName}
           lang={lang}
+          showEditTagsLessons={showEditTagsLessons}
+          selectedItems={selectedItems}
+          onBulkEdited={() => {
+            setSelectedIds(new Set());
+            onMutated?.();
+          }}
         />
       )}
 

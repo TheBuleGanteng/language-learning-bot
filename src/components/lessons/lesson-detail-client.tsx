@@ -410,6 +410,8 @@ export function LessonDetailClient({ lang, lesson, isCreator, initialVocabCount 
                 showSearch
                 showPageSize
                 enableBulkSelect
+                showEditTagsLessons
+                onMutated={refreshVocab}
               />
             </div>
           </AccordionContent>

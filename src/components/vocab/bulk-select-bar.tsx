@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { BulkImageDialog } from '@/components/vocab/bulk-image-dialog';
 import { AddToDeckDialog } from '@/components/vocab/add-to-deck-dialog';
+import { BulkEditDialog, type BulkEditItem } from '@/components/vocab/bulk-edit-dialog';
 import { DisplayNameGate } from '@/components/display-name-gate';
 import { canShare, type UserRole } from '@/lib/roles';
 import { withBase } from '@/lib/base-path';
@@ -56,6 +57,12 @@ interface BulkSelectBarProps {
   onGenerateConfirm?: (vocabIds: string[]) => Promise<void>;
   /** Called after a successful share/unshare so the parent can refresh. */
   onShareDone?: () => void;
+  /** Show the "Edit tags & lessons" bulk action (desktop button + mobile sticky bar). */
+  showEditTagsLessons?: boolean;
+  /** Selected items' tags/lessons — needed to build the bulk-edit "Remove" options. */
+  selectedItems?: BulkEditItem[];
+  /** Called after a successful bulk tag/lesson edit so the parent can refresh. */
+  onBulkEdited?: () => void;
 }
 
 export function BulkSelectBar({
@@ -73,12 +80,16 @@ export function BulkSelectBar({
   deckBuilderMode = false,
   onGenerateConfirm,
   onShareDone,
+  showEditTagsLessons = false,
+  selectedItems = [],
+  onBulkEdited,
 }: BulkSelectBarProps) {
   const t = useTranslations('bulkSelect');
   const tc = useTranslations('common');
   const [genOpen, setGenOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [deckOpen, setDeckOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const [shareVisibility, setShareVisibility] = useState<'shared' | 'private'>('shared');
   const [shareBusy, setShareBusy] = useState(false);
 
@@ -185,6 +196,16 @@ export function BulkSelectBar({
             </Button>
           ) : (
             <>
+              {showEditTagsLessons && (
+                <Button
+                  size="xs"
+                  variant="outline"
+                  className="hidden md:inline-flex"
+                  onClick={() => setEditOpen(true)}
+                >
+                  Edit tags &amp; lessons
+                </Button>
+              )}
               {showGenerateImages && (
                 <Button size="xs" onClick={() => setGenOpen(true)}>
                   {t('generateImages')}
@@ -259,6 +280,31 @@ export function BulkSelectBar({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Mobile (< md): a sticky bottom bar keeps "Edit tags & lessons" reachable
+          on long lists where the top bar has scrolled away. Desktop uses the
+          inline button above instead. */}
+      {showEditTagsLessons && !deckBuilderMode && hasSelection && (
+        <div className="fixed inset-x-0 bottom-0 z-40 flex items-center gap-3 border-t bg-background px-4 py-3 shadow-[0_-2px_8px_rgba(0,0,0,0.06)] md:hidden">
+          <span className="text-sm font-medium">{t('selected', { count: selectedCount })}</span>
+          <Button size="sm" className="ml-auto" onClick={() => setEditOpen(true)}>
+            Edit tags &amp; lessons
+          </Button>
+        </div>
+      )}
+
+      {showEditTagsLessons && (
+        <BulkEditDialog
+          open={editOpen}
+          onOpenChange={setEditOpen}
+          lang={lang}
+          selectedItems={selectedItems}
+          onApplied={() => {
+            onBulkEdited?.();
+            onClearSelection();
+          }}
+        />
+      )}
     </div>
   );
 }
