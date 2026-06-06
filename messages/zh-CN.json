@@ -274,7 +274,7 @@
     "exportCsv": "Export CSV",
     "exportCsvHint": "Select one or more vocabulary items to export.",
     "filtersHeading": "Filters",
-    "clearAll": "Clear all"
+    "clearAll": "Clear all filters"
   },
   "extraction": {
     "title": "从照片提取词汇",

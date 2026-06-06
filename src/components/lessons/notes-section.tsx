@@ -2,8 +2,15 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { FileUploader } from './file-uploader';
 import { ConfirmDeleteDialog } from './confirm-delete-dialog';
+import { PdfThumbnail } from './pdf-thumbnail';
 import { withBase } from '@/lib/base-path';
 
 interface Props {
@@ -40,6 +47,9 @@ function formatDate(iso: string): string {
 export function NotesSection({ lessonId, onCountChange, canEdit = true }: Props) {
   const [files, setFiles] = useState<FileRow[]>([]);
   const [pending, setPending] = useState<FileRow | null>(null);
+  // The PDF currently open in the full scrollable viewer (the existing iframe,
+  // now behind a click instead of embedded full-height per file).
+  const [viewing, setViewing] = useState<FileRow | null>(null);
 
   const load = useCallback(async () => {
     const res = await fetch(withBase(`/api/lessons/${lessonId}/files`));
@@ -84,17 +94,32 @@ export function NotesSection({ lessonId, onCountChange, canEdit = true }: Props)
           No notes yet. Upload your first PDF.
         </p>
       ) : (
-        <ul className="space-y-6">
+        <ul className="space-y-4">
           {files.map((f) => (
-            <li key={f.id} className="space-y-2">
-              <div className="flex items-center justify-between gap-2 flex-wrap">
-                <div>
-                  <p className="text-sm font-medium">{f.filename}</p>
+            <li key={f.id} className="flex items-start gap-4">
+              {/* First-page thumbnail (pdf.js, lazy). Click → full viewer. */}
+              <PdfThumbnail
+                url={f.url}
+                filename={f.filename}
+                onClick={() => setViewing(f)}
+              />
+              <div className="flex min-w-0 flex-1 flex-col gap-2">
+                <div className="min-w-0">
+                  <button
+                    type="button"
+                    onClick={() => setViewing(f)}
+                    className="text-left text-sm font-medium break-words hover:underline"
+                  >
+                    {f.filename}
+                  </button>
                   <p className="text-xs text-muted-foreground">
                     {formatBytes(f.sizeBytes)} · {formatDate(f.createdAt)}
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button size="xs" variant="outline" onClick={() => setViewing(f)}>
+                    View
+                  </Button>
                   <Button asChild size="xs" variant="outline">
                     <a href={f.url} download={f.filename}>
                       Download
@@ -112,15 +137,27 @@ export function NotesSection({ lessonId, onCountChange, canEdit = true }: Props)
                   )}
                 </div>
               </div>
-              <iframe
-                src={f.url}
-                title={f.filename}
-                className="w-full h-[600px] border rounded-md"
-              />
             </li>
           ))}
         </ul>
       )}
+
+      {/* Full scrollable viewer — the existing iframe approach, opened on demand
+          instead of embedded full-height under every file. */}
+      <Dialog open={!!viewing} onOpenChange={(o) => !o && setViewing(null)}>
+        <DialogContent className="flex h-[90svh] w-[95vw] max-w-5xl flex-col overflow-hidden sm:max-w-5xl">
+          <DialogHeader>
+            <DialogTitle className="truncate pr-8">{viewing?.filename}</DialogTitle>
+          </DialogHeader>
+          {viewing && (
+            <iframe
+              src={viewing.url}
+              title={viewing.filename}
+              className="w-full flex-1 rounded-md border min-h-0"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
 
       <ConfirmDeleteDialog
         open={!!pending}

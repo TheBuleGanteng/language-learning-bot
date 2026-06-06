@@ -14,20 +14,40 @@ export interface VocabCsvRow {
   imageUrl: string | null;
 }
 
+/** The exportable CSV columns, in fixed output order. */
+export type VocabCsvField = 'targetText' | 'nativeText' | 'tags' | 'lessons' | 'imageUrl';
+
 /**
- * Serialize rows to CSV with the five export columns. Papa.unparse handles all
- * quoting/escaping (commas, quotes, newlines).
+ * Column definitions in output order: the field key, its CSV header, and how to
+ * render a row's value for that column. Drives both the field-picker popup
+ * (item 2) and {@link buildVocabCsv}, so the two never drift apart.
  */
-export function buildVocabCsv(rows: VocabCsvRow[]): string {
+export const VOCAB_CSV_FIELDS: {
+  key: VocabCsvField;
+  header: string;
+  value: (r: VocabCsvRow) => string;
+}[] = [
+  { key: 'targetText', header: 'Thai', value: (r) => r.targetText },
+  { key: 'nativeText', header: 'English', value: (r) => r.nativeText },
+  { key: 'tags', header: 'Tags', value: (r) => r.tags.join(', ') },
+  { key: 'lessons', header: 'Lessons', value: (r) => r.lessons.join(', ') },
+  { key: 'imageUrl', header: 'Image URL', value: (r) => r.imageUrl ?? '' },
+];
+
+/**
+ * Serialize rows to CSV. When `fields` is given, only those columns are
+ * emitted (in the canonical {@link VOCAB_CSV_FIELDS} order, regardless of the
+ * order they were ticked); omitting it exports all five. Papa.unparse handles
+ * all quoting/escaping (commas, quotes, newlines).
+ */
+export function buildVocabCsv(rows: VocabCsvRow[], fields?: VocabCsvField[]): string {
+  const cols =
+    fields && fields.length > 0
+      ? VOCAB_CSV_FIELDS.filter((c) => fields.includes(c.key))
+      : VOCAB_CSV_FIELDS;
   return Papa.unparse({
-    fields: ['Thai', 'English', 'Tags', 'Lessons', 'Image URL'],
-    data: rows.map((r) => [
-      r.targetText,
-      r.nativeText,
-      r.tags.join(', '),
-      r.lessons.join(', '),
-      r.imageUrl ?? '',
-    ]),
+    fields: cols.map((c) => c.header),
+    data: rows.map((r) => cols.map((c) => c.value(r))),
   });
 }
 

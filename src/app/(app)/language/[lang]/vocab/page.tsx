@@ -8,6 +8,7 @@ import {
   ChevronDown,
   ChevronsUpDown,
   ChevronUp,
+  Eraser,
   ImageOff,
   Loader2,
 } from 'lucide-react';
@@ -17,7 +18,8 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ImagePreviewDialog } from '@/components/vocab/image-preview-dialog';
 import { ExtractionFlow } from '@/components/extraction/extraction-flow';
-import { buildVocabCsv, downloadCsv, vocabCsvFilename } from '@/lib/csv-export';
+import { buildVocabCsv, downloadCsv, vocabCsvFilename, type VocabCsvField } from '@/lib/csv-export';
+import { CsvExportDialog } from '@/components/vocab/csv-export-dialog';
 import { NewLessonDialog } from '@/components/new-lesson-dialog';
 import { Camera, Plus } from 'lucide-react';
 import {
@@ -164,8 +166,11 @@ function VocabInner() {
     if (p.get('addVocab') === 'photo') setShowExtraction(true);
   }, []);
 
-  // Item 9: client-side CSV export of the currently-selected vocab rows.
-  function exportSelectedCsv() {
+  const [csvDialogOpen, setCsvDialogOpen] = useState(false);
+
+  // Item 9 + item 2: client-side CSV export of the currently-selected vocab
+  // rows, limited to the columns the user ticked in the field-picker popup.
+  function exportSelectedCsv(fields: VocabCsvField[]) {
     const selected = items.filter((i) => selectedIds.has(i.id));
     if (selected.length === 0) return;
     const csv = buildVocabCsv(
@@ -176,6 +181,7 @@ function VocabInner() {
         lessons: i.lessons.map((l) => l.name),
         imageUrl: i.imageUrl ?? null,
       })),
+      fields,
     );
     downloadCsv(vocabCsvFilename(), csv);
   }
@@ -392,8 +398,20 @@ function VocabInner() {
   function setMode(m: 'and' | 'or') {
     updateParams((p) => p.set('mode', m));
   }
+  // Reset every grouped filter (Lessons / Themes / Created-by / Image-status /
+  // All-Any) to its default and zero the active-filter count (item 3). Preserve
+  // everything that isn't a filter — the search term, sort, page size, and the
+  // deck-builder mode flag (which is also carried in `mode`) — so clearing
+  // filters inside deck builder doesn't kick the user out of it.
   function clearFilters() {
-    router.push(vocabPath(lang), { scroll: false });
+    const p = new URLSearchParams(search.toString());
+    p.delete('lesson');
+    p.delete('tag');
+    p.delete('createdBy');
+    p.delete('imageStatus');
+    if (p.get('mode') !== 'deck-builder') p.delete('mode');
+    const qs = p.toString();
+    router.push(`${vocabPath(lang)}${qs ? `?${qs}` : ''}`, { scroll: false });
   }
   function setPageSize(ps: PageSizeOption) {
     updateParams((p) => {
@@ -637,7 +655,7 @@ function VocabInner() {
                   size="sm"
                   variant="outline"
                   disabled={selectedIds.size === 0}
-                  onClick={exportSelectedCsv}
+                  onClick={() => setCsvDialogOpen(true)}
                 >
                   {t('exportCsv')}
                   {selectedIds.size > 0 ? ` (${selectedIds.size})` : ''}
@@ -697,13 +715,16 @@ function VocabInner() {
                 </span>
               </AccordionTrigger>
               {activeFilterCount > 0 && (
-                <button
+                <Button
                   type="button"
+                  size="xs"
+                  variant="outline"
                   onClick={clearFilters}
-                  className="mr-3 shrink-0 text-xs underline text-muted-foreground hover:text-foreground"
+                  className="mr-3 shrink-0 gap-1.5"
                 >
+                  <Eraser className="h-3.5 w-3.5" />
                   {t('clearAll')}
-                </button>
+                </Button>
               )}
             </div>
             <AccordionContent>
@@ -1135,6 +1156,13 @@ function VocabInner() {
         open={newLessonOpen}
         onOpenChange={setNewLessonOpen}
         lang={lang}
+      />
+
+      <CsvExportDialog
+        open={csvDialogOpen}
+        onOpenChange={setCsvDialogOpen}
+        count={selectedIds.size}
+        onDownload={exportSelectedCsv}
       />
       </div>
     </>

@@ -268,7 +268,102 @@ export function ExtractedVocabReview({
         </div>
       </div>
 
-      <div className="border rounded-md">
+      {/* Mobile (< md): one stacked card per extracted item — Tags/Lessons go
+          full-width and tappable, no horizontal scroll (item 4). Shares the same
+          row state + edit/confidence/pills helpers as the desktop table below. */}
+      <div className="space-y-3 md:hidden">
+        {rows.map((r) => (
+          <div
+            key={r.id}
+            className={cn(
+              'rounded-lg border bg-card p-3 space-y-3',
+              !r.selected && 'opacity-60',
+            )}
+          >
+            <div className="flex items-start gap-2">
+              <Checkbox
+                className="mt-1 shrink-0"
+                checked={r.selected}
+                onCheckedChange={(c) => updateRow(r.id, { selected: c === true })}
+                aria-label="Select row"
+              />
+              <div className="min-w-0 flex-1 space-y-1.5">
+                <div>
+                  <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                    Thai
+                  </div>
+                  <EditableCell
+                    value={r.targetText}
+                    edited={r.edited}
+                    editing={editing?.rowId === r.id && editing.col === 'target'}
+                    draft={draft}
+                    onStart={() => startEdit(r.id, 'target')}
+                    onChange={setDraft}
+                    onCommit={commitEdit}
+                    onCancel={cancelEdit}
+                    special
+                  />
+                </div>
+                <div>
+                  <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                    English
+                  </div>
+                  <EditableCell
+                    value={r.nativeText}
+                    edited={r.edited}
+                    editing={editing?.rowId === r.id && editing.col === 'native'}
+                    draft={draft}
+                    onStart={() => startEdit(r.id, 'native')}
+                    onChange={setDraft}
+                    onCommit={commitEdit}
+                    onCancel={cancelEdit}
+                  />
+                </div>
+              </div>
+              <div className="flex shrink-0 flex-col items-end gap-2">
+                <ConfidenceBadge conf={r.confidence} />
+                <Button
+                  size="icon-sm"
+                  variant="ghost"
+                  className="text-red-600 hover:bg-red-50"
+                  onClick={() => removeRow(r.id)}
+                  aria-label="Remove row"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <div className="space-y-1">
+                <Label className="text-xs">Tags</Label>
+                <RowPills
+                  options={allTags}
+                  selectedIds={r.tagIds}
+                  onChange={(ids) => updateRow(r.id, { tagIds: ids })}
+                  swatch={colorForTag}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Lessons</Label>
+                <RowPills
+                  options={allLessons}
+                  selectedIds={r.lessonIds}
+                  onChange={(ids) => updateRow(r.id, { lessonIds: ids })}
+                  swatch={colorForLesson}
+                />
+              </div>
+            </div>
+          </div>
+        ))}
+        {rows.length === 0 && (
+          <div className="rounded-md border bg-muted/30 p-8 text-center text-muted-foreground">
+            No vocabulary extracted.
+          </div>
+        )}
+      </div>
+
+      {/* Desktop (md+): the full table. */}
+      <div className="hidden md:block border rounded-md">
         {/* table-fixed + wrapping so the Tags/Lessons pickers fit the available
             width and wrap instead of forcing horizontal scroll (item 3). */}
         <Table className="w-full table-fixed">
@@ -366,12 +461,12 @@ export function ExtractedVocabReview({
         </Table>
       </div>
 
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <Button size="sm" variant="outline" onClick={addBlankRow}>
           <Plus className="mr-1 h-4 w-4" />
           Add row manually
         </Button>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {rows.some((r) => !r.selected) && (
             <Button
               size="sm"
