@@ -12,7 +12,7 @@ export default async function Home() {
   }
   return (
     <main className="flex-1 flex flex-col items-center justify-center p-8 text-center gap-6">
-      <h1 className="text-4xl font-bold tracking-tight">Language Learning Bot</h1>
+      <h1 className="text-4xl font-bold tracking-tight">Kaojai</h1>
       <p className="max-w-md text-muted-foreground">
         Study your own curated Thai vocab with spaced repetition and an AI tutor that knows what
         you already know.
