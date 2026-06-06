@@ -163,7 +163,7 @@ export function ExtractionFlow({
             <DialogHeader>
               <DialogTitle>Review extracted vocabulary</DialogTitle>
               <DialogDescription>
-                Edit any cells that need correcting, apply tags / lessons, then save.
+                Edit any cells that need correcting, apply tags / lessons, then save
               </DialogDescription>
             </DialogHeader>
             <ExtractedVocabReview
