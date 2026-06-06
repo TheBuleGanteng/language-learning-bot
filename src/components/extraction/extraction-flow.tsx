@@ -1,22 +1,19 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
 import { PhotoUploader } from './photo-uploader';
 import { ExtractedVocabReview } from './extracted-vocab-review';
 import type { ExtractedRow } from '@/lib/extraction';
-import { toast } from 'sonner';
 import { withBase } from '@/lib/base-path';
+import { toast } from 'sonner';
 
 interface Props {
   open: boolean;
@@ -28,9 +25,9 @@ interface Props {
 }
 
 /**
- * Two-phase modal: upload + optional crop, then review + commit. The two
- * phases swap in place; cancelling the review goes back to upload so the
- * user can re-extract with different cropping.
+ * Two-phase modal: capture/upload + optional crop staging (PhotoUploader),
+ * then review + commit. The two phases swap in place; cancelling the review
+ * goes back to the staging queue so the user can re-extract.
  */
 export function ExtractionFlow({
   open,
@@ -39,65 +36,49 @@ export function ExtractionFlow({
   onSaved,
 }: Props) {
   const router = useRouter();
-  const [extracting, setExtracting] = useState(false);
   const [rows, setRows] = useState<ExtractedRow[] | null>(null);
-  const [isNarrow, setIsNarrow] = useState(false);
+  const [busy, setBusy] = useState(false);
 
-  useEffect(() => {
-    function check() {
-      setIsNarrow(window.matchMedia('(max-width: 767px)').matches);
-    }
-    check();
-    window.addEventListener('resize', check);
-    return () => window.removeEventListener('resize', check);
-  }, []);
-
-  // Reset state every time the modal opens so a fresh session always starts
-  // on the upload step, not on stale review data from a previous attempt.
+  // Reset state every time the modal opens so a fresh session always starts on
+  // the staging step, not on stale review data from a previous attempt.
   useEffect(() => {
     if (open) {
-      setExtracting(false);
       setRows(null);
+      setBusy(false);
     }
   }, [open]);
 
-  async function onExtract(
-    photos: { blob: Blob; mimeType: string; filename: string }[],
-  ) {
-    setExtracting(true);
-    try {
-      const fd = new FormData();
-      for (const p of photos) {
-        fd.append(
-          'images',
-          new File([p.blob], p.filename, { type: p.mimeType }),
-        );
-      }
-      const res = await fetch(withBase('/api/vocab/extract-from-photos'), {
-        method: 'POST',
-        body: fd,
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        toast.error(data?.error ?? 'Extraction failed');
-        return;
-      }
-      const extracted = (data?.rows ?? []) as ExtractedRow[];
-      if (extracted.length === 0) {
-        toast.message('No vocabulary extracted from the photos.');
-      }
-      setRows(extracted);
-    } finally {
-      setExtracting(false);
+  /**
+   * Extract a single image through the existing extraction endpoint (one image
+   * per request). Throws on failure so the uploader can isolate that photo and
+   * keep processing the rest of the batch.
+   */
+  const extractImage = useCallback(async (blob: Blob): Promise<ExtractedRow[]> => {
+    const fd = new FormData();
+    fd.append('images', new File([blob], 'photo.jpg', { type: 'image/jpeg' }));
+    const res = await fetch(withBase('/api/vocab/extract-from-photos'), {
+      method: 'POST',
+      body: fd,
+    });
+    const data = (await res.json().catch(() => ({}))) as {
+      status?: string;
+      rows?: ExtractedRow[];
+      error?: string;
+    };
+    if (!res.ok || data.status !== 'success') {
+      throw new Error(data.error ?? 'Extraction failed');
     }
+    return data.rows ?? [];
+  }, []);
+
+  function onReview(extracted: ExtractedRow[]) {
+    setRows(extracted);
   }
 
   function onSaved_({ inserted, mergedExisting }: { inserted: number; mergedExisting: number }) {
     toast.success(
       `Saved ${inserted} new vocab item${inserted === 1 ? '' : 's'}${
-        mergedExisting > 0
-          ? ` (${mergedExisting} merged with existing)`
-          : ''
+        mergedExisting > 0 ? ` (${mergedExisting} merged with existing)` : ''
       }`,
     );
     onOpenChange(false);
@@ -107,37 +88,22 @@ export function ExtractionFlow({
   }
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !extracting && onOpenChange(o)}>
+    <Dialog open={open} onOpenChange={(o) => !busy && onOpenChange(o)}>
       <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
-        {isNarrow ? (
-          <>
-            <DialogHeader>
-              <DialogTitle>Photo extraction unavailable on mobile</DialogTitle>
-              <DialogDescription>
-                Photo extraction works best on a larger screen. Please use a tablet
-                or desktop browser to extract vocabulary from photos.
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-              <Button onClick={() => onOpenChange(false)}>Close</Button>
-            </DialogFooter>
-          </>
-        ) : rows === null ? (
+        {rows === null ? (
           <>
             <DialogHeader>
               <DialogTitle>Extract vocabulary from photos</DialogTitle>
               <DialogDescription>
-                Upload one or more photos of a vocabulary list. We&apos;ll extract the
-                Thai + English pairs for you to review.
+                Take or upload one or more photos of a vocabulary list. We&apos;ll
+                extract the Thai + English pairs for you to review.
               </DialogDescription>
             </DialogHeader>
-            {extracting && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground border rounded-md p-3 bg-muted/30">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Extracting — this may take 10–30 seconds…
-              </div>
-            )}
-            <PhotoUploader onExtract={onExtract} busy={extracting} />
+            <PhotoUploader
+              extractImage={extractImage}
+              onReview={onReview}
+              onBusyChange={setBusy}
+            />
           </>
         ) : (
           <>
