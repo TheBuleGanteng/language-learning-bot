@@ -16,6 +16,8 @@ import { NotesSection } from './notes-section';
 import { PhotosSection } from './photos-section';
 import { AudioSection } from './audio-section';
 import { LinksSection } from './links-section';
+import { LinkCollectionSection } from './link-collection-section';
+import { InfoHint } from '@/components/info-hint';
 import { InlineEdit } from '@/components/inline-edit';
 import { InlineDateEdit } from '@/components/inline-date-edit';
 import { RichTextEditModal } from '@/components/rich-text-edit-modal';
@@ -33,6 +35,10 @@ import {
   LessonVisibilityBadge,
   type LessonVisibilityStatus,
 } from './visibility-badge';
+
+// Item 7: the Audio accordion is temporarily hidden (its data + endpoints are
+// intentionally kept intact). Flip this to `true` to re-enable it.
+const SHOW_AUDIO_ACCORDION: boolean = false;
 
 interface LessonShape {
   id: string;
@@ -96,7 +102,16 @@ export function LessonDetailClient({ lang, lesson, isCreator, initialVocabCount 
   const [photosCount, setPhotosCount] = useState(0);
   const [audioCount, setAudioCount] = useState(0);
   const [linksCount, setLinksCount] = useState(0);
+  const [dlsAudioCount, setDlsAudioCount] = useState(0);
+  const [quizletCount, setQuizletCount] = useState(0);
+  const [dlsExercisesCount, setDlsExercisesCount] = useState(0);
   const [showExtraction, setShowExtraction] = useState(false);
+  // Return-to-staging (item 1): the no-key flow sends the user back with
+  // ?addVocab=photo after saving a key — reopen the extraction modal here.
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search);
+    if (p.get('addVocab') === 'photo') setShowExtraction(true);
+  }, []);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [shareStatus, setShareStatus] = useState<LessonVisibilityStatus | null>(null);
@@ -199,7 +214,16 @@ export function LessonDetailClient({ lang, lesson, isCreator, initialVocabCount 
       </header>
 
       <Accordion
-        defaultValue={['notes', 'photos', 'audio', 'links', 'practice', 'vocab']}
+        defaultValue={[
+          'notes',
+          'photos',
+          'dls_audio',
+          'quizlet',
+          'dls_exercises',
+          'links',
+          'practice',
+          'vocab',
+        ]}
         className="space-y-3"
       >
         <AccordionItem value="notes" className="border rounded-md overflow-hidden">
@@ -222,14 +246,67 @@ export function LessonDetailClient({ lang, lesson, isCreator, initialVocabCount 
           </AccordionContent>
         </AccordionItem>
 
-        <AccordionItem value="audio" className="border rounded-md overflow-hidden">
+        <AccordionItem value="dls_audio" className="border rounded-md overflow-hidden">
           <AccordionTrigger>
-            <span className="text-sm font-semibold">Audio ({audioCount})</span>
+            <span className="flex items-center gap-1.5 text-sm font-semibold">
+              DLS audio ({dlsAudioCount})
+              <InfoHint text="A Duke Language School (DLS) login is required." />
+            </span>
           </AccordionTrigger>
           <AccordionContent>
-            <AudioSection lessonId={lesson.id} onCountChange={setAudioCount} canEdit={isCreator} />
+            <LinkCollectionSection
+              lessonId={lesson.id}
+              category="dls_audio"
+              onCountChange={setDlsAudioCount}
+              canEdit={isCreator}
+            />
           </AccordionContent>
         </AccordionItem>
+
+        <AccordionItem value="quizlet" className="border rounded-md overflow-hidden">
+          <AccordionTrigger>
+            <span className="text-sm font-semibold">Quizlet ({quizletCount})</span>
+          </AccordionTrigger>
+          <AccordionContent>
+            <LinkCollectionSection
+              lessonId={lesson.id}
+              category="quizlet"
+              onCountChange={setQuizletCount}
+              canEdit={isCreator}
+              thumbnails
+            />
+          </AccordionContent>
+        </AccordionItem>
+
+        <AccordionItem value="dls_exercises" className="border rounded-md overflow-hidden">
+          <AccordionTrigger>
+            <span className="flex items-center gap-1.5 text-sm font-semibold">
+              DLS exercises ({dlsExercisesCount})
+              <InfoHint text="A Duke Language School (DLS) login is required." />
+            </span>
+          </AccordionTrigger>
+          <AccordionContent>
+            <LinkCollectionSection
+              lessonId={lesson.id}
+              category="dls_exercises"
+              onCountChange={setDlsExercisesCount}
+              canEdit={isCreator}
+            />
+          </AccordionContent>
+        </AccordionItem>
+
+        {/* Item 7: Audio accordion hidden (data + endpoints intact) — toggle
+            SHOW_AUDIO_ACCORDION to re-enable. */}
+        {SHOW_AUDIO_ACCORDION && (
+          <AccordionItem value="audio" className="border rounded-md overflow-hidden">
+            <AccordionTrigger>
+              <span className="text-sm font-semibold">Audio ({audioCount})</span>
+            </AccordionTrigger>
+            <AccordionContent>
+              <AudioSection lessonId={lesson.id} onCountChange={setAudioCount} canEdit={isCreator} />
+            </AccordionContent>
+          </AccordionItem>
+        )}
 
         <AccordionItem value="links" className="border rounded-md overflow-hidden">
           <AccordionTrigger>

@@ -24,6 +24,14 @@ import { sql } from 'drizzle-orm';
 
 export const userRoleEnum = pgEnum('user_role', ['regular', 'admin', 'superuser']);
 export const visibilityEnum = pgEnum('visibility', ['private', 'shared']);
+// Per-lesson link collections (item 4–7). 'general' is the original "Useful
+// Links" accordion; the rest are dedicated resource sections.
+export const linkCategoryEnum = pgEnum('link_category', [
+  'general',
+  'dls_audio',
+  'quizlet',
+  'dls_exercises',
+]);
 
 // =============================================================================
 // users
@@ -416,6 +424,9 @@ export const lessonLinks = pgTable(
     notes: text('notes'),
     kind: text('kind').notNull().default('generic'),
     youtubeVideoId: text('youtube_video_id'),
+    // Which per-lesson collection this link belongs to (item 4–7). Existing
+    // rows backfill to 'general' (the original Useful Links accordion).
+    category: linkCategoryEnum('category').notNull().default('general'),
     position: integer('position').notNull().default(0),
     // Per-material sharing (granular lesson sharing). Backfilled from the parent
     // lesson's visibility.

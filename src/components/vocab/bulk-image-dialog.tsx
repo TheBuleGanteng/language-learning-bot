@@ -12,6 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { withBase } from '@/lib/base-path';
+import { NoKeyDialog } from '@/components/no-key-dialog';
 
 interface SpendSnapshot {
   currentSpend: number;
@@ -50,14 +51,45 @@ export function BulkImageDialog({
 }: Props) {
   const [spend, setSpend] = useState<SpendSnapshot | null>(null);
   const [confirming, setConfirming] = useState(false);
+  // Pre-flight key status (item 1, A4): null = checking.
+  const [keyStatus, setKeyStatus] = useState<{ hasKey: boolean; provider: string | null } | null>(
+    null,
+  );
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      setKeyStatus(null);
+      return;
+    }
     setSpend(null);
     fetch(withBase('/api/settings/ai-spend'))
       .then((r) => (r.ok ? r.json() : null))
       .then((s) => setSpend(s ?? null));
+    fetch(withBase('/api/keys/status?feature=image'))
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) =>
+        setKeyStatus({ hasKey: !!d?.hasKey, provider: d?.provider ?? null }),
+      )
+      .catch(() => setKeyStatus({ hasKey: true, provider: null }));
   }, [open]);
+
+  // No usable image key (personal OR eligible global) → no-key flow, not a
+  // silent failure deep in the batch worker.
+  if (open && keyStatus && !keyStatus.hasKey) {
+    const returnTo =
+      typeof window !== 'undefined' ? window.location.pathname : undefined;
+    return (
+      <NoKeyDialog
+        open
+        onOpenChange={(o) => {
+          if (!o) onOpenChange(false);
+        }}
+        featureLabel="Image generation"
+        needKeyProvider={keyStatus.provider ?? undefined}
+        returnTo={returnTo}
+      />
+    );
+  }
 
   if (!spend) {
     return (

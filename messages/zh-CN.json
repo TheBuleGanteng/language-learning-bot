@@ -270,7 +270,11 @@
     "deleteItemDesc": "此操作无法撤销。该词条及其课程和标签关联都将被移除。",
     "deleteFailed": "删除失败",
     "selectRow": "选择此行",
-    "noMatch": "没有符合筛选条件的词汇。"
+    "noMatch": "没有符合筛选条件的词汇。",
+    "exportCsv": "Export CSV",
+    "exportCsvHint": "Select one or more vocabulary items to export.",
+    "filtersHeading": "Filters",
+    "clearAll": "Clear all"
   },
   "extraction": {
     "title": "从照片提取词汇",
@@ -448,7 +452,10 @@
     "saved": "共享设置已更新",
     "saveFailed": "无法更新共享设置",
     "loadFailed": "无法加载共享设置",
-    "images": "图片"
+    "images": "图片",
+    "dls_audio": "DLS audio",
+    "quizlet": "Quizlet",
+    "dls_exercises": "DLS exercises"
   },
   "userManagement": {
     "title": "用户管理",

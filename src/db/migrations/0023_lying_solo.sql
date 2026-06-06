@@ -1,0 +1,2 @@
+CREATE TYPE "public"."link_category" AS ENUM('general', 'dls_audio', 'quizlet', 'dls_exercises');--> statement-breakpoint
+ALTER TABLE "lesson_links" ADD COLUMN "category" "link_category" DEFAULT 'general' NOT NULL;

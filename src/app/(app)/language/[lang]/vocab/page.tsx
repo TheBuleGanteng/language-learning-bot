@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ImagePreviewDialog } from '@/components/vocab/image-preview-dialog';
 import { ExtractionFlow } from '@/components/extraction/extraction-flow';
+import { buildVocabCsv, downloadCsv, vocabCsvFilename } from '@/lib/csv-export';
 import { NewLessonDialog } from '@/components/new-lesson-dialog';
 import { Camera, Plus } from 'lucide-react';
 import {
@@ -26,7 +27,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { FilterAccordion } from '@/components/vocab/filter-accordion';
+import { FilterMultiSelect } from '@/components/vocab/filter-multi-select';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
 import { BulkSelectBar } from '@/components/vocab/bulk-select-bar';
 import { AddToDeckDialog } from '@/components/vocab/add-to-deck-dialog';
 import { colorForLesson, colorForTag } from '@/lib/colors';
@@ -150,6 +157,28 @@ function VocabInner() {
   // the other deps changed. Used by the bulk-batch polling loop.
   const [refetchCounter, setRefetchCounter] = useState(0);
   const [showExtraction, setShowExtraction] = useState(false);
+  // Return-to-staging (item 1): after saving a key in Settings the no-key flow
+  // sends the user back here with ?addVocab=photo — reopen the extraction modal.
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search);
+    if (p.get('addVocab') === 'photo') setShowExtraction(true);
+  }, []);
+
+  // Item 9: client-side CSV export of the currently-selected vocab rows.
+  function exportSelectedCsv() {
+    const selected = items.filter((i) => selectedIds.has(i.id));
+    if (selected.length === 0) return;
+    const csv = buildVocabCsv(
+      selected.map((i) => ({
+        targetText: i.targetText,
+        nativeText: i.nativeText,
+        tags: i.tags.map((tg) => tg.name),
+        lessons: i.lessons.map((l) => l.name),
+        imageUrl: i.imageUrl ?? null,
+      })),
+    );
+    downloadCsv(vocabCsvFilename(), csv);
+  }
   const [newLessonOpen, setNewLessonOpen] = useState(false);
   const [deckBuilderDialogOpen, setDeckBuilderDialogOpen] = useState(false);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -161,6 +190,12 @@ function VocabInner() {
   // Deck-builder mode (§7a): entered from the Flashcards "Create new deck" button.
   const deckBuilderMode = search.get('mode') === 'deck-builder';
   const imageStatusFilter = parseImageStatusFilter(search.get('imageStatus'));
+  // Item 10: how many filter groups are active (count badge in the Filters header).
+  const activeFilterCount =
+    (selectedLessons.size > 0 ? 1 : 0) +
+    (selectedTags.size > 0 ? 1 : 0) +
+    (selectedCreatedBy.size > 0 ? 1 : 0) +
+    (imageStatusFilter !== 'all' ? 1 : 0);
   const searchTerm = search.get('search') ?? '';
   const sortParam = search.get('sort');
   const sortCol: SortCol | null = ((['thai', 'english', 'lessons', 'tags'] as const).find(
@@ -589,9 +624,26 @@ function VocabInner() {
             <Button asChild size="sm">
               <Link href={vocabPath(lang, '/new')}>{t('addVocab')}</Link>
             </Button>
-            <Button asChild size="sm" variant="outline">
-              <Link href={vocabPath(lang, '/import')}>{t('importCsv')}</Link>
-            </Button>
+            {/* CSV import + export are desktop-only workflows (item 9). */}
+            <div className="hidden md:flex gap-2">
+              <Button asChild size="sm" variant="outline">
+                <Link href={vocabPath(lang, '/import')}>{t('importCsv')}</Link>
+              </Button>
+              <span
+                title={selectedIds.size === 0 ? t('exportCsvHint') : undefined}
+                className="inline-flex"
+              >
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={selectedIds.size === 0}
+                  onClick={exportSelectedCsv}
+                >
+                  {t('exportCsv')}
+                  {selectedIds.size > 0 ? ` (${selectedIds.size})` : ''}
+                </Button>
+              </span>
+            </div>
             <Button
               size="sm"
               variant="outline"
@@ -613,60 +665,6 @@ function VocabInner() {
           </div>
         )}
 
-        <div className="space-y-2 border rounded-md p-3">
-          <div className="flex items-center gap-3 text-sm">
-            <label className="flex items-center gap-1.5">
-              <input
-                type="radio"
-                name="mode"
-                checked={mode === 'and'}
-                onChange={() => setMode('and')}
-              />
-              {t('filterAll')}
-            </label>
-            <label className="flex items-center gap-1.5">
-              <input
-                type="radio"
-                name="mode"
-                checked={mode === 'or'}
-                onChange={() => setMode('or')}
-              />
-              {t('filterAny')}
-            </label>
-          </div>
-          <Button size="xs" variant="outline" onClick={clearFilters}>
-            {t('clearFilters')}
-          </Button>
-        </div>
-
-        <FilterAccordion
-          title={t('lessonsHeading')}
-          slug="lessons"
-          options={lessons}
-          selected={selectedLessons}
-          onChange={setSelectedLessons}
-          swatch={(o) => colorForLesson(o.name)}
-          emptyHint={t('noLessons')}
-        />
-
-        <FilterAccordion
-          title={t('themesHeading')}
-          slug="themes"
-          options={tags}
-          selected={selectedTags}
-          onChange={setSelectedTags}
-          swatch={(o) => colorForTag(o.name)}
-          emptyHint={t('noTags')}
-        />
-
-        <FilterAccordion
-          title={t('createdByHeading')}
-          slug="created-by"
-          options={creatorOptions}
-          selected={selectedCreatedBy}
-          onChange={setSelectedCreatedBy}
-          emptyHint={t('noCreators')}
-        />
       </aside>
 
       <section className="space-y-4">
@@ -681,30 +679,108 @@ function VocabInner() {
           </Button>
         </form>
 
-        <div className="flex items-center gap-2 text-xs flex-wrap">
-          <span className="text-muted-foreground">{t('imageStatus')}</span>
-          {(['all', 'has', 'none', 'failed'] as const).map((opt) => (
-            <button
-              key={opt}
-              type="button"
-              onClick={() => setImageStatusFilter(opt)}
-              className={cn(
-                'rounded-full px-2.5 py-1 border transition-colors',
-                imageStatusFilter === opt
-                  ? 'bg-foreground text-background border-foreground'
-                  : 'border-muted-foreground/30 hover:bg-muted',
+        {/* Item 10: a single collapsed "Filters" accordion consolidating the
+            Lessons / Themes / Created-by dropdowns, image-status pills, and the
+            All/Any toggle. Active filters live in the URL, so they persist when
+            this is collapsed. The search box above stays outside, always visible. */}
+        <Accordion defaultValue={[]} className="border rounded-md overflow-hidden">
+          <AccordionItem value="filters">
+            <div className="flex items-center bg-muted">
+              <AccordionTrigger className="flex-1">
+                <span className="inline-flex items-center gap-2 text-sm font-semibold">
+                  {t('filtersHeading')}
+                  {activeFilterCount > 0 && (
+                    <Badge variant="secondary" className="px-1.5">
+                      {activeFilterCount}
+                    </Badge>
+                  )}
+                </span>
+              </AccordionTrigger>
+              {activeFilterCount > 0 && (
+                <button
+                  type="button"
+                  onClick={clearFilters}
+                  className="mr-3 shrink-0 text-xs underline text-muted-foreground hover:text-foreground"
+                >
+                  {t('clearAll')}
+                </button>
               )}
-            >
-              {opt === 'all'
-                ? t('imgAll')
-                : opt === 'has'
-                  ? t('imgHas')
-                  : opt === 'none'
-                    ? t('imgNone')
-                    : t('imgFailed')}
-            </button>
-          ))}
-        </div>
+            </div>
+            <AccordionContent>
+              <div className="flex flex-wrap items-center gap-2">
+                <FilterMultiSelect
+                  title={t('lessonsHeading')}
+                  options={lessons}
+                  selected={selectedLessons}
+                  onChange={setSelectedLessons}
+                  swatch={(o) => colorForLesson(o.name)}
+                  emptyHint={t('noLessons')}
+                />
+                <FilterMultiSelect
+                  title={t('themesHeading')}
+                  options={tags}
+                  selected={selectedTags}
+                  onChange={setSelectedTags}
+                  swatch={(o) => colorForTag(o.name)}
+                  emptyHint={t('noTags')}
+                />
+                <FilterMultiSelect
+                  title={t('createdByHeading')}
+                  options={creatorOptions}
+                  selected={selectedCreatedBy}
+                  onChange={setSelectedCreatedBy}
+                  emptyHint={t('noCreators')}
+                />
+
+                <div className="flex items-center gap-1.5 text-xs flex-wrap">
+                  <span className="text-muted-foreground">{t('imageStatus')}</span>
+                  {(['all', 'has', 'none', 'failed'] as const).map((opt) => (
+                    <button
+                      key={opt}
+                      type="button"
+                      onClick={() => setImageStatusFilter(opt)}
+                      className={cn(
+                        'rounded-full px-2.5 py-1 border transition-colors',
+                        imageStatusFilter === opt
+                          ? 'bg-foreground text-background border-foreground'
+                          : 'border-muted-foreground/30 hover:bg-muted',
+                      )}
+                    >
+                      {opt === 'all'
+                        ? t('imgAll')
+                        : opt === 'has'
+                          ? t('imgHas')
+                          : opt === 'none'
+                            ? t('imgNone')
+                            : t('imgFailed')}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex items-center gap-3 text-sm border-l pl-3 ml-auto">
+                  <label className="flex items-center gap-1.5">
+                    <input
+                      type="radio"
+                      name="mode"
+                      checked={mode === 'and'}
+                      onChange={() => setMode('and')}
+                    />
+                    {t('filterAll')}
+                  </label>
+                  <label className="flex items-center gap-1.5">
+                    <input
+                      type="radio"
+                      name="mode"
+                      checked={mode === 'or'}
+                      onChange={() => setMode('or')}
+                    />
+                    {t('filterAny')}
+                  </label>
+                </div>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
 
         {batch && batch.inFlight && (
           <div className="flex items-center gap-3 rounded-md border bg-muted/40 p-3 text-sm">

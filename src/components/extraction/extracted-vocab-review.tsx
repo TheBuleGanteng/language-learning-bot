@@ -3,7 +3,7 @@
 import { useEffect, useState, type KeyboardEvent } from 'react';
 import { useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { AlertTriangle, Plus, X } from 'lucide-react';
+import { Plus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { SpecialInput } from '@/components/special-input';
@@ -22,6 +22,7 @@ import { cn } from '@/lib/utils';
 import type { ExtractedRow } from '@/lib/extraction';
 import { NewLessonDialog } from '@/components/new-lesson-dialog';
 import { MultiSelectChips, type NameId } from '@/components/multi-select-chips';
+import { InfoHint } from '@/components/info-hint';
 import { toast } from 'sonner';
 import { withBase } from '@/lib/base-path';
 
@@ -267,14 +268,21 @@ export function ExtractedVocabReview({
         </div>
       </div>
 
-      <div className="border rounded-md overflow-x-auto">
-        <Table className="w-full">
+      <div className="border rounded-md">
+        {/* table-fixed + wrapping so the Tags/Lessons pickers fit the available
+            width and wrap instead of forcing horizontal scroll (item 3). */}
+        <Table className="w-full table-fixed">
           <TableHeader>
             <TableRow className="bg-muted border-b-2">
               <TableHead className="w-10" />
               <TableHead className="font-semibold">Thai</TableHead>
               <TableHead className="font-semibold">English</TableHead>
-              <TableHead className="w-16 font-semibold">Conf</TableHead>
+              <TableHead className="w-28 font-semibold">
+                <span className="inline-flex items-center gap-1">
+                  Confidence
+                  <InfoHint text="How confident the AI is that it read and translated this item correctly. Review low-confidence items before saving." />
+                </span>
+              </TableHead>
               <TableHead className="font-semibold">Tags</TableHead>
               <TableHead className="font-semibold">Lessons</TableHead>
               <TableHead className="w-10" />
@@ -315,10 +323,10 @@ export function ExtractedVocabReview({
                     onCancel={cancelEdit}
                   />
                 </TableCell>
-                <TableCell className="align-top">
-                  <ConfidenceIcon conf={r.confidence} />
+                <TableCell className="align-top whitespace-normal">
+                  <ConfidenceBadge conf={r.confidence} />
                 </TableCell>
-                <TableCell className="align-top">
+                <TableCell className="align-top whitespace-normal">
                   <RowPills
                     options={allTags}
                     selectedIds={r.tagIds}
@@ -326,7 +334,7 @@ export function ExtractedVocabReview({
                     swatch={colorForTag}
                   />
                 </TableCell>
-                <TableCell className="align-top">
+                <TableCell className="align-top whitespace-normal">
                   <RowPills
                     options={allLessons}
                     selectedIds={r.lessonIds}
@@ -410,24 +418,24 @@ function unionStr(a: string[], b: string[]): string[] {
   return Array.from(new Set([...a, ...b]));
 }
 
-interface ConfidenceIconProps {
+interface ConfidenceBadgeProps {
   conf: 'high' | 'medium' | 'low';
 }
-function ConfidenceIcon({ conf }: ConfidenceIconProps) {
-  if (conf === 'high') {
-    return <span className="text-xs text-muted-foreground">high</span>;
-  }
-  if (conf === 'medium') {
-    return (
-      <span
-        title="Medium confidence"
-        className="inline-block h-2 w-2 rounded-full bg-amber-400"
-      />
-    );
-  }
+// One consistent labeled pill per row (item 2). The extractor emits a
+// categorical confidence ('high' | 'medium' | 'low'), so the mapping is direct:
+// high → green High, medium → amber Medium, low → red Low.
+function ConfidenceBadge({ conf }: ConfidenceBadgeProps) {
+  const map = {
+    high: { label: 'High', cls: 'bg-green-100 text-green-700' },
+    medium: { label: 'Medium', cls: 'bg-amber-100 text-amber-700' },
+    low: { label: 'Low', cls: 'bg-red-100 text-red-700' },
+  } as const;
+  const c = map[conf];
   return (
-    <span title="Low confidence — verify before saving">
-      <AlertTriangle className="h-3.5 w-3.5 text-amber-600" />
+    <span
+      className={cn('inline-block rounded px-1.5 py-0.5 text-xs font-medium', c.cls)}
+    >
+      {c.label}
     </span>
   );
 }

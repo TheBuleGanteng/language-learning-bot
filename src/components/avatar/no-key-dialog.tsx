@@ -1,16 +1,6 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+import { NoKeyDialog as BaseNoKeyDialog } from '@/components/no-key-dialog';
 
 interface Props {
   open: boolean;
@@ -24,32 +14,19 @@ interface Props {
 }
 
 /**
- * Shown when the user tries to start a Kruu Bingo session without an OpenAI
- * API key configured (§15b). Dismiss stays on the current page; "Go to
- * Settings" deep-links to the API keys section (and returns here after save).
+ * Kruu Bingo's no-key dialog — now a thin wrapper over the shared {@link
+ * BaseNoKeyDialog} (item 1), preserving the OpenAI/Realtime copy.
  */
 export function NoKeyDialog({ open, onOpenChange, returnTo }: Props) {
-  const router = useRouter();
-  const settingsUrl = returnTo
-    ? `/settings?returnTo=${encodeURIComponent(returnTo)}&needKey=openai#api-keys`
-    : '/settings#api-keys';
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>OpenAI API key required</AlertDialogTitle>
-          <AlertDialogDescription>
-            Kruu Bingo uses OpenAI&apos;s Realtime API. Add your OpenAI API key in
-            Settings to get started.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={() => router.push(settingsUrl)}>
-            Go to Settings
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+    <BaseNoKeyDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      featureLabel="Kruu Bingo"
+      needKeyProvider="openai"
+      returnTo={returnTo}
+      title="OpenAI API key required"
+      description="Kruu Bingo uses OpenAI's Realtime API. Add your OpenAI API key in Settings to get started."
+    />
   );
 }

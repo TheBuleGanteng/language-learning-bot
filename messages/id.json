@@ -270,7 +270,11 @@
     "deleteItemDesc": "Tindakan ini tidak dapat dibatalkan. Item beserta penetapan pelajaran dan tag-nya akan dihapus.",
     "deleteFailed": "Gagal menghapus",
     "selectRow": "Pilih baris",
-    "noMatch": "Tidak ada kosakata yang cocok dengan filter Anda."
+    "noMatch": "Tidak ada kosakata yang cocok dengan filter Anda.",
+    "exportCsv": "Export CSV",
+    "exportCsvHint": "Select one or more vocabulary items to export.",
+    "filtersHeading": "Filters",
+    "clearAll": "Clear all"
   },
   "extraction": {
     "title": "Ekstrak kosakata dari foto",
@@ -448,7 +452,10 @@
     "saved": "Pengaturan berbagi diperbarui",
     "saveFailed": "Tidak dapat memperbarui berbagi",
     "loadFailed": "Tidak dapat memuat berbagi",
-    "images": "Gambar"
+    "images": "Gambar",
+    "dls_audio": "DLS audio",
+    "quizlet": "Quizlet",
+    "dls_exercises": "DLS exercises"
   },
   "userManagement": {
     "title": "Manajemen pengguna",

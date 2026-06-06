@@ -270,7 +270,11 @@
     "deleteItemDesc": "This action cannot be undone. The item, its lesson assignment, and its tag assignments will be removed.",
     "deleteFailed": "Delete failed",
     "selectRow": "Select row",
-    "noMatch": "No vocab items match your filters."
+    "noMatch": "No vocab items match your filters.",
+    "exportCsv": "Export CSV",
+    "exportCsvHint": "Select one or more vocabulary items to export.",
+    "filtersHeading": "Filters",
+    "clearAll": "Clear all"
   },
   "extraction": {
     "title": "Extract vocabulary from photos",
@@ -448,7 +452,10 @@
     "saved": "Sharing updated",
     "saveFailed": "Could not update sharing",
     "loadFailed": "Could not load sharing",
-    "images": "Images"
+    "images": "Images",
+    "dls_audio": "DLS audio",
+    "quizlet": "Quizlet",
+    "dls_exercises": "DLS exercises"
   },
   "userManagement": {
     "title": "User management",

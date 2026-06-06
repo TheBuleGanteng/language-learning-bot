@@ -45,7 +45,7 @@ export function LinksSection({ lessonId, onCountChange, canEdit = true }: Props)
   const [expandedYt, setExpandedYt] = useState<Set<string>>(new Set());
 
   const load = useCallback(async () => {
-    const res = await fetch(withBase(`/api/lessons/${lessonId}/links`));
+    const res = await fetch(withBase(`/api/lessons/${lessonId}/links?category=general`));
     if (!res.ok) return;
     const data = (await res.json()) as { links: LinkRow[] };
     setLinks(data.links);
@@ -71,6 +71,7 @@ export function LinksSection({ lessonId, onCountChange, canEdit = true }: Props)
           url: url.trim(),
           title: title.trim() || undefined,
           notes: notesHtml,
+          category: 'general',
         }),
       });
       if (!res.ok) {

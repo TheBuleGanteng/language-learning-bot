@@ -14,6 +14,7 @@ import { ExtractedVocabReview } from './extracted-vocab-review';
 import type { ExtractedRow } from '@/lib/extraction';
 import { withBase } from '@/lib/base-path';
 import { toast } from 'sonner';
+import { NoKeyDialog } from '@/components/no-key-dialog';
 
 interface Props {
   open: boolean;
@@ -38,6 +39,10 @@ export function ExtractionFlow({
   const router = useRouter();
   const [rows, setRows] = useState<ExtractedRow[] | null>(null);
   const [busy, setBusy] = useState(false);
+  // Pre-flight key status (item 1, A2): null = checking, then { hasKey, provider }.
+  const [keyStatus, setKeyStatus] = useState<{ hasKey: boolean; provider: string | null } | null>(
+    null,
+  );
 
   // Reset state every time the modal opens so a fresh session always starts on
   // the staging step, not on stale review data from a previous attempt.
@@ -46,6 +51,34 @@ export function ExtractionFlow({
       setRows(null);
       setBusy(false);
     }
+  }, [open]);
+
+  // Pre-flight: before showing the uploader, confirm a usable extraction key
+  // resolves (personal OR eligible global). If not, we show the no-key flow
+  // instead of letting the user upload and hit a raw error.
+  useEffect(() => {
+    if (!open) {
+      setKeyStatus(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(withBase('/api/keys/status?feature=extraction'));
+        const d = (res.ok ? await res.json() : null) as
+          | { hasKey?: boolean; provider?: string | null }
+          | null;
+        if (!cancelled) {
+          setKeyStatus({ hasKey: !!d?.hasKey, provider: d?.provider ?? null });
+        }
+      } catch {
+        // Network hiccup — don't false-block; the extract endpoint still guards.
+        if (!cancelled) setKeyStatus({ hasKey: true, provider: null });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [open]);
 
   /**
@@ -85,6 +118,26 @@ export function ExtractionFlow({
     setRows(null);
     onSaved?.();
     router.refresh();
+  }
+
+  // No usable key resolved → show the shared no-key flow instead of the
+  // uploader. Returning from Settings lands back here via `?addVocab=photo`.
+  if (open && keyStatus && !keyStatus.hasKey) {
+    const returnTo =
+      typeof window !== 'undefined'
+        ? `${window.location.pathname}?addVocab=photo`
+        : undefined;
+    return (
+      <NoKeyDialog
+        open
+        onOpenChange={(o) => {
+          if (!o) onOpenChange(false);
+        }}
+        featureLabel="Photo extraction"
+        needKeyProvider={keyStatus.provider ?? undefined}
+        returnTo={returnTo}
+      />
+    );
   }
 
   return (

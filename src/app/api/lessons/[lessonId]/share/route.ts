@@ -23,6 +23,11 @@ const shareSchema = z.object({
   images: z.boolean(),
   audio: z.boolean(),
   links: z.boolean(),
+  // Item 4–7 link collections. Optional so a stale client doesn't 400 during the
+  // deploy window; absent → treated as not-shared.
+  dls_audio: z.boolean().optional(),
+  quizlet: z.boolean().optional(),
+  dls_exercises: z.boolean().optional(),
 });
 
 type CategoryCount = { total: number; shared: number };
@@ -70,9 +75,10 @@ export async function GET(req: Request, ctx: { params: Promise<{ lessonId: strin
     .where(and(eq(lessonFiles.lessonId, lessonId), eq(lessonFiles.userId, user.id)));
 
   const linkRows = await db
-    .select({ visibility: lessonLinks.visibility })
+    .select({ visibility: lessonLinks.visibility, category: lessonLinks.category })
     .from(lessonLinks)
     .where(and(eq(lessonLinks.lessonId, lessonId), eq(lessonLinks.userId, user.id)));
+  const byCat = (cat: string) => linkRows.filter((l) => l.category === cat);
 
   return NextResponse.json({
     lessonVisibility: lrow.visibility,
@@ -81,7 +87,10 @@ export async function GET(req: Request, ctx: { params: Promise<{ lessonId: strin
       notes: countShared(fileRows.filter((f) => f.kind === 'pdf')),
       images: countShared(fileRows.filter((f) => f.kind === 'image')),
       audio: countShared(fileRows.filter((f) => f.kind === 'audio')),
-      links: countShared(linkRows),
+      links: countShared(byCat('general')),
+      dls_audio: countShared(byCat('dls_audio')),
+      quizlet: countShared(byCat('quizlet')),
+      dls_exercises: countShared(byCat('dls_exercises')),
     },
   });
 }
@@ -105,6 +114,9 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ lessonId: str
   const parsed = shareSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: 'Invalid input' }, { status: 400 });
   const { vocabulary, notes, images, audio, links } = parsed.data;
+  const dlsAudio = parsed.data.dls_audio ?? false;
+  const quizlet = parsed.data.quizlet ?? false;
+  const dlsExercises = parsed.data.dls_exercises ?? false;
 
   const lrow = await loadOwnedLesson(lessonId);
   if (!lrow) return NextResponse.json({ error: 'Not found' }, { status: 404 });
@@ -113,7 +125,9 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ lessonId: str
   }
 
   const lessonVisibility: 'shared' | 'private' =
-    vocabulary || notes || images || audio || links ? 'shared' : 'private';
+    vocabulary || notes || images || audio || links || dlsAudio || quizlet || dlsExercises
+      ? 'shared'
+      : 'private';
   const vis = (on: boolean): 'shared' | 'private' => (on ? 'shared' : 'private');
 
   const lesson = await db.transaction(async (tx) => {
@@ -183,11 +197,26 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ lessonId: str
         ),
       );
 
-    // Links.
-    await tx
-      .update(lessonLinks)
-      .set({ visibility: vis(links) })
-      .where(and(eq(lessonLinks.lessonId, lessonId), eq(lessonLinks.userId, user.id)));
+    // Links — scoped per collection so toggling "Links" (general) doesn't flip
+    // the DLS / Quizlet sections, and vice versa.
+    const setLinkVis = (
+      cat: 'general' | 'dls_audio' | 'quizlet' | 'dls_exercises',
+      on: boolean,
+    ) =>
+      tx
+        .update(lessonLinks)
+        .set({ visibility: vis(on) })
+        .where(
+          and(
+            eq(lessonLinks.lessonId, lessonId),
+            eq(lessonLinks.userId, user.id),
+            eq(lessonLinks.category, cat),
+          ),
+        );
+    await setLinkVis('general', links);
+    await setLinkVis('dls_audio', dlsAudio);
+    await setLinkVis('quizlet', quizlet);
+    await setLinkVis('dls_exercises', dlsExercises);
 
     return updatedLesson;
   });

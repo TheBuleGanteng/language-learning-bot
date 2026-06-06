@@ -270,7 +270,11 @@
     "deleteItemDesc": "此操作無法復原。該詞條及其課程和標籤關聯都將被移除。",
     "deleteFailed": "刪除失敗",
     "selectRow": "選擇此列",
-    "noMatch": "沒有符合篩選條件的詞彙。"
+    "noMatch": "沒有符合篩選條件的詞彙。",
+    "exportCsv": "Export CSV",
+    "exportCsvHint": "Select one or more vocabulary items to export.",
+    "filtersHeading": "Filters",
+    "clearAll": "Clear all"
   },
   "extraction": {
     "title": "從照片擷取詞彙",
@@ -448,7 +452,10 @@
     "saved": "分享設定已更新",
     "saveFailed": "無法更新分享設定",
     "loadFailed": "無法載入分享設定",
-    "images": "圖片"
+    "images": "圖片",
+    "dls_audio": "DLS audio",
+    "quizlet": "Quizlet",
+    "dls_exercises": "DLS exercises"
   },
   "userManagement": {
     "title": "使用者管理",

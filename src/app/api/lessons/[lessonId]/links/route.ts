@@ -8,6 +8,14 @@ import { lessonVisibleSql, lessonLinkVisibleSql } from '@/lib/visibility';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+// The per-lesson link collections (item 4–7). 'general' is the original Useful
+// Links accordion; the rest are dedicated resource sections.
+const LINK_CATEGORIES = ['general', 'dls_audio', 'quizlet', 'dls_exercises'] as const;
+type LinkCategory = (typeof LINK_CATEGORIES)[number];
+function asCategory(v: string | null | undefined): LinkCategory | null {
+  return v && (LINK_CATEGORIES as readonly string[]).includes(v) ? (v as LinkCategory) : null;
+}
+
 /** Extract a YouTube video ID from common URL shapes, or null if it isn't one. */
 function parseYouTube(url: string): string | null {
   try {
@@ -47,7 +55,7 @@ async function fetchYouTubeTitle(url: string): Promise<string | null> {
 }
 
 export async function GET(
-  _req: Request,
+  req: Request,
   ctx: { params: Promise<{ lessonId: string }> },
 ) {
   const session = await auth();
@@ -57,6 +65,10 @@ export async function GET(
   if (!UUID_RE.test(lessonId)) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
+
+  // Optional ?category= filter — each lesson-detail section fetches its own
+  // collection. Absent → all categories (back-compat).
+  const category = asCategory(new URL(req.url).searchParams.get('category'));
 
   // Visibility-aware: lesson must be visible (own or shared); only links the
   // viewer may see are returned (own, or shared).
@@ -70,7 +82,13 @@ export async function GET(
   const rows = await db
     .select()
     .from(lessonLinks)
-    .where(and(eq(lessonLinks.lessonId, lessonId), lessonLinkVisibleSql(userId)))
+    .where(
+      and(
+        eq(lessonLinks.lessonId, lessonId),
+        lessonLinkVisibleSql(userId),
+        category ? eq(lessonLinks.category, category) : undefined,
+      ),
+    )
     .orderBy(asc(lessonLinks.position), asc(lessonLinks.createdAt));
 
   // Only the owner may edit/delete a shared link (Feature A rule).
@@ -90,6 +108,7 @@ const createSchema = z.object({
     }),
   title: z.string().max(300).optional(),
   notes: z.string().max(2000).optional(),
+  category: z.enum(LINK_CATEGORIES).optional(),
 });
 
 export async function POST(
@@ -143,6 +162,7 @@ export async function POST(
       notes: d.notes ?? null,
       kind: videoId ? 'youtube' : 'generic',
       youtubeVideoId: videoId,
+      category: d.category ?? 'general',
     })
     .returning();
 

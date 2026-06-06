@@ -16,8 +16,19 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import { withBase } from '@/lib/base-path';
 
-// The material categories on a lesson: vocab, notes (pdf), images, audio, links.
-const CATEGORIES = ['vocabulary', 'notes', 'images', 'audio', 'links'] as const;
+// The material categories on a lesson: vocab, notes (pdf), images, audio, and
+// the link collections — general links plus the DLS audio / Quizlet / DLS
+// exercises sections (items 4–7).
+const CATEGORIES = [
+  'vocabulary',
+  'notes',
+  'images',
+  'audio',
+  'links',
+  'dls_audio',
+  'quizlet',
+  'dls_exercises',
+] as const;
 type Category = (typeof CATEGORIES)[number];
 type Flags = Record<Category, boolean>;
 
@@ -42,13 +53,9 @@ export function LessonShareDialog({ open, onOpenChange, lessonId, onSaved }: Pro
   const t = useTranslations('lessonShare');
   const tc = useTranslations('common');
   const [state, setState] = useState<ShareState | null>(null);
-  const [flags, setFlags] = useState<Flags>({
-    vocabulary: true,
-    notes: true,
-    images: true,
-    audio: true,
-    links: true,
-  });
+  const [flags, setFlags] = useState<Flags>(
+    () => Object.fromEntries(CATEGORIES.map((c) => [c, true])) as Flags,
+  );
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -87,7 +94,7 @@ export function LessonShareDialog({ open, onOpenChange, lessonId, onSaved }: Pro
   const someChecked = CATEGORIES.some((c) => flags[c]);
 
   function toggleAll(next: boolean) {
-    setFlags({ vocabulary: next, notes: next, images: next, audio: next, links: next });
+    setFlags(Object.fromEntries(CATEGORIES.map((c) => [c, next])) as Flags);
   }
 
   function categoryStatus(c: Category): 'shared' | 'partial' | 'private' | 'none' {
