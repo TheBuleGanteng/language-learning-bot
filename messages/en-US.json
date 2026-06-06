@@ -38,8 +38,8 @@
     "subtitle": "What would you like to do today?",
     "practiceTitle": "Practice {language}",
     "practiceSubtitle": "Study your decks with flashcards or talk with Kruu Bingo.",
-    "updateTitle": "Update vocabulary",
-    "updateSubtitle": "Add, edit, and organize the words you're learning."
+    "updateTitle": "View / update vocabulary",
+    "updateSubtitle": "View, add, edit, and organize the words you're learning."
   },
   "auth": {
     "login": {
