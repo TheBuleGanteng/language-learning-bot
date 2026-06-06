@@ -85,8 +85,11 @@ export function PhotosSection({ lessonId, onCountChange, canEdit = true }: Props
           maxBytes={MAX_PHOTO_BYTES}
           hint={t('hint')}
           sizeHint={t('sizeHint')}
-          validate={(file) =>
-            usedBytes + file.size > MAX_TOTAL_BYTES ? t('totalExceeded') : null
+          multiple
+          validate={(file, pendingBytes) =>
+            usedBytes + pendingBytes + file.size > MAX_TOTAL_BYTES
+              ? t('totalExceeded')
+              : null
           }
           onUploaded={load}
         />

@@ -21,6 +21,7 @@ import { colorForLesson, colorForTag } from '@/lib/colors';
 import { cn } from '@/lib/utils';
 import type { ExtractedRow } from '@/lib/extraction';
 import { NewLessonDialog } from '@/components/new-lesson-dialog';
+import { NewTagDialog } from '@/components/new-tag-dialog';
 import { MultiSelectChips, type NameId } from '@/components/multi-select-chips';
 import { InfoHint } from '@/components/info-hint';
 import { toast } from 'sonner';
@@ -78,6 +79,11 @@ export function ExtractedVocabReview({
   const [draft, setDraft] = useState('');
   const [saving, setSaving] = useState(false);
   const [newLessonOpen, setNewLessonOpen] = useState(false);
+  // Which tag picker requested "+ Create new tag": the bulk "apply to selected"
+  // picker, or a specific row's picker. Drives where the created tag is applied.
+  const [newTagTarget, setNewTagTarget] = useState<
+    { kind: 'bulk' } | { kind: 'row'; rowId: string } | null
+  >(null);
   const params = useParams<{ lang: string }>();
   const lang = params.lang;
 
@@ -246,6 +252,8 @@ export function ExtractedVocabReview({
               onChange={setBulkTagIds}
               swatch={colorForTag}
               placeholder="No tags"
+              onCreateNew={() => setNewTagTarget({ kind: 'bulk' })}
+              createNewLabel="+ Create new tag"
             />
           </div>
           <div className="space-y-1.5">
@@ -341,6 +349,8 @@ export function ExtractedVocabReview({
                   selectedIds={r.tagIds}
                   onChange={(ids) => updateRow(r.id, { tagIds: ids })}
                   swatch={colorForTag}
+                  onCreateNew={() => setNewTagTarget({ kind: 'row', rowId: r.id })}
+                  createNewLabel="+ Create new tag"
                 />
               </div>
               <div className="space-y-1">
@@ -427,6 +437,8 @@ export function ExtractedVocabReview({
                     selectedIds={r.tagIds}
                     onChange={(ids) => updateRow(r.id, { tagIds: ids })}
                     swatch={colorForTag}
+                    onCreateNew={() => setNewTagTarget({ kind: 'row', rowId: r.id })}
+                    createNewLabel="+ Create new tag"
                   />
                 </TableCell>
                 <TableCell className="align-top whitespace-normal">
@@ -503,6 +515,31 @@ export function ExtractedVocabReview({
           setBulkLessonIds((prev) =>
             prev.includes(lesson.id) ? prev : [...prev, lesson.id],
           );
+        }}
+      />
+
+      <NewTagDialog
+        open={newTagTarget !== null}
+        onOpenChange={(o) => {
+          if (!o) setNewTagTarget(null);
+        }}
+        onCreated={(tag) => {
+          // Make the new (or auto-merged shared) tag available to every picker.
+          setAllTags((prev) => (prev.some((t) => t.id === tag.id) ? prev : [...prev, tag]));
+          // Apply it where it was created: the bulk picker or the specific row.
+          if (newTagTarget?.kind === 'bulk') {
+            setBulkTagIds((prev) => (prev.includes(tag.id) ? prev : [...prev, tag.id]));
+          } else if (newTagTarget?.kind === 'row') {
+            const rowId = newTagTarget.rowId;
+            setRows((prev) =>
+              prev.map((r) =>
+                r.id === rowId && !r.tagIds.includes(tag.id)
+                  ? { ...r, tagIds: [...r.tagIds, tag.id] }
+                  : r,
+              ),
+            );
+          }
+          setNewTagTarget(null);
         }}
       />
     </div>
@@ -610,8 +647,18 @@ interface RowPillsProps {
   selectedIds: string[];
   onChange: (ids: string[]) => void;
   swatch: (name: string) => { bg: string; text: string };
+  /** When set, renders a "+ Create new …" action in the picker (tags only). */
+  onCreateNew?: () => void;
+  createNewLabel?: string;
 }
-function RowPills({ options, selectedIds, onChange, swatch }: RowPillsProps) {
+function RowPills({
+  options,
+  selectedIds,
+  onChange,
+  swatch,
+  onCreateNew,
+  createNewLabel,
+}: RowPillsProps) {
   return (
     <MultiSelectChips
       options={options}
@@ -619,6 +666,8 @@ function RowPills({ options, selectedIds, onChange, swatch }: RowPillsProps) {
       onChange={onChange}
       swatch={swatch}
       placeholder="—"
+      onCreateNew={onCreateNew}
+      createNewLabel={createNewLabel}
     />
   );
 }

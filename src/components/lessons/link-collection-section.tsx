@@ -33,8 +33,6 @@ interface Props {
   onCountChange: (n: number) => void;
   /** Only the lesson creator may add/delete; consumers view shared links. */
   canEdit?: boolean;
-  /** Render saved links as OG thumbnails (Quizlet) vs plain labeled links (DLS). */
-  thumbnails?: boolean;
 }
 
 function newDraft(): DraftRow {
@@ -44,16 +42,15 @@ function newDraft(): DraftRow {
 /**
  * A per-lesson link collection for the DLS audio / Quizlet / DLS exercises
  * sections (items 4–7). Reuses the same `lesson_links` endpoints (scoped by
- * `category`) as the general Useful Links accordion, but with a multi-row
- * "starts with one empty row + add link" entry UX. DLS sections render plain
- * labeled links (login wall — no preview); Quizlet renders OG thumbnails.
+ * `category`) as the general Useful Links accordion, with a multi-row
+ * "starts with one empty row + add link" entry UX. All three sections render
+ * uniform plain labeled links (label, fallback to URL, open in a new tab).
  */
 export function LinkCollectionSection({
   lessonId,
   category,
   onCountChange,
   canEdit = true,
-  thumbnails = false,
 }: Props) {
   const [links, setLinks] = useState<LinkRow[]>([]);
   const [drafts, setDrafts] = useState<DraftRow[]>([newDraft()]);
@@ -135,29 +132,6 @@ export function LinkCollectionSection({
     <div className="space-y-4">
       {links.length === 0 ? (
         <p className="text-sm text-muted-foreground italic">No links yet.</p>
-      ) : thumbnails ? (
-        <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {links.map((l) => (
-            <li key={l.id} className="border rounded-md overflow-hidden">
-              <LinkThumb url={l.url} title={l.title} />
-              <div className="flex items-center justify-between gap-2 p-2 border-t">
-                <a
-                  href={safeHref(l.url)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm font-medium hover:underline truncate"
-                >
-                  {l.title}
-                </a>
-                {canEdit && (
-                  <Button size="xs" variant="ghost" className={redBtn} onClick={() => setPending(l)}>
-                    Delete
-                  </Button>
-                )}
-              </div>
-            </li>
-          ))}
-        </ul>
       ) : (
         <ul className="space-y-2">
           {links.map((l) => (
@@ -256,50 +230,5 @@ export function LinkCollectionSection({
         onConfirm={doDelete}
       />
     </div>
-  );
-}
-
-/** Quizlet thumbnail: fetches OG preview via the server proxy; falls back to a
- *  plain card if no image is available (or the fetch fails). */
-function LinkThumb({ url, title }: { url: string; title: string }) {
-  const [img, setImg] = useState<string | null>(null);
-  const [loaded, setLoaded] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch(withBase(`/api/link-preview?url=${encodeURIComponent(url)}`));
-        const d = (res.ok ? await res.json() : null) as { image?: string | null } | null;
-        if (!cancelled) {
-          setImg(d?.image ?? null);
-          setLoaded(true);
-        }
-      } catch {
-        if (!cancelled) setLoaded(true);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [url]);
-
-  if (img) {
-    return (
-      <a href={safeHref(url)} target="_blank" rel="noopener noreferrer" className="block bg-muted/30">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={img} alt={title} className="w-full h-36 object-cover" />
-      </a>
-    );
-  }
-  return (
-    <a
-      href={safeHref(url)}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="flex h-36 items-center justify-center bg-muted/30 text-xs text-muted-foreground"
-    >
-      {loaded ? 'No preview available' : 'Loading preview…'}
-    </a>
   );
 }

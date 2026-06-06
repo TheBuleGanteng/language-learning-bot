@@ -22,9 +22,17 @@ import { InlineEdit } from '@/components/inline-edit';
 import { InlineDateEdit } from '@/components/inline-date-edit';
 import { RichTextEditModal } from '@/components/rich-text-edit-modal';
 import { VocabTable } from '@/components/vocab/vocab-table';
+import { VocabForm } from '@/components/vocab/vocab-form';
 import { ExtractionFlow } from '@/components/extraction/extraction-flow';
 import { DeleteLessonDialog } from '@/components/delete-lesson-dialog';
-import { Camera, Trash2 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Camera, Plus, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { languageName } from '@/lib/languages';
 import { flashcardsPath, chatPath, lessonsPath } from '@/lib/routes';
@@ -106,6 +114,15 @@ export function LessonDetailClient({ lang, lesson, isCreator, initialVocabCount 
   const [quizletCount, setQuizletCount] = useState(0);
   const [dlsExercisesCount, setDlsExercisesCount] = useState(0);
   const [showExtraction, setShowExtraction] = useState(false);
+  const [manualAddOpen, setManualAddOpen] = useState(false);
+  // Bumped after a save (photo or manual) so the VocabTable below remounts and
+  // re-fetches its lesson-scoped rows — it manages its own data client-side, so
+  // router.refresh() alone (which updates the server count) won't reload it.
+  const [vocabRefresh, setVocabRefresh] = useState(0);
+  const refreshVocab = () => {
+    setVocabRefresh((n) => n + 1);
+    router.refresh();
+  };
   // Return-to-staging (item 1): the no-key flow sends the user back with
   // ?addVocab=photo after saving a key — reopen the extraction modal here.
   useEffect(() => {
@@ -218,8 +235,8 @@ export function LessonDetailClient({ lang, lesson, isCreator, initialVocabCount 
           'notes',
           'photos',
           'dls_audio',
-          'quizlet',
           'dls_exercises',
+          'quizlet',
           'links',
           'practice',
           'vocab',
@@ -263,21 +280,6 @@ export function LessonDetailClient({ lang, lesson, isCreator, initialVocabCount 
           </AccordionContent>
         </AccordionItem>
 
-        <AccordionItem value="quizlet" className="border rounded-md overflow-hidden">
-          <AccordionTrigger>
-            <span className="text-sm font-semibold">Quizlet ({quizletCount})</span>
-          </AccordionTrigger>
-          <AccordionContent>
-            <LinkCollectionSection
-              lessonId={lesson.id}
-              category="quizlet"
-              onCountChange={setQuizletCount}
-              canEdit={isCreator}
-              thumbnails
-            />
-          </AccordionContent>
-        </AccordionItem>
-
         <AccordionItem value="dls_exercises" className="border rounded-md overflow-hidden">
           <AccordionTrigger>
             <span className="flex items-center gap-1.5 text-sm font-semibold">
@@ -290,6 +292,20 @@ export function LessonDetailClient({ lang, lesson, isCreator, initialVocabCount 
               lessonId={lesson.id}
               category="dls_exercises"
               onCountChange={setDlsExercisesCount}
+              canEdit={isCreator}
+            />
+          </AccordionContent>
+        </AccordionItem>
+
+        <AccordionItem value="quizlet" className="border rounded-md overflow-hidden">
+          <AccordionTrigger>
+            <span className="text-sm font-semibold">Quizlet ({quizletCount})</span>
+          </AccordionTrigger>
+          <AccordionContent>
+            <LinkCollectionSection
+              lessonId={lesson.id}
+              category="quizlet"
+              onCountChange={setQuizletCount}
               canEdit={isCreator}
             />
           </AccordionContent>
@@ -367,7 +383,16 @@ export function LessonDetailClient({ lang, lesson, isCreator, initialVocabCount 
           </AccordionTrigger>
           <AccordionContent>
             <div className="space-y-3">
-              <div className="flex justify-end">
+              <div className="flex flex-wrap justify-end gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setManualAddOpen(true)}
+                  className="gap-1.5"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Add vocab manually
+                </Button>
                 <Button
                   size="sm"
                   variant="outline"
@@ -379,6 +404,7 @@ export function LessonDetailClient({ lang, lesson, isCreator, initialVocabCount 
                 </Button>
               </div>
               <VocabTable
+                key={vocabRefresh}
                 lessonId={lesson.id}
                 defaultPageSize="all"
                 showSearch
@@ -394,8 +420,31 @@ export function LessonDetailClient({ lang, lesson, isCreator, initialVocabCount 
         open={showExtraction}
         onOpenChange={setShowExtraction}
         defaultLessonId={lesson.id}
-        onSaved={() => router.refresh()}
+        onSaved={refreshVocab}
       />
+
+      {/* Manual vocab entry scoped to this lesson: reuses the shared VocabForm
+          (created_by = current user, visibility = private), pre-filled with this
+          lesson (still editable / removable inside the form). */}
+      <Dialog open={manualAddOpen} onOpenChange={setManualAddOpen}>
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Add vocab to {lesson.name}</DialogTitle>
+            <DialogDescription>
+              The lesson is pre-filled below — adjust the lessons or tags as needed.
+            </DialogDescription>
+          </DialogHeader>
+          <VocabForm
+            mode="new"
+            initial={{ lessons: [{ id: lesson.id, name: lesson.name }] }}
+            onSuccess={() => {
+              setManualAddOpen(false);
+              refreshVocab();
+            }}
+            onCancel={() => setManualAddOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
 
       <DeleteLessonDialog
         open={deleteOpen}
