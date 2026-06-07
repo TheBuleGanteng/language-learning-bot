@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { and, eq, lte, sql, asc } from 'drizzle-orm';
+import { and, eq, lte, sql, asc, inArray } from 'drizzle-orm';
 import { db } from '@/db';
-import { cardReviews, vocabItems } from '@/db/schema';
+import { cardReviews, vocabItems, vocabStars } from '@/db/schema';
 import { apiUser } from '@/lib/api-auth';
 import { requireDeckOwner } from '@/lib/decks';
 import { storage } from '@/lib/storage';
@@ -86,6 +86,16 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     user.baseLanguage,
   );
 
+  // Per-current-user star state for the cards on this page.
+  const cardVocabIds = [...new Set(rows.map((r) => r.vocabItemId))];
+  const starRows = cardVocabIds.length
+    ? await db
+        .select({ vocabItemId: vocabStars.vocabItemId })
+        .from(vocabStars)
+        .where(and(eq(vocabStars.userId, user.id), inArray(vocabStars.vocabItemId, cardVocabIds)))
+    : [];
+  const starredSet = new Set(starRows.map((r) => r.vocabItemId));
+
   const store = storage();
   const cards = rows.map((r) => {
     const g = glosses.get(r.vocabItemId);
@@ -101,6 +111,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
       nativeText: g?.text ?? r.nativeText,
       nativeMachine: g?.machine ?? false,
       transliteration: r.transliteration,
+      starred: starredSet.has(r.vocabItemId),
       imageUrl: r.imageStorageKey ? store.publicUrl(r.imageStorageKey) : null,
     };
   });

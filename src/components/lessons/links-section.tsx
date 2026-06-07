@@ -7,9 +7,6 @@ import { Label } from '@/components/ui/label';
 import { PlayCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { ConfirmDeleteDialog } from './confirm-delete-dialog';
-import { RichTextEditor } from '@/components/rich-text-editor';
-import { RenderedHtml } from '@/components/rendered-html';
-import { stripHtml } from '@/lib/strip-html';
 import { withBase } from '@/lib/base-path';
 
 /** Defense in depth: only render http(s) links as a clickable href (the API
@@ -29,7 +26,6 @@ interface LinkRow {
   id: string;
   url: string;
   title: string;
-  notes: string | null;
   kind: 'generic' | 'youtube';
   youtubeVideoId: string | null;
   createdAt: string;
@@ -39,7 +35,6 @@ export function LinksSection({ lessonId, onCountChange, canEdit = true }: Props)
   const [links, setLinks] = useState<LinkRow[]>([]);
   const [url, setUrl] = useState('');
   const [title, setTitle] = useState('');
-  const [notes, setNotes] = useState('');
   const [busy, setBusy] = useState(false);
   const [pending, setPending] = useState<LinkRow | null>(null);
   const [expandedYt, setExpandedYt] = useState<Set<string>>(new Set());
@@ -61,16 +56,12 @@ export function LinksSection({ lessonId, onCountChange, canEdit = true }: Props)
     if (!url.trim()) return;
     setBusy(true);
     try {
-      // Notes is HTML from the rich text editor — send as-is if it has any
-      // visible content, otherwise omit so the API stores null.
-      const notesHtml = stripHtml(notes).trim() ? notes : undefined;
       const res = await fetch(withBase(`/api/lessons/${lessonId}/links`), {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
           url: url.trim(),
           title: title.trim() || undefined,
-          notes: notesHtml,
           category: 'general',
         }),
       });
@@ -81,7 +72,6 @@ export function LinksSection({ lessonId, onCountChange, canEdit = true }: Props)
       }
       setUrl('');
       setTitle('');
-      setNotes('');
       load();
     } finally {
       setBusy(false);
@@ -137,10 +127,6 @@ export function LinksSection({ lessonId, onCountChange, canEdit = true }: Props)
             />
           </div>
         </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="link-notes">Notes (optional)</Label>
-          <RichTextEditor value={notes} onChange={setNotes} />
-        </div>
         <Button type="submit" size="sm" disabled={busy || !url.trim()}>
           {busy ? 'Adding…' : 'Add link'}
         </Button>
@@ -168,12 +154,6 @@ export function LinksSection({ lessonId, onCountChange, canEdit = true }: Props)
                     <div className="flex items-start justify-between gap-2">
                       <div>
                         <p className="text-sm font-medium">{l.title}</p>
-                        {l.notes && (
-                          <RenderedHtml
-                            html={l.notes}
-                            className="text-xs text-muted-foreground mt-1"
-                          />
-                        )}
                       </div>
                       <div className="flex items-center gap-1">
                         <Button
@@ -221,12 +201,6 @@ export function LinksSection({ lessonId, onCountChange, canEdit = true }: Props)
                         {l.title}
                       </button>
                       <p className="text-xs text-muted-foreground truncate">{l.url}</p>
-                      {l.notes && (
-                        <RenderedHtml
-                          html={l.notes}
-                          className="text-xs text-muted-foreground mt-1"
-                        />
-                      )}
                     </div>
                     {canEdit && (
                       <Button
@@ -252,12 +226,6 @@ export function LinksSection({ lessonId, onCountChange, canEdit = true }: Props)
                       {l.title}
                     </a>
                     <p className="text-xs text-muted-foreground truncate">{l.url}</p>
-                    {l.notes && (
-                      <RenderedHtml
-                        html={l.notes}
-                        className="text-xs text-muted-foreground mt-1"
-                      />
-                    )}
                   </div>
                   <Button
                     size="xs"

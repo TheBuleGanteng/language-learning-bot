@@ -30,20 +30,6 @@ interface FileRow {
   createdAt: string;
 }
 
-function formatBytes(n: number): string {
-  if (n < 1024) return `${n} B`;
-  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
-  return `${(n / 1024 / 1024).toFixed(2)} MB`;
-}
-
-function formatDate(iso: string): string {
-  try {
-    return new Date(iso).toLocaleString();
-  } catch {
-    return iso;
-  }
-}
-
 export function NotesSection({ lessonId, onCountChange, canEdit = true }: Props) {
   const [files, setFiles] = useState<FileRow[]>([]);
   const [pending, setPending] = useState<FileRow | null>(null);
@@ -84,8 +70,9 @@ export function NotesSection({ lessonId, onCountChange, canEdit = true }: Props)
           kind="pdf"
           accept={{ 'application/pdf': ['.pdf'] }}
           maxBytes={20 * 1024 * 1024}
-          hint="Drop PDF here or click to upload"
-          sizeHint="Max 20MB"
+          hint="Drop PDFs here or click to upload"
+          sizeHint="Max 20MB each"
+          multiple
           onUploaded={load}
         />
       )}
@@ -94,48 +81,42 @@ export function NotesSection({ lessonId, onCountChange, canEdit = true }: Props)
           No notes yet. Upload your first PDF.
         </p>
       ) : (
-        <ul className="space-y-4">
+        // Smaller thumbnails that flow left-to-right and wrap (no horizontal
+        // scroll); several per row on desktop, ≥2 on a phone.
+        <ul className="flex flex-wrap gap-4">
           {files.map((f) => (
-            <li key={f.id} className="flex items-start gap-4">
+            <li key={f.id} className="flex w-28 flex-col gap-1.5">
               {/* First-page thumbnail (pdf.js, lazy). Click → full viewer. */}
               <PdfThumbnail
                 url={f.url}
                 filename={f.filename}
                 onClick={() => setViewing(f)}
+                className="h-32 w-28"
               />
-              <div className="flex min-w-0 flex-1 flex-col gap-2">
-                <div className="min-w-0">
-                  <button
-                    type="button"
-                    onClick={() => setViewing(f)}
-                    className="text-left text-sm font-medium break-words hover:underline"
+              <button
+                type="button"
+                onClick={() => setViewing(f)}
+                title={f.filename}
+                className="truncate text-left text-xs font-medium hover:underline"
+              >
+                {f.filename}
+              </button>
+              <div className="flex items-center gap-1">
+                <Button asChild size="xs" variant="ghost" className="h-6 px-1.5 text-xs">
+                  <a href={f.url} download={f.filename}>
+                    Download
+                  </a>
+                </Button>
+                {canEdit && (
+                  <Button
+                    size="xs"
+                    variant="ghost"
+                    className="h-6 px-1.5 text-xs text-red-600 hover:bg-red-50 hover:text-red-700"
+                    onClick={() => setPending(f)}
                   >
-                    {f.filename}
-                  </button>
-                  <p className="text-xs text-muted-foreground">
-                    {formatBytes(f.sizeBytes)} · {formatDate(f.createdAt)}
-                  </p>
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <Button size="xs" variant="outline" onClick={() => setViewing(f)}>
-                    View
+                    Delete
                   </Button>
-                  <Button asChild size="xs" variant="outline">
-                    <a href={f.url} download={f.filename}>
-                      Download
-                    </a>
-                  </Button>
-                  {canEdit && (
-                    <Button
-                      size="xs"
-                      variant="ghost"
-                      className="text-red-600 hover:bg-red-50 hover:text-red-700"
-                      onClick={() => setPending(f)}
-                    >
-                      Delete
-                    </Button>
-                  )}
-                </div>
+                )}
               </div>
             </li>
           ))}

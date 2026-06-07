@@ -19,6 +19,13 @@ import { AddToDeckDialog } from '@/components/vocab/add-to-deck-dialog';
 import { BulkEditDialog, type BulkEditItem } from '@/components/vocab/bulk-edit-dialog';
 import { DisplayNameGate } from '@/components/display-name-gate';
 import { canShare, type UserRole } from '@/lib/roles';
+import {
+  COMPREHENSION_LEVELS,
+  COMPREHENSION_META,
+  type ComprehensionLevel,
+} from '@/lib/comprehension';
+import { cn } from '@/lib/utils';
+import { Star } from 'lucide-react';
 import { withBase } from '@/lib/base-path';
 
 interface BulkSelectBarProps {
@@ -63,6 +70,8 @@ interface BulkSelectBarProps {
   selectedItems?: BulkEditItem[];
   /** Called after a successful bulk tag/lesson edit so the parent can refresh. */
   onBulkEdited?: () => void;
+  /** Show the per-user bulk actions: Set comprehension, Star, Unstar. */
+  showStarComprehension?: boolean;
 }
 
 export function BulkSelectBar({
@@ -83,6 +92,7 @@ export function BulkSelectBar({
   showEditTagsLessons = false,
   selectedItems = [],
   onBulkEdited,
+  showStarComprehension = false,
 }: BulkSelectBarProps) {
   const t = useTranslations('bulkSelect');
   const tc = useTranslations('common');
@@ -90,6 +100,36 @@ export function BulkSelectBar({
   const [shareOpen, setShareOpen] = useState(false);
   const [deckOpen, setDeckOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [compOpen, setCompOpen] = useState(false);
+  const [personalBusy, setPersonalBusy] = useState(false);
+
+  // Per-user bulk personal-state writes (comprehension / star). On success,
+  // refresh the parent's list and clear the selection.
+  async function runPersonal(url: string, body: Record<string, unknown>, okMsg: string) {
+    if (personalBusy || selectedIds.length === 0) return;
+    setPersonalBusy(true);
+    try {
+      const res = await fetch(withBase(url), {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ itemIds: selectedIds, ...body }),
+      });
+      if (!res.ok) throw new Error();
+      const d = (await res.json().catch(() => ({}))) as { updated?: number };
+      toast.success(`${okMsg} (${d.updated ?? selectedIds.length})`);
+      setCompOpen(false);
+      onBulkEdited?.();
+      onClearSelection();
+    } catch {
+      toast.error(t('genericError'));
+    } finally {
+      setPersonalBusy(false);
+    }
+  }
+  const setComprehension = (level: ComprehensionLevel) =>
+    runPersonal('/api/vocab/comprehension', { level }, 'Comprehension updated');
+  const setStarred = (starred: boolean) =>
+    runPersonal('/api/vocab/star', { starred }, starred ? 'Starred' : 'Unstarred');
   const [shareVisibility, setShareVisibility] = useState<'shared' | 'private'>('shared');
   const [shareBusy, setShareBusy] = useState(false);
 
@@ -206,6 +246,60 @@ export function BulkSelectBar({
                   Edit tags &amp; lessons
                 </Button>
               )}
+              {showStarComprehension && (
+                <div className="relative hidden md:inline-block">
+                  <Button
+                    size="xs"
+                    variant="outline"
+                    disabled={personalBusy}
+                    onClick={() => setCompOpen((v) => !v)}
+                  >
+                    Set comprehension
+                  </Button>
+                  {compOpen && (
+                    <div className="absolute right-0 top-full z-30 mt-1 w-40 rounded-md border bg-popover p-1 shadow-md">
+                      {COMPREHENSION_LEVELS.map((l) => {
+                        const m = COMPREHENSION_META[l];
+                        return (
+                          <button
+                            key={l}
+                            type="button"
+                            onClick={() => setComprehension(l)}
+                            className="flex w-full items-center gap-2 rounded px-2 py-1 text-left text-sm hover:bg-muted"
+                          >
+                            <span className={cn('inline-block h-2.5 w-2.5 rounded-full', m.dot)} />
+                            {m.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+              {showStarComprehension && (
+                <>
+                  <Button
+                    size="xs"
+                    variant="outline"
+                    className="hidden gap-1 md:inline-flex"
+                    disabled={personalBusy}
+                    onClick={() => setStarred(true)}
+                  >
+                    <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-500" />
+                    Star
+                  </Button>
+                  <Button
+                    size="xs"
+                    variant="outline"
+                    className="hidden gap-1 md:inline-flex"
+                    disabled={personalBusy}
+                    onClick={() => setStarred(false)}
+                  >
+                    <Star className="h-3.5 w-3.5" />
+                    Unstar
+                  </Button>
+                </>
+              )}
               {showGenerateImages && (
                 <Button size="xs" onClick={() => setGenOpen(true)}>
                   {t('generateImages')}
@@ -281,15 +375,70 @@ export function BulkSelectBar({
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Mobile (< md): a sticky bottom bar keeps "Edit tags & lessons" reachable
-          on long lists where the top bar has scrolled away. Desktop uses the
-          inline button above instead. */}
-      {showEditTagsLessons && !deckBuilderMode && hasSelection && (
-        <div className="fixed inset-x-0 bottom-0 z-40 flex items-center gap-3 border-t bg-background px-4 py-3 shadow-[0_-2px_8px_rgba(0,0,0,0.06)] md:hidden">
+      {/* Mobile (< md): a sticky bottom bar keeps the per-row bulk actions
+          reachable on long lists where the top bar has scrolled away. Desktop
+          uses the inline buttons above instead. */}
+      {(showEditTagsLessons || showStarComprehension) && !deckBuilderMode && hasSelection && (
+        <div className="fixed inset-x-0 bottom-0 z-40 flex flex-wrap items-center gap-2 border-t bg-background px-4 py-3 shadow-[0_-2px_8px_rgba(0,0,0,0.06)] md:hidden">
           <span className="text-sm font-medium">{t('selected', { count: selectedCount })}</span>
-          <Button size="sm" className="ml-auto" onClick={() => setEditOpen(true)}>
-            Edit tags &amp; lessons
-          </Button>
+          <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+            {showStarComprehension && (
+              <>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={personalBusy}
+                  onClick={() => setCompOpen((v) => !v)}
+                >
+                  Comprehension
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1"
+                  disabled={personalBusy}
+                  onClick={() => setStarred(true)}
+                  aria-label="Star selected"
+                >
+                  <Star className="h-4 w-4 fill-amber-400 text-amber-500" />
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1"
+                  disabled={personalBusy}
+                  onClick={() => setStarred(false)}
+                  aria-label="Unstar selected"
+                >
+                  <Star className="h-4 w-4" />
+                </Button>
+              </>
+            )}
+            {showEditTagsLessons && (
+              <Button size="sm" onClick={() => setEditOpen(true)}>
+                Edit tags &amp; lessons
+              </Button>
+            )}
+          </div>
+          {/* Comprehension chooser for mobile — anchored above the sticky bar. */}
+          {showStarComprehension && compOpen && (
+            <div className="absolute bottom-full right-4 mb-1 w-40 rounded-md border bg-popover p-1 shadow-md">
+              {COMPREHENSION_LEVELS.map((l) => {
+                const m = COMPREHENSION_META[l];
+                return (
+                  <button
+                    key={l}
+                    type="button"
+                    onClick={() => setComprehension(l)}
+                    className="flex w-full items-center gap-2 rounded px-2 py-1 text-left text-sm hover:bg-muted"
+                  >
+                    <span className={cn('inline-block h-2.5 w-2.5 rounded-full', m.dot)} />
+                    {m.label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 

@@ -21,7 +21,7 @@ import { ExtractionFlow } from '@/components/extraction/extraction-flow';
 import { buildVocabCsv, downloadCsv, vocabCsvFilename, type VocabCsvField } from '@/lib/csv-export';
 import { CsvExportDialog } from '@/components/vocab/csv-export-dialog';
 import { NewLessonDialog } from '@/components/new-lesson-dialog';
-import { Camera, Plus } from 'lucide-react';
+import { Camera, Plus, Star } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -38,6 +38,14 @@ import {
 } from '@/components/ui/accordion';
 import { BulkSelectBar } from '@/components/vocab/bulk-select-bar';
 import { AddToDeckDialog } from '@/components/vocab/add-to-deck-dialog';
+import { ComprehensionPill } from '@/components/vocab/comprehension-pill';
+import { StarToggle } from '@/components/vocab/star-toggle';
+import {
+  COMPREHENSION_LEVELS,
+  COMPREHENSION_META,
+  isComprehensionLevel,
+  type ComprehensionLevel,
+} from '@/lib/comprehension';
 import { colorForLesson, colorForTag } from '@/lib/colors';
 import { cn } from '@/lib/utils';
 import { vocabPath, lessonPath, decksPath } from '@/lib/routes';
@@ -104,6 +112,8 @@ interface VocabItem {
   createdBy: string | null;
   createdByDisplayName: string | null;
   visibility: 'private' | 'shared';
+  comprehension: ComprehensionLevel;
+  starred: boolean;
 }
 
 type ImageStatusFilter = 'all' | 'has' | 'none' | 'failed';
@@ -192,6 +202,11 @@ function VocabInner() {
   const selectedLessons = useMemo(() => new Set(search.getAll('lesson')), [search]);
   const selectedTags = useMemo(() => new Set(search.getAll('tag')), [search]);
   const selectedCreatedBy = useMemo(() => new Set(search.getAll('createdBy')), [search]);
+  const selectedComprehension = useMemo(
+    () => new Set(search.getAll('comprehension').filter(isComprehensionLevel)),
+    [search],
+  );
+  const starredOnly = ['1', 'true'].includes(search.get('starred') ?? '');
   const mode: 'and' | 'or' = search.get('mode') === 'or' ? 'or' : 'and';
   // Deck-builder mode (§7a): entered from the Flashcards "Create new deck" button.
   const deckBuilderMode = search.get('mode') === 'deck-builder';
@@ -201,7 +216,9 @@ function VocabInner() {
     (selectedLessons.size > 0 ? 1 : 0) +
     (selectedTags.size > 0 ? 1 : 0) +
     (selectedCreatedBy.size > 0 ? 1 : 0) +
-    (imageStatusFilter !== 'all' ? 1 : 0);
+    (imageStatusFilter !== 'all' ? 1 : 0) +
+    (selectedComprehension.size > 0 ? 1 : 0) +
+    (starredOnly ? 1 : 0);
   const searchTerm = search.get('search') ?? '';
   const sortParam = search.get('sort');
   const sortCol: SortCol | null = ((['thai', 'english', 'lessons', 'tags'] as const).find(
@@ -274,6 +291,8 @@ function VocabInner() {
         Array.from(selectedLessons).sort().join(','),
         Array.from(selectedTags).sort().join(','),
         Array.from(selectedCreatedBy).sort().join(','),
+        Array.from(selectedComprehension).sort().join(','),
+        starredOnly ? 'starred' : '',
       ].join('|'),
     [
       searchTerm,
@@ -285,6 +304,8 @@ function VocabInner() {
       selectedLessons,
       selectedTags,
       selectedCreatedBy,
+      selectedComprehension,
+      starredOnly,
     ],
   );
 
@@ -338,6 +359,8 @@ function VocabInner() {
     for (const id of selectedLessons) qs.append('lesson', id);
     for (const id of selectedTags) qs.append('tag', id);
     for (const id of selectedCreatedBy) qs.append('createdBy', id);
+    for (const l of selectedComprehension) qs.append('comprehension', l);
+    if (starredOnly) qs.set('starred', '1');
     if (imageStatusFilter !== 'all') qs.set('imageStatus', imageStatusFilter);
     qs.set('mode', mode);
     if (sortCol) {
@@ -364,6 +387,8 @@ function VocabInner() {
     selectedLessons,
     selectedTags,
     selectedCreatedBy,
+    selectedComprehension,
+    starredOnly,
     mode,
     sortCol,
     sortOrder,
@@ -395,6 +420,18 @@ function VocabInner() {
       for (const v of next) p.append('createdBy', v);
     });
   }
+  function setSelectedComprehension(next: Set<string>) {
+    updateParams((p) => {
+      p.delete('comprehension');
+      for (const v of next) p.append('comprehension', v);
+    });
+  }
+  function setStarredOnly(on: boolean) {
+    updateParams((p) => {
+      if (on) p.set('starred', '1');
+      else p.delete('starred');
+    });
+  }
   function setMode(m: 'and' | 'or') {
     updateParams((p) => p.set('mode', m));
   }
@@ -409,6 +446,8 @@ function VocabInner() {
     p.delete('tag');
     p.delete('createdBy');
     p.delete('imageStatus');
+    p.delete('comprehension');
+    p.delete('starred');
     if (p.get('mode') !== 'deck-builder') p.delete('mode');
     const qs = p.toString();
     router.push(`${vocabPath(lang)}${qs ? `?${qs}` : ''}`, { scroll: false });
@@ -752,6 +791,31 @@ function VocabInner() {
                   onChange={setSelectedCreatedBy}
                   emptyHint={t('noCreators')}
                 />
+                <FilterMultiSelect
+                  title="Comprehension"
+                  options={COMPREHENSION_LEVELS.map((l) => ({
+                    id: l,
+                    name: COMPREHENSION_META[l].label,
+                  }))}
+                  selected={selectedComprehension}
+                  onChange={setSelectedComprehension}
+                  emptyHint="No levels"
+                />
+
+                <button
+                  type="button"
+                  onClick={() => setStarredOnly(!starredOnly)}
+                  aria-pressed={starredOnly}
+                  className={cn(
+                    'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-colors',
+                    starredOnly
+                      ? 'bg-amber-500 text-white border-amber-500'
+                      : 'border-muted-foreground/30 hover:bg-muted',
+                  )}
+                >
+                  <Star className={cn('h-3.5 w-3.5', starredOnly && 'fill-current')} />
+                  Starred only
+                </button>
 
                 <div className="flex items-center gap-1.5 text-xs flex-wrap">
                   <span className="text-muted-foreground">{t('imageStatus')}</span>
@@ -881,6 +945,7 @@ function VocabInner() {
           selectedItems={items
             .filter((i) => selectedIds.has(i.id))
             .map((i) => ({ id: i.id, tags: i.tags, lessons: i.lessons }))}
+          showStarComprehension
           onBulkEdited={refreshItems}
         />
 
@@ -948,6 +1013,27 @@ function VocabInner() {
                       })}
                     </div>
                   )}
+                  {/* Comprehension + star — tappable on the stacked card. */}
+                  <div className="flex items-center gap-2 pt-1">
+                    <ComprehensionPill
+                      itemId={i.id}
+                      level={i.comprehension}
+                      onChanged={(level) =>
+                        setItems((prev) =>
+                          prev.map((it) => (it.id === i.id ? { ...it, comprehension: level } : it)),
+                        )
+                      }
+                    />
+                    <StarToggle
+                      itemId={i.id}
+                      starred={i.starred}
+                      onChanged={(starred) =>
+                        setItems((prev) =>
+                          prev.map((it) => (it.id === i.id ? { ...it, starred } : it)),
+                        )
+                      }
+                    />
+                  </div>
                 </div>
                 {/* Actions on the right of the same row (mobile-compact). */}
                 <div className="flex shrink-0 flex-col items-end gap-2">
@@ -995,6 +1081,8 @@ function VocabInner() {
                     {sortIcon(c.id)}
                   </TableHead>
                 ))}
+                <TableHead className="w-28 font-semibold">Comprehension</TableHead>
+                <TableHead className="w-10 font-semibold">Star</TableHead>
                 <TableHead className="w-32 text-right font-semibold">{t('colActions')}</TableHead>
               </TableRow>
             </TableHeader>
@@ -1078,6 +1166,28 @@ function VocabInner() {
                       })}
                     </div>
                   </TableCell>
+                  <TableCell className="align-top">
+                    <ComprehensionPill
+                      itemId={i.id}
+                      level={i.comprehension}
+                      onChanged={(level) =>
+                        setItems((prev) =>
+                          prev.map((it) => (it.id === i.id ? { ...it, comprehension: level } : it)),
+                        )
+                      }
+                    />
+                  </TableCell>
+                  <TableCell className="align-top">
+                    <StarToggle
+                      itemId={i.id}
+                      starred={i.starred}
+                      onChanged={(starred) =>
+                        setItems((prev) =>
+                          prev.map((it) => (it.id === i.id ? { ...it, starred } : it)),
+                        )
+                      }
+                    />
+                  </TableCell>
                   <TableCell className="text-right align-top">
                     <div className="inline-flex items-center gap-1">
                       <Button
@@ -1103,7 +1213,7 @@ function VocabInner() {
               {items.length === 0 && !loading && (
                 <TableRow>
                   <TableCell
-                    colSpan={SORT_COLS.length + 3}
+                    colSpan={SORT_COLS.length + 5}
                     className="text-center py-8 text-muted-foreground"
                   >
                     {t('noMatch')}

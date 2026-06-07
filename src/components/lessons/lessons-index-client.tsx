@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
 import {
@@ -28,6 +28,7 @@ import { DisplayNameGate } from '@/components/display-name-gate';
 import { canShare, type UserRole } from '@/lib/roles';
 import { lessonPath } from '@/lib/routes';
 import { stripHtml } from '@/lib/strip-html';
+import { sortLessons } from '@/lib/lessons-sort';
 import { withBase } from '@/lib/base-path';
 
 interface LessonRow {
@@ -103,6 +104,14 @@ export function LessonsIndexClient({ lang }: Props) {
   }, [sortCol, sortOrder, refetch]);
 
   const canShareLessons = !!me && canShare(me.role);
+
+  // Sort client-side so the header control drives a natural (numeric-aware) sort
+  // by the chosen column — no visibility grouping overriding it (Lesson 2 before
+  // Lesson 10). With no active sort, keep the server's default order.
+  const displayedRows = useMemo(
+    () => (sortCol ? sortLessons(rows, sortCol, sortOrder) : rows),
+    [rows, sortCol, sortOrder],
+  );
 
   function toggleSelected(id: string, checked: boolean) {
     setSelectedIds((prev) => {
@@ -196,7 +205,7 @@ export function LessonsIndexClient({ lang }: Props) {
 
       {/* Mobile (< md): stacked card per lesson — no horizontal scroll. */}
       <div className="space-y-3 md:hidden">
-        {rows.map((r) => (
+        {displayedRows.map((r) => (
           <div
             key={r.id}
             className="rounded-lg border bg-card p-4 active:bg-muted/40"
@@ -274,7 +283,7 @@ export function LessonsIndexClient({ lang }: Props) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {rows.map((r) => (
+            {displayedRows.map((r) => (
               <TableRow
                 key={r.id}
                 className="cursor-pointer hover:bg-muted/50 active:bg-muted/70 transition-colors"

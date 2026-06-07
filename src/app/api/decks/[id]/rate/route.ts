@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { db } from '@/db';
-import { cardReviews } from '@/db/schema';
+import { cardReviews, vocabComprehension } from '@/db/schema';
 import { apiUser } from '@/lib/api-auth';
 import { requireDeckOwner } from '@/lib/decks';
 import { dbRowToCard, scheduleCard, cardToDbRow, Rating } from '@/lib/fsrs';
+import { comprehensionFromStability } from '@/lib/comprehension';
 
 // Body rating values match the ts-fsrs Rating enum: 1=Again, 2=Hard, 3=Good, 4=Easy.
 const rateSchema = z.object({
@@ -55,6 +56,23 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     .set(next)
     .where(eq(cardReviews.id, row.id))
     .returning();
+
+  // Recompute this user's comprehension for the reviewed word from the fresh
+  // FSRS stability and upsert it — the review overwrites any prior manual value
+  // (the chosen behavior). Stability only changes on review, so it's stable
+  // between sessions. Best-effort: never fail the rating on a recompute error.
+  try {
+    const level = comprehensionFromStability(updated.stability, updated.reps);
+    await db
+      .insert(vocabComprehension)
+      .values({ userId: user.id, vocabItemId: updated.vocabItemId, level })
+      .onConflictDoUpdate({
+        target: [vocabComprehension.userId, vocabComprehension.vocabItemId],
+        set: { level, updatedAt: sql`now()` },
+      });
+  } catch {
+    // non-critical
+  }
 
   return NextResponse.json(updated);
 }

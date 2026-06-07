@@ -169,6 +169,13 @@
       "when": 1780716330224,
       "tag": "0023_lying_solo",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1780814538922,
+      "tag": "0024_dark_sentinels",
+      "breakpoints": true
     }
   ]
 }

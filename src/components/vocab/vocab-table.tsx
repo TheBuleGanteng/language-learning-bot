@@ -13,6 +13,9 @@ import {
 } from 'lucide-react';
 import { ImagePreviewDialog } from './image-preview-dialog';
 import { BulkSelectBar } from './bulk-select-bar';
+import { ComprehensionPill } from './comprehension-pill';
+import { StarToggle } from './star-toggle';
+import type { ComprehensionLevel } from '@/lib/comprehension';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -69,6 +72,8 @@ interface VocabItem {
   imageStorageKey: string | null;
   imageStatus: 'none' | 'generating' | 'completed' | 'refused' | 'failed';
   imageUrl: string | null;
+  comprehension: ComprehensionLevel;
+  starred: boolean;
 }
 
 interface Props {
@@ -315,6 +320,7 @@ export function VocabTable({
           lang={lang}
           showEditTagsLessons={showEditTagsLessons}
           selectedItems={selectedItems}
+          showStarComprehension
           onBulkEdited={() => {
             setSelectedIds(new Set());
             onMutated?.();
@@ -338,6 +344,8 @@ export function VocabTable({
                   {sortIcon(c.id)}
                 </TableHead>
               ))}
+              <TableHead className="w-28 font-semibold">Comprehension</TableHead>
+              <TableHead className="w-10 font-semibold">Star</TableHead>
               <TableHead className="w-32 text-right font-semibold">{t('colActions')}</TableHead>
             </TableRow>
           </TableHeader>
@@ -423,6 +431,28 @@ export function VocabTable({
                     })}
                   </div>
                 </TableCell>
+                <TableCell className="align-top">
+                  <ComprehensionPill
+                    itemId={i.id}
+                    level={i.comprehension}
+                    onChanged={(level) =>
+                      setItems((prev) =>
+                        prev.map((it) => (it.id === i.id ? { ...it, comprehension: level } : it)),
+                      )
+                    }
+                  />
+                </TableCell>
+                <TableCell className="align-top">
+                  <StarToggle
+                    itemId={i.id}
+                    starred={i.starred}
+                    onChanged={(starred) =>
+                      setItems((prev) =>
+                        prev.map((it) => (it.id === i.id ? { ...it, starred } : it)),
+                      )
+                    }
+                  />
+                </TableCell>
                 <TableCell className="text-right align-top">
                   <div className="inline-flex items-center gap-1">
                     <Button
@@ -448,7 +478,7 @@ export function VocabTable({
             {items.length === 0 && !loading && (
               <TableRow>
                 <TableCell
-                  colSpan={enableBulkSelect ? 7 : 6}
+                  colSpan={enableBulkSelect ? 9 : 8}
                   className="text-center py-8 text-muted-foreground"
                 >
                   No vocab items.

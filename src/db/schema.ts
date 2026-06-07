@@ -523,6 +523,53 @@ export const itemPerformance = pgTable(
 );
 
 // =============================================================================
+// vocab_comprehension — per-user comprehension level for a vocab item.
+// Absence of a row ⇒ treat as 'not_tested'. Derived from FSRS stability on
+// review (overwriting any manual value) and manually settable. Per-user — it
+// is the CURRENT user's comprehension, independent of who created the item.
+// =============================================================================
+
+export const vocabComprehension = pgTable(
+  'vocab_comprehension',
+  {
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    vocabItemId: uuid('vocab_item_id')
+      .notNull()
+      .references(() => vocabItems.id, { onDelete: 'cascade' }),
+    level: text('level').notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.userId, t.vocabItemId] }),
+    check(
+      'vocab_comprehension_level_check',
+      sql`${t.level} IN ('not_tested', 'low', 'medium', 'high')`,
+    ),
+  ],
+);
+
+// =============================================================================
+// vocab_stars — per-user star (favorite) on a vocab item. Presence ⇒ starred.
+// Per-user, independent of who created the item.
+// =============================================================================
+
+export const vocabStars = pgTable(
+  'vocab_stars',
+  {
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    vocabItemId: uuid('vocab_item_id')
+      .notNull()
+      .references(() => vocabItems.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.vocabItemId] })],
+);
+
+// =============================================================================
 // flashcards — decks, deck items, per-card FSRS state, study sessions (Feature B)
 // =============================================================================
 
@@ -698,3 +745,7 @@ export type StudySession = typeof studySessions.$inferSelect;
 export type NewStudySession = typeof studySessions.$inferInsert;
 export type AppSettings = typeof appSettings.$inferSelect;
 export type NewAppSettings = typeof appSettings.$inferInsert;
+export type VocabComprehension = typeof vocabComprehension.$inferSelect;
+export type NewVocabComprehension = typeof vocabComprehension.$inferInsert;
+export type VocabStar = typeof vocabStars.$inferSelect;
+export type NewVocabStar = typeof vocabStars.$inferInsert;

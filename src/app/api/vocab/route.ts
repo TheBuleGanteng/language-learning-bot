@@ -9,6 +9,8 @@ import {
   lessons,
   tags,
   users,
+  vocabComprehension,
+  vocabStars,
 } from '@/db/schema';
 import { auth } from '@/lib/auth';
 import { buildOrderBy } from '@/lib/vocab';
@@ -17,6 +19,7 @@ import { escapeRegex, normalizeText } from '@/lib/text-normalize';
 import { vocabVisibleSql } from '@/lib/visibility';
 import { normalizeLocale } from '@/lib/locales';
 import { glossesFor } from '@/lib/glosses';
+import { isComprehensionLevel, type ComprehensionLevel } from '@/lib/comprehension';
 
 const DEFAULT_PAGE_SIZE = 100;
 const ALLOWED_PAGE_SIZES = new Set([25, 50, 100]);
@@ -60,6 +63,12 @@ export async function GET(req: Request) {
   // bulk-batch flow switches the filter to 'all' on submit to keep
   // in-flight items visible.
   const imageFilter = url.searchParams.get('imageStatus');
+  // Comprehension facet: multi-select of the four levels (missing row ⇒ not_tested).
+  const comprehensionLevels = url.searchParams
+    .getAll('comprehension')
+    .filter(isComprehensionLevel) as ComprehensionLevel[];
+  // Starred facet: only items the current user has starred.
+  const starredOnly = ['1', 'true'].includes(url.searchParams.get('starred') ?? '');
   const orderByExpr = buildOrderBy(
     url.searchParams.get('sort'),
     url.searchParams.get('order'),
@@ -113,6 +122,24 @@ export async function GET(req: Request) {
   } else if (imageFilter === 'failed') {
     wheres.push(
       or(eq(vocabItems.imageStatus, 'failed'), eq(vocabItems.imageStatus, 'refused'))!,
+    );
+  }
+
+  // Comprehension facet: compare the current user's level (missing ⇒ not_tested)
+  // against the selected set. Levels are enum-validated above; still bound as
+  // params. If 'not_tested' is among them, the COALESCE catches the no-row case.
+  if (comprehensionLevels.length > 0) {
+    wheres.push(
+      sql`COALESCE((SELECT vc.level FROM vocab_comprehension vc WHERE vc.user_id = ${userId} AND vc.vocab_item_id = ${vocabItems.id}), 'not_tested') IN (${sql.join(
+        comprehensionLevels.map((l) => sql`${l}`),
+        sql`, `,
+      )})`,
+    );
+  }
+  // Starred facet: only the current user's starred items.
+  if (starredOnly) {
+    wheres.push(
+      sql`EXISTS (SELECT 1 FROM vocab_stars vs WHERE vs.user_id = ${userId} AND vs.vocab_item_id = ${vocabItems.id})`,
     );
   }
 
@@ -197,6 +224,24 @@ export async function GET(req: Request) {
     tagMap.set(t.vocabItemId, arr);
   }
 
+  // Per-current-user comprehension + star state (missing ⇒ not_tested / false).
+  const compRows = ids.length
+    ? await db
+        .select({ vocabItemId: vocabComprehension.vocabItemId, level: vocabComprehension.level })
+        .from(vocabComprehension)
+        .where(
+          and(eq(vocabComprehension.userId, userId), inArray(vocabComprehension.vocabItemId, ids)),
+        )
+    : [];
+  const comprehensionMap = new Map(compRows.map((r) => [r.vocabItemId, r.level]));
+  const starRows = ids.length
+    ? await db
+        .select({ vocabItemId: vocabStars.vocabItemId })
+        .from(vocabStars)
+        .where(and(eq(vocabStars.userId, userId), inArray(vocabStars.vocabItemId, ids)))
+    : [];
+  const starredSet = new Set(starRows.map((r) => r.vocabItemId));
+
   const hasMore =
     pageSize === 'all' ? false : (page - 1) * pageSize + items.length < total;
 
@@ -235,6 +280,8 @@ export async function GET(req: Request) {
       nativeMachine: g?.machine ?? false,
       lessons: lessonMap.get(i.id) ?? [],
       tags: tagMap.get(i.id) ?? [],
+      comprehension: comprehensionMap.get(i.id) ?? 'not_tested',
+      starred: starredSet.has(i.id),
       createdByDisplayName: i.createdBy ? (creatorMap.get(i.createdBy) ?? null) : null,
       imageUrl: i.imageStorageKey ? store.publicUrl(i.imageStorageKey) : null,
     };

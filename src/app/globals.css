@@ -119,6 +119,20 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+/* Single-space bullet / numbered lists in rendered rich text (lesson details,
+   etc.). The rich-text editor wraps each <li>'s text in a <p>, and the
+   typography plugin adds vertical margins to both the <li> and that inner <p> —
+   which reads as double-spaced. Collapse the inner <p> margins and tighten the
+   list-item margins so each item sits on a single line by default. */
+.prose li > p {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+.prose li {
+  margin-top: 0.125em;
+  margin-bottom: 0.125em;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

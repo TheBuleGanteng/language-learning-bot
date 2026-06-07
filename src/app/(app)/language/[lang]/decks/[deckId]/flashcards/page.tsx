@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { StarToggle } from '@/components/vocab/star-toggle';
 import { toast } from 'sonner';
 import { withBase } from '@/lib/base-path';
 import { decksPath, vocabPath } from '@/lib/routes';
@@ -21,6 +22,7 @@ interface StudyCard {
   nativeMachine?: boolean;
   transliteration: string | null;
   imageUrl: string | null;
+  starred?: boolean;
 }
 
 interface StudyResponse {
@@ -299,6 +301,19 @@ export default function StudyPage() {
               style={{ width: `${progressPct}%` }}
             />
           </div>
+        </div>
+
+        {/* Star this word (same per-user star as the vocab tables). */}
+        <div className="flex justify-end pt-2">
+          <StarToggle
+            itemId={card.vocabItemId}
+            starred={card.starred ?? false}
+            onChanged={(starred) =>
+              setCards((prev) =>
+                prev.map((c, idx) => (idx === index ? { ...c, starred } : c)),
+              )
+            }
+          />
         </div>
 
         {/* Card */}
