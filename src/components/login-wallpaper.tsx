@@ -1,16 +1,19 @@
 import Image from 'next/image';
+import { withBase } from '@/lib/base-path';
 
 /**
  * Full-page background for the unauthenticated pages (login / signup / landing).
- * Uses next/image, which prepends the configured `basePath`, so the asset
- * resolves under `/language-learning` in prod (a raw `<img src="/…">` or CSS
- * `url(/…)` would 404 there). A translucent scrim keeps forms legible.
+ * The asset must resolve under the prod base path (`/language-learning`). The
+ * next/image optimizer does NOT prefix `basePath` onto its `url` param, so we
+ * pass a base-path-prefixed `src` via withBase(); otherwise the optimizer
+ * requests `/img_wallpaper_login.png` and 400s (the file only exists under the
+ * base path). A translucent scrim keeps forms legible.
  */
 export function LoginWallpaper() {
   return (
     <div aria-hidden className="pointer-events-none fixed inset-0 -z-10">
       <Image
-        src="/img_wallpaper_login.png"
+        src={withBase('/img_wallpaper_login.png')}
         alt=""
         fill
         priority
