@@ -6,7 +6,7 @@
 // (Drizzle field `nativeLanguage`) — there is no separate `base_language`
 // column. The locale set below redefines that column's allowed values.
 
-export const LOCALES = ['en-US', 'zh-CN', 'zh-TW', 'ko', 'id'] as const;
+export const LOCALES = ['en-US', 'zh-CN', 'zh-TW', 'ko', 'id', 'ja'] as const;
 export type Locale = (typeof LOCALES)[number];
 
 export const DEFAULT_LOCALE: Locale = 'en-US';
@@ -62,6 +62,13 @@ export const LOCALE_CATALOG: Record<Locale, LocaleInfo> = {
     languageWord: 'Bahasa',
     flagCountry: 'ID',
   },
+  ja: {
+    code: 'ja',
+    englishName: 'Japanese',
+    nativeName: '日本語',
+    languageWord: '言語',
+    flagCountry: 'JP',
+  },
 };
 
 export const LOCALE_LIST: ReadonlyArray<LocaleInfo> = LOCALES.map((c) => LOCALE_CATALOG[c]);
@@ -91,6 +98,9 @@ const LEGACY_LOCALE_MAP: Record<string, Locale> = {
   'id-id': 'id',
   indonesian: 'id',
   bahasa: 'id',
+  ja: 'ja',
+  'ja-jp': 'ja',
+  japanese: 'ja',
 };
 
 /** Coerce any stored/legacy value to one of the 5 locales (default en-US). */
@@ -113,6 +123,8 @@ export function localeToTranslateCode(locale: string | null | undefined): string
       return 'ko';
     case 'id':
       return 'id';
+    case 'ja':
+      return 'ja';
     case 'en-US':
     default:
       return 'en';
