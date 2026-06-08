@@ -500,6 +500,8 @@ export function VoiceChat({ mode, lang, deckId }: VoiceChatProps) {
       ephemeralToken,
       costPerMinute,
       systemPrompt: promptRef.current,
+      // Language hint for user-side caption transcription (target BCP-47 code).
+      transcriptionLanguage: targetCode,
       onSpeaking: () => {
         setAvatarState('speaking');
         // Kruu Bingo is talking — pause the inactivity timer entirely.
@@ -853,7 +855,7 @@ export function VoiceChat({ mode, lang, deckId }: VoiceChatProps) {
               <div
                 ref={transcriptRef}
                 onScroll={handleTranscriptScroll}
-                className="max-h-[45vh] space-y-2 overflow-y-auto rounded-md border bg-muted/20 p-3"
+                className="max-h-[45vh] space-y-2 overflow-y-auto rounded-md border bg-card p-3"
               >
                 {transcript.length > 0 ? (
                   transcript.map((turn) =>
@@ -903,7 +905,7 @@ export function VoiceChat({ mode, lang, deckId }: VoiceChatProps) {
 
           {/* Controls — base language use + speech speed (both live-applied).
               The CC control lives over the avatar (above) on all widths. */}
-          <div className="shrink-0 space-y-1.5 rounded-md border bg-muted/20 px-3 py-1.5 sm:space-y-2 sm:py-2">
+          <div className="shrink-0 space-y-1.5 rounded-md border bg-card px-3 py-1.5 sm:space-y-2 sm:py-2">
             <BaseLanguageUseControl
               value={baseLanguageUse}
               onChange={onBaseLanguageChange}

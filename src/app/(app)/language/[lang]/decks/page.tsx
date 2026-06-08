@@ -212,7 +212,7 @@ export default function FlashcardsPage() {
       </div>
 
       {decks.length === 0 && !loading ? (
-        <div className="rounded-md border bg-muted/30 p-8 text-center text-muted-foreground">
+        <div className="rounded-md border bg-card p-8 text-center text-muted-foreground">
           {t('empty')}
         </div>
       ) : (

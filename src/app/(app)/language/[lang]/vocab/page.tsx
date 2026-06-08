@@ -904,7 +904,7 @@ function VocabInner() {
         </Accordion>
 
         {batch && batch.inFlight && (
-          <div className="flex items-center gap-3 rounded-md border bg-muted/40 p-3 text-sm">
+          <div className="flex items-center gap-3 rounded-md border bg-card p-3 text-sm">
             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
             <span>
               Generating images: {batch.completed} of {batch.total} complete
@@ -1105,7 +1105,7 @@ function VocabInner() {
           ))}
           </ReorderProvider>
           {items.length === 0 && !loading && (
-            <div className="rounded-md border bg-muted/30 p-8 text-center text-muted-foreground">
+            <div className="rounded-md border bg-card p-8 text-center text-muted-foreground">
               {t('noMatch')}
             </div>
           )}

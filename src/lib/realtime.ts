@@ -39,6 +39,13 @@ export interface RealtimeSessionConfig {
   ephemeralToken: string;
   systemPrompt: string;
   /**
+   * Target-language BCP-47 code (e.g. 'th') used as the input-transcription
+   * `language` hint. The user-side captions come from a SEPARATE transcription
+   * model; a language hint markedly improves accuracy for accented/learner
+   * speech. The conversational model is unaffected by this.
+   */
+  transcriptionLanguage?: string;
+  /**
    * Approximate USD/min for the selected voice model (from voice-models.ts).
    * Falls back to the flat estimate when omitted so cost logging stays
    * consistent with what the user was shown in settings.
@@ -64,6 +71,16 @@ export class RealtimeSession {
   private endedAt = 0;
   private turnCount = 0;
   private assistantBuffer = '';
+  // Input-transcription model fallback chain (user captions only). gpt-4o
+  // transcription is stronger on accented/learner speech than whisper-1; if the
+  // session rejects a model we fall back in order, keeping the language hint.
+  private readonly transcriptionModels = [
+    'gpt-4o-transcribe',
+    'gpt-4o-mini-transcribe',
+    'whisper-1',
+  ] as const;
+  private transcriptionModelIndex = 0;
+  private transcriptionConfirmed = false;
 
   constructor(config: RealtimeSessionConfig) {
     this.config = config;
@@ -127,8 +144,17 @@ export class RealtimeSession {
     }
   }
 
-  private configureSession() {
-    // Set the tutor persona + enable input transcription and server VAD.
+  /** Build the input-transcription config for the current model + language hint. */
+  private transcriptionConfig(): { model: string; language?: string } {
+    const cfg: { model: string; language?: string } = {
+      model: this.transcriptionModels[this.transcriptionModelIndex],
+    };
+    if (this.config.transcriptionLanguage) cfg.language = this.config.transcriptionLanguage;
+    return cfg;
+  }
+
+  /** Apply the persona + current transcription model + server VAD to the session. */
+  private sendSessionConfig() {
     this.send({
       type: 'session.update',
       session: {
@@ -136,12 +162,16 @@ export class RealtimeSession {
         instructions: this.config.systemPrompt,
         audio: {
           input: {
-            transcription: { model: 'whisper-1' },
-            turn_detection: { type: 'server_vad' },
+            transcription: this.transcriptionConfig(),
+            turn_detection: { type: 'server_vad' }, // conversation session — keep VAD.
           },
         },
       },
     });
+  }
+
+  private configureSession() {
+    this.sendSessionConfig();
     // Kick off the greeting.
     this.send({ type: 'response.create' });
   }
@@ -185,8 +215,32 @@ export class RealtimeSession {
       case 'response.done':
         this.config.onIdle?.();
         break;
+      // session.update was accepted — record which transcription model is live.
+      case 'session.updated':
+        if (!this.transcriptionConfirmed) {
+          this.transcriptionConfirmed = true;
+          console.info(
+            `Realtime input-transcription model in use: ${this.transcriptionModels[this.transcriptionModelIndex]}`,
+          );
+        }
+        break;
       case 'error': {
         const detail = (evt as { error?: { message?: string } }).error?.message;
+        // If the session rejected our transcription config before it was ever
+        // confirmed, fall back to the next model (keeping the language hint)
+        // rather than surfacing the error. Never leave the session unconfigured.
+        if (
+          !this.transcriptionConfirmed &&
+          this.transcriptionModelIndex < this.transcriptionModels.length - 1
+        ) {
+          this.transcriptionModelIndex += 1;
+          console.warn(
+            `Realtime transcription config rejected (${detail ?? 'unknown'}); ` +
+              `falling back to ${this.transcriptionModels[this.transcriptionModelIndex]}`,
+          );
+          this.sendSessionConfig();
+          break;
+        }
         console.error('Realtime API error event:', JSON.stringify(evt));
         this.config.onError({ code: 'api_error', detail });
         break;

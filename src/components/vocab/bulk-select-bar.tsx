@@ -207,7 +207,7 @@ export function BulkSelectBar({
   const showShareButton = showShareUnshare && canShare(userRole);
 
   return (
-    <div className="flex items-center gap-3 flex-wrap rounded-md border bg-muted/40 px-3 py-2">
+    <div className="flex items-center gap-3 flex-wrap rounded-md border bg-card px-3 py-2">
       <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
         <Checkbox
           checked={allSelected}
