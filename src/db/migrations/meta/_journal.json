@@ -183,6 +183,13 @@
       "when": 1780890736992,
       "tag": "0025_shocking_marvel_boy",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1780911222581,
+      "tag": "0026_nervous_mad_thinker",
+      "breakpoints": true
     }
   ]
 }

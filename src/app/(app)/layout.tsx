@@ -11,13 +11,18 @@ import { MobileMenu } from '@/components/mobile-menu';
 import { AppFooter } from '@/components/app-footer';
 import { LanguageSelector } from '@/components/language-selector';
 import { BatchWatcher } from '@/components/batch-watcher';
+import { SessionManager } from '@/components/session-manager';
 import { normalizeLanguageCode } from '@/lib/languages';
 import { homePath } from '@/lib/routes';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
   if (!session?.user?.email) {
-    redirect('/login');
+    // A present-but-cleared session (email blanked by the auth callback) means it
+    // was invalidated mid-use (idle timeout / forced logout) — flag it so the
+    // login page shows the expired-session toast. A truly absent session is just
+    // an unauthenticated visit.
+    redirect(session ? '/login?expired=1' : '/login');
   }
   const userId = (session.user as { id?: string }).id;
   let lang = 'th';
@@ -59,6 +64,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           mobile) so it never sits on top of the mic/slider controls. */}
       <AppFooter />
       <BatchWatcher userLang={lang} />
+      <SessionManager />
     </div>
   );
 }

@@ -32,6 +32,7 @@ import { AddUserDialog } from './add-user-dialog';
 import { RemoveUserDialog } from './remove-user-dialog';
 import { UpdateRoleDialog } from './update-role-dialog';
 import { GlobalApiKeysSection } from './global-api-keys-section';
+import { SessionManagementSection } from './session-management-section';
 import { withBase } from '@/lib/base-path';
 
 type Role = 'regular' | 'admin' | 'superuser';
@@ -219,6 +220,12 @@ export function RoleManagementSection() {
         <section className="space-y-4 border-t pt-6">
           <h3 className="text-sm font-medium">{tg('heading')}</h3>
           <GlobalApiKeysSection />
+        </section>
+
+        {/* Subsection: Session management (superuser-only; global policy). */}
+        <section className="space-y-4 border-t pt-6">
+          <h3 className="text-sm font-medium">Session management</h3>
+          <SessionManagementSection />
         </section>
       </CardContent>
 

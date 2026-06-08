@@ -1,9 +1,10 @@
 'use client';
 
-import { Suspense, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { useTranslations } from 'next-intl';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { toast } from 'sonner';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,10 +22,18 @@ function LoginInner() {
   const t = useTranslations('auth.login');
   const search = useSearchParams();
   const verified = search.get('verified') === '1';
+  const expired = search.get('expired') === '1';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  // (4) When redirected here after an expired / forced logout, tell the user why.
+  useEffect(() => {
+    if (expired) {
+      toast.error('You were signed out because your session expired. Please log in again.');
+    }
+  }, [expired]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();

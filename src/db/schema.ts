@@ -63,6 +63,10 @@ export const users = pgTable('users', {
   // disabled at that time. Login is rejected for disabled accounts (auth.ts),
   // and the jwt callback forces an already-logged-in disabled user out.
   disabledAt: timestamp('disabled_at', { withTimezone: true }),
+  // Last recorded user activity (idle-session enforcement). Bumped by the
+  // /api/session/heartbeat endpoint on real interaction; the auth jwt callback
+  // invalidates a session idle longer than app_settings.session_idle_timeout.
+  lastActivityAt: timestamp('last_activity_at', { withTimezone: true }).defaultNow(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
@@ -747,6 +751,13 @@ export const appSettings = pgTable('app_settings', {
   avatarInactivityTimeoutSeconds: integer('avatar_inactivity_timeout_seconds')
     .notNull()
     .default(120),
+  // Global session management (superuser-controlled, applies to all users).
+  // Idle timeout: a session with no activity for this long is invalidated.
+  // Warning: how long before that cutoff the "stay logged in?" popup appears.
+  sessionIdleTimeoutSeconds: integer('session_idle_timeout_seconds')
+    .notNull()
+    .default(1800),
+  sessionWarningSeconds: integer('session_warning_seconds').notNull().default(300),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
 

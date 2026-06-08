@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { env } from './env';
 import { normalizeLanguageCode } from './languages';
 import { normalizeLocale } from './locales';
+import { getSessionConfig } from './session-config';
 
 const credSchema = z.object({
   email: z.string().email(),
@@ -59,6 +60,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (user) {
         token.userId = user.id as string;
         // iat is set by next-auth itself
+        // Fresh login — stamp activity now so the idle window starts now.
+        await db
+          .update(users)
+          .set({ lastActivityAt: new Date() })
+          .where(eq(users.id, user.id as string));
       }
       // Check sessions_invalidated_at — reject if the JWT predates it.
       // Also refresh the language codes on every jwt callback so settings
@@ -72,6 +78,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             native: users.nativeLanguage,
             role: users.role,
             displayName: users.displayName,
+            lastActivityAt: users.lastActivityAt,
           })
           .from(users)
           .where(eq(users.id, token.userId as string))
@@ -86,6 +93,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         // (the session callback clears the email → the (app) layout redirects).
         if (row?.disabled) {
           token.invalidated = true;
+        }
+        // Idle-session enforcement (global, superuser-configurable). A session
+        // with no activity for longer than the configured idle timeout is
+        // invalidated. Not applied on the fresh-login request (user present),
+        // which just stamped activity above. Activity is bumped by the
+        // /api/session/heartbeat endpoint on real user interaction.
+        if (!user && row?.lastActivityAt) {
+          const { idleTimeoutSeconds } = await getSessionConfig();
+          if (Date.now() - row.lastActivityAt.getTime() > idleTimeoutSeconds * 1000) {
+            token.invalidated = true;
+          }
         }
         if (row) {
           token.targetLanguage = normalizeLanguageCode(row.target);
