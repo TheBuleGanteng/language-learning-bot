@@ -24,9 +24,10 @@ export function AppNav({ lang, className }: Props) {
   const langPrefix = `/language/${lang}`;
   const isActive = (target: string) => pathname.startsWith(target);
 
+  // Order left → right: Learn (dropdown), Lessons, Vocabulary.
   const items = [
-    { label: t('vocab'), href: vocabPath(lang), match: `${langPrefix}/vocab` },
     { label: t('lessons'), href: lessonsPath(lang), match: `${langPrefix}/lessons` },
+    { label: t('vocab'), href: vocabPath(lang), match: `${langPrefix}/vocab` },
   ];
 
   const learnActive = isActive(`${langPrefix}/flashcards`);
@@ -40,14 +41,8 @@ export function AppNav({ lang, className }: Props) {
 
   return (
     <nav className={cn('flex items-center gap-1', className)}>
-      {items.map((i) => (
-        <Link key={i.label} href={i.href} className={navItemClass(isActive(i.match))}>
-          {i.label}
-        </Link>
-      ))}
-
-      {/* Learn dropdown — language-aware; only rendered inside the authed
-          (app) layout, which always supplies the user's target language. */}
+      {/* Learn dropdown (leftmost) — language-aware; only rendered inside the
+          authed (app) layout, which always supplies the user's target language. */}
       <DropdownMenu>
         <DropdownMenuTrigger
           render={
@@ -78,6 +73,12 @@ export function AppNav({ lang, className }: Props) {
           />
         </DropdownMenuContent>
       </DropdownMenu>
+
+      {items.map((i) => (
+        <Link key={i.label} href={i.href} className={navItemClass(isActive(i.match))}>
+          {i.label}
+        </Link>
+      ))}
     </nav>
   );
 }

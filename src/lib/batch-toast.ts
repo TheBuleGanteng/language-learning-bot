@@ -3,7 +3,7 @@
 // React tree or a live batch.
 
 export type BatchToast = {
-  variant: 'progress' | 'success' | 'error';
+  variant: 'progress' | 'success' | 'error' | 'stopped';
   label: string;
   /** 0..1 fill fraction for the progress bar. */
   pct: number;
@@ -15,6 +15,7 @@ const MAX_ERROR_LEN = 140;
  * Map a batch snapshot to the toast that should be shown.
  *  - an `error` message → red error toast `Error: <message>` (message truncated)
  *  - `active` → green progress toast `Image generation underway (done/total)`
+ *  - `stopped` (and no longer active) → amber `Image generation stopped (done/total)`
  *  - otherwise → green success toast `Image generation complete (completed/total)`
  *    with ` · N failed` appended when there were failures/refusals.
  *
@@ -27,8 +28,9 @@ export function batchToastState(args: {
   refused: number;
   active: boolean;
   error?: string | null;
+  stopped?: boolean;
 }): BatchToast {
-  const { total, completed, failed, refused, active, error } = args;
+  const { total, completed, failed, refused, active, error, stopped } = args;
 
   if (error) {
     const trimmed =
@@ -43,6 +45,14 @@ export function batchToastState(args: {
     return {
       variant: 'progress',
       label: `Image generation underway (${done}/${total})`,
+      pct,
+    };
+  }
+
+  if (stopped) {
+    return {
+      variant: 'stopped',
+      label: `Image generation stopped (${done}/${total})`,
       pct,
     };
   }

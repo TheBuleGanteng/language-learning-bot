@@ -137,10 +137,14 @@
   * {
     @apply border-border outline-ring/50;
   }
+  /* Body is transparent so the app-wide wallpaper layer (rendered behind all
+     content in the root layout) shows through gutters/margins; html keeps the
+     theme color as the base behind the wallpaper. Content surfaces (cards,
+     tables, navbar, dialogs) carry their own opaque bg-*. */
   body {
-    @apply bg-background text-foreground;
+    @apply text-foreground;
   }
   html {
-    @apply font-sans;
+    @apply bg-background font-sans;
   }
 }

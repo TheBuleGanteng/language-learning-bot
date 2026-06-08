@@ -66,8 +66,8 @@ export function MobileMenu({ lang, className }: Props) {
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
           <DropdownMenuLabel>{t('materials')}</DropdownMenuLabel>
-          <DropdownMenuItem render={<Link href={vocabPath(lang)}><BookOpen className="mr-2 h-4 w-4" />{t('vocab')}</Link>} />
           <DropdownMenuItem render={<Link href={lessonsPath(lang)}><Library className="mr-2 h-4 w-4" />{t('lessons')}</Link>} />
+          <DropdownMenuItem render={<Link href={vocabPath(lang)}><BookOpen className="mr-2 h-4 w-4" />{t('vocab')}</Link>} />
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>

@@ -72,4 +72,42 @@ describe('batchToastState', () => {
     const s = batchToastState({ total: 0, completed: 0, failed: 0, refused: 0, active: true });
     expect(s.pct).toBe(0);
   });
+
+  it('stopped: amber variant with done/total once stopped and no longer active', () => {
+    const s = batchToastState({
+      total: 10,
+      completed: 4,
+      failed: 1,
+      refused: 0,
+      active: false,
+      stopped: true,
+    });
+    expect(s.variant).toBe('stopped');
+    expect(s.label).toBe('Image generation stopped (5/10)');
+  });
+
+  it('active takes precedence over stopped (still generating)', () => {
+    const s = batchToastState({
+      total: 10,
+      completed: 4,
+      failed: 0,
+      refused: 0,
+      active: true,
+      stopped: true,
+    });
+    expect(s.variant).toBe('progress');
+  });
+
+  it('error takes precedence over stopped', () => {
+    const s = batchToastState({
+      total: 10,
+      completed: 4,
+      failed: 0,
+      refused: 0,
+      active: false,
+      stopped: true,
+      error: 'boom',
+    });
+    expect(s.variant).toBe('error');
+  });
 });

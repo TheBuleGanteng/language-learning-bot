@@ -40,6 +40,7 @@ import { canShare, type UserRole } from '@/lib/roles';
 import { lessonPath } from '@/lib/routes';
 import { stripHtml } from '@/lib/strip-html';
 import { sortLessons } from '@/lib/lessons-sort';
+import { selectAllState, toggleSelectAll } from '@/lib/selection';
 import { withBase } from '@/lib/base-path';
 import { ReorderProvider, SortableRow, DragHandle, type ReorderMove } from '@/components/dnd/sortable';
 
@@ -142,6 +143,13 @@ export function LessonsIndexClient({ lang }: Props) {
       else next.delete(id);
       return next;
     });
+  }
+
+  // Master "Select all" over the currently listed (filtered/sorted) lessons.
+  const listedIds = useMemo(() => displayedRows.map((r) => r.id), [displayedRows]);
+  const selectAll = selectAllState(listedIds, selectedIds);
+  function onSelectAllToggle() {
+    setSelectedIds(toggleSelectAll(listedIds, selectedIds));
   }
 
   // Activating any sort control clears the manual drag order (Part 3.2).
@@ -327,6 +335,17 @@ export function LessonsIndexClient({ lang }: Props) {
 
       {/* Mobile (< md): stacked card per lesson — no horizontal scroll. */}
       <div className="space-y-3 md:hidden">
+        {displayedRows.length > 0 && (
+          <label className="flex items-center gap-2 px-1 text-sm text-muted-foreground">
+            <Checkbox
+              checked={selectAll.allSelected}
+              indeterminate={selectAll.indeterminate}
+              onCheckedChange={onSelectAllToggle}
+              aria-label="Select all lessons"
+            />
+            Select all
+          </label>
+        )}
         <ReorderProvider
           ids={displayedRows.map((r) => r.id)}
           onMove={handleMove}
@@ -410,7 +429,14 @@ export function LessonsIndexClient({ lang }: Props) {
           <TableHeader>
             <TableRow className="bg-muted border-b-2">
               <TableHead className="w-8" />
-              <TableHead className="w-10" />
+              <TableHead className="w-10">
+                <Checkbox
+                  checked={selectAll.allSelected}
+                  indeterminate={selectAll.indeterminate}
+                  onCheckedChange={onSelectAllToggle}
+                  aria-label="Select all lessons"
+                />
+              </TableHead>
               {COLS.map((c) => (
                 <TableHead
                   key={c.id}

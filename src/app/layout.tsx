@@ -4,6 +4,7 @@ import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';
 import './globals.css';
 import { Providers } from '@/components/providers';
+import { AppWallpaper } from '@/components/app-wallpaper';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -39,6 +40,8 @@ export default async function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        {/* App-wide background behind all content (root layer; survives nav). */}
+        <AppWallpaper />
         <NextIntlClientProvider locale={locale} messages={messages}>
           <Providers>{children}</Providers>
         </NextIntlClientProvider>
