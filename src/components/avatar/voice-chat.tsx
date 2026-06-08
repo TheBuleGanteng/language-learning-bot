@@ -761,9 +761,13 @@ export function VoiceChat({ mode, lang, deckId }: VoiceChatProps) {
   if (phase === 'completed' && completion) {
     const minutes = Math.max(1, Math.round(completion.durationSeconds / 60));
     return (
-      <div className="fixed inset-0 z-50 flex flex-col bg-background p-4 overflow-y-auto sm:static sm:z-auto sm:p-0">
-        <div className="m-auto w-full max-w-md space-y-6 text-center">
-          <h1 className="text-2xl font-bold">{t('greatSession')}</h1>
+      <div className="fixed inset-0 z-50 overflow-y-auto bg-background sm:static sm:z-auto">
+        {/* min-h-full centers the card when it fits and lets the container
+            scroll (rather than clip the last button) when content is taller
+            than the viewport. pb keeps "Return to vocab" off the bottom edge. */}
+        <div className="flex min-h-full flex-col items-center justify-center p-4 pb-10 sm:min-h-0 sm:p-0">
+          <div className="w-full max-w-md space-y-6 text-center">
+            <h1 className="text-2xl font-bold">{t('greatSession')}</h1>
           <div className="space-y-1 text-muted-foreground">
             <p>
               {t('duration')}:{' '}
@@ -793,6 +797,7 @@ export function VoiceChat({ mode, lang, deckId }: VoiceChatProps) {
             <Button variant="outline" onClick={() => router.push(vocabPath(lang))}>
               {t('returnVocab')}
             </Button>
+          </div>
           </div>
         </div>
       </div>

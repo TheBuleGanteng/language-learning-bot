@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { and, eq, ilike, or, sql, desc, inArray } from 'drizzle-orm';
+import { and, eq, ilike, or, sql, inArray } from 'drizzle-orm';
 import { db } from '@/db';
 import {
   vocabItems,
@@ -14,7 +14,7 @@ import {
   vocabOrder,
 } from '@/db/schema';
 import { auth } from '@/lib/auth';
-import { buildOrderBy, manualOrderSql, phrasesTiebreakerSql } from '@/lib/vocab';
+import { buildOrderBy, manualOrderSql, phrasesTiebreakerSql, defaultVocabSortSql } from '@/lib/vocab';
 import { storage } from '@/lib/storage';
 import { escapeRegex, normalizeText } from '@/lib/text-normalize';
 import { vocabVisibleSql } from '@/lib/visibility';
@@ -165,12 +165,13 @@ export async function GET(req: Request) {
           ELSE 6
         END ASC, LEAST(LENGTH(${vocabItems.targetText}), LENGTH(${vocabItems.nativeText})) ASC`
       : null;
-  // Manual drag order (Part 3): active ⇔ the user has any vocab_order rows AND
-  // no explicit column sort was requested (the client deletes the rows when a
-  // sort control is used, reverting to the computed sort). When active, order by
-  // `position ASC` (position-less items last); the phrases tiebreaker does NOT
-  // apply (positions are absolute). Otherwise: explicit sort > search relevance
-  // > default (newest first), each with the phrases tag as a final tiebreaker.
+  // Order precedence:
+  //   1. manual drag order (vocab_order rows, no explicit column sort) — absolute
+  //      positions, no phrases tiebreaker;
+  //   2. explicit column sort — that column + phrases as the lowest tiebreaker;
+  //   3. search relevance (when searching) + phrases tiebreaker;
+  //   4. DEFAULT 3-key sort: highest-numbered lesson Z→A (no-lesson last) →
+  //      phrases-absent-first → target A→Z (normalized). See defaultVocabSortSql.
   let manualMode = false;
   if (!orderByExpr) {
     const [mc] = await db
@@ -181,7 +182,11 @@ export async function GET(req: Request) {
   }
   const finalOrder = manualMode
     ? manualOrderSql(userId)
-    : sql`${orderByExpr ?? searchOrder ?? desc(vocabItems.createdAt)}, ${phrasesTiebreakerSql}`;
+    : orderByExpr
+      ? sql`${orderByExpr}, ${phrasesTiebreakerSql}`
+      : searchOrder
+        ? sql`${searchOrder}, ${phrasesTiebreakerSql}`
+        : defaultVocabSortSql;
 
   const [totalRow] = await db
     .select({ n: sql<number>`count(*)::int` })

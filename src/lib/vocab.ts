@@ -18,6 +18,22 @@ export const phrasesTiebreakerSql: SQL = sql`(CASE WHEN EXISTS (
 ) THEN 1 ELSE 0 END) ASC`;
 
 /**
+ * Default vocab ordering — applied when there is NO active manual drag order and
+ * NO explicit column sort (and no search relevance). Highest priority first:
+ *   1. By the item's HIGHEST-numbered lesson, descending (Z→A natural-numeric);
+ *      items with no lesson sort last (NULLS LAST).
+ *   2. Phrases tiebreaker — within the same lesson group, items WITHOUT the
+ *      `phrases` tag come before those with it (case-insensitive).
+ *   3. Target column A→Z via the accent-agnostic normalized column.
+ *   4. `created_at DESC` as a final stable tiebreaker.
+ * Lesson number is the app's natural-numeric key ("Lesson 38" > "Lesson 9").
+ */
+export const defaultVocabSortSql: SQL = sql`(
+  SELECT MAX(l.lesson_number) FROM vocab_lessons vl JOIN lessons l ON l.id = vl.lesson_id
+  WHERE vl.vocab_item_id = ${vocabItems.id}
+) DESC NULLS LAST, ${phrasesTiebreakerSql}, ${vocabItems.targetTextNormalized} ASC, ${vocabItems.createdAt} DESC`;
+
+/**
  * ORDER BY expression for manual drag mode: the current user's `position`
  * (missing ⇒ +infinity ⇒ sorts last), then `created_at DESC` as the stable
  * tiebreaker among position-less (newly added) items.

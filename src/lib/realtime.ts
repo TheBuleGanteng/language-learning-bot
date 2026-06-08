@@ -12,6 +12,33 @@ const REALTIME_URL = 'https://api.openai.com/v1/realtime/calls';
 // model's estimate from src/lib/voice-models.ts).
 const APPROX_USD_PER_MINUTE = 0.3;
 
+// Turn-detection policy for the conversation session. Semantic VAD (low
+// eagerness) waits until the user has actually finished a thought, so a
+// mid-sentence pause doesn't commit the turn and chop the input — which is what
+// wrecked the user-side caption transcription. `create_response` /
+// `interrupt_response` preserve the conversation behavior (AI replies at
+// end-of-turn; the user can still interrupt).
+//
+// If semantic VAD is REJECTED at runtime, we auto-fall-back to the tuned
+// server-VAD below (keeping the language hint). If semantic VAD is *accepted*
+// but still cuts the user off in practice, swap TURN_DETECTION to
+// TURN_DETECTION_SERVER and redeploy (try silence_duration_ms 1500→2000). See
+// ERROR_REPORT.md.
+const TURN_DETECTION = {
+  type: 'semantic_vad',
+  eagerness: 'low',
+  create_response: true,
+  interrupt_response: true,
+} as const;
+const TURN_DETECTION_SERVER = {
+  type: 'server_vad',
+  threshold: 0.5,
+  prefix_padding_ms: 500,
+  silence_duration_ms: 1500,
+  create_response: true,
+  interrupt_response: true,
+} as const;
+
 // Stable, framework-agnostic error codes. The lib carries NO user-facing
 // English; call sites map these codes → localized messages (see voice-chat).
 export type RealtimeErrorCode =
@@ -71,16 +98,22 @@ export class RealtimeSession {
   private endedAt = 0;
   private turnCount = 0;
   private assistantBuffer = '';
-  // Input-transcription model fallback chain (user captions only). gpt-4o
-  // transcription is stronger on accented/learner speech than whisper-1; if the
-  // session rejects a model we fall back in order, keeping the language hint.
-  private readonly transcriptionModels = [
-    'gpt-4o-transcribe',
-    'gpt-4o-mini-transcribe',
-    'whisper-1',
-  ] as const;
-  private transcriptionModelIndex = 0;
-  private transcriptionConfirmed = false;
+  // Session-config fallback chain (user captions only — the conversation is
+  // unaffected). Primary = semantic VAD + the strongest transcription model;
+  // if the session rejects an `session.update` before it's confirmed, advance:
+  // first swap semantic→server VAD, then step down the transcription model.
+  // The language hint is always retained.
+  private readonly configAttempts: {
+    model: string;
+    turnDetection: Record<string, unknown>;
+  }[] = [
+    { model: 'gpt-4o-transcribe', turnDetection: TURN_DETECTION },
+    { model: 'gpt-4o-transcribe', turnDetection: TURN_DETECTION_SERVER },
+    { model: 'gpt-4o-mini-transcribe', turnDetection: TURN_DETECTION_SERVER },
+    { model: 'whisper-1', turnDetection: TURN_DETECTION_SERVER },
+  ];
+  private attemptIndex = 0;
+  private sessionConfirmed = false;
 
   constructor(config: RealtimeSessionConfig) {
     this.config = config;
@@ -144,16 +177,16 @@ export class RealtimeSession {
     }
   }
 
-  /** Build the input-transcription config for the current model + language hint. */
+  /** Build the input-transcription config for the current attempt + language hint. */
   private transcriptionConfig(): { model: string; language?: string } {
     const cfg: { model: string; language?: string } = {
-      model: this.transcriptionModels[this.transcriptionModelIndex],
+      model: this.configAttempts[this.attemptIndex].model,
     };
     if (this.config.transcriptionLanguage) cfg.language = this.config.transcriptionLanguage;
     return cfg;
   }
 
-  /** Apply the persona + current transcription model + server VAD to the session. */
+  /** Apply the persona + current transcription model + turn detection to the session. */
   private sendSessionConfig() {
     this.send({
       type: 'session.update',
@@ -163,7 +196,7 @@ export class RealtimeSession {
         audio: {
           input: {
             transcription: this.transcriptionConfig(),
-            turn_detection: { type: 'server_vad' }, // conversation session — keep VAD.
+            turn_detection: this.configAttempts[this.attemptIndex].turnDetection,
           },
         },
       },
@@ -215,28 +248,30 @@ export class RealtimeSession {
       case 'response.done':
         this.config.onIdle?.();
         break;
-      // session.update was accepted — record which transcription model is live.
+      // session.update was accepted — record which config is live.
       case 'session.updated':
-        if (!this.transcriptionConfirmed) {
-          this.transcriptionConfirmed = true;
+        if (!this.sessionConfirmed) {
+          this.sessionConfirmed = true;
+          const a = this.configAttempts[this.attemptIndex];
           console.info(
-            `Realtime input-transcription model in use: ${this.transcriptionModels[this.transcriptionModelIndex]}`,
+            `Realtime session config in use: transcription=${a.model}, turn_detection=${String(
+              a.turnDetection.type,
+            )}`,
           );
         }
         break;
       case 'error': {
         const detail = (evt as { error?: { message?: string } }).error?.message;
-        // If the session rejected our transcription config before it was ever
-        // confirmed, fall back to the next model (keeping the language hint)
-        // rather than surfacing the error. Never leave the session unconfigured.
-        if (
-          !this.transcriptionConfirmed &&
-          this.transcriptionModelIndex < this.transcriptionModels.length - 1
-        ) {
-          this.transcriptionModelIndex += 1;
+        // If the session rejected our config before it was ever confirmed, fall
+        // back to the next attempt (semantic→server VAD, then weaker transcription
+        // model — language hint retained) rather than surfacing the error. Never
+        // leave the session unconfigured.
+        if (!this.sessionConfirmed && this.attemptIndex < this.configAttempts.length - 1) {
+          this.attemptIndex += 1;
+          const a = this.configAttempts[this.attemptIndex];
           console.warn(
-            `Realtime transcription config rejected (${detail ?? 'unknown'}); ` +
-              `falling back to ${this.transcriptionModels[this.transcriptionModelIndex]}`,
+            `Realtime session.update rejected (${detail ?? 'unknown'}); falling back to ` +
+              `transcription=${a.model}, turn_detection=${String(a.turnDetection.type)}`,
           );
           this.sendSessionConfig();
           break;
