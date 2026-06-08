@@ -6,6 +6,30 @@ export const SORT_COLUMNS = ['thai', 'english', 'lessons', 'tags'] as const;
 export type SortColumn = (typeof SORT_COLUMNS)[number];
 
 /**
+ * Lowest-priority tiebreaker appended to EVERY computed vocab sort (default and
+ * explicit column sorts): items WITHOUT the `phrases` tag (flag 0) sort before
+ * items WITH it (flag 1). Matched case-insensitively by tag name, since tags
+ * merge case-insensitively in this app. Suppressed when manual drag order is
+ * active (positions are absolute there).
+ */
+export const phrasesTiebreakerSql: SQL = sql`(CASE WHEN EXISTS (
+  SELECT 1 FROM vocab_tags vt JOIN tags t ON t.id = vt.tag_id
+  WHERE vt.vocab_item_id = ${vocabItems.id} AND lower(t.name) = 'phrases'
+) THEN 1 ELSE 0 END) ASC`;
+
+/**
+ * ORDER BY expression for manual drag mode: the current user's `position`
+ * (missing ⇒ +infinity ⇒ sorts last), then `created_at DESC` as the stable
+ * tiebreaker among position-less (newly added) items.
+ */
+export function manualOrderSql(userId: string): SQL {
+  return sql`COALESCE(
+    (SELECT vo.position FROM vocab_order vo WHERE vo.user_id = ${userId} AND vo.vocab_item_id = ${vocabItems.id}),
+    'infinity'::double precision
+  ) ASC, ${vocabItems.createdAt} DESC`;
+}
+
+/**
  * Resolve sort/order query params into an ORDER BY expression for the
  * vocab list. Returns null when no explicit sort was requested — caller
  * falls back to `created_at DESC` (insertion order, newest first).

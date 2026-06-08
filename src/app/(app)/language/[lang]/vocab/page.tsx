@@ -72,6 +72,8 @@ import {
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { withBase } from '@/lib/base-path';
+import { ReorderProvider, SortableRow, DragHandle, type ReorderMove } from '@/components/dnd/sortable';
+import { emitBatchStarted, emitBatchError } from '@/lib/bulk-gen-events';
 
 type SortCol = 'thai' | 'english' | 'lessons' | 'tags';
 type SortOrder = 'asc' | 'desc';
@@ -134,6 +136,8 @@ interface ListResponse {
   pageSize: number | 'all';
   total: number;
   hasMore: boolean;
+  /** Whether the server returned these in the user's manual drag order. */
+  manualOrder?: boolean;
 }
 interface MeResponse {
   id: string;
@@ -163,6 +167,8 @@ function VocabInner() {
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  // Whether the current list is in the user's manual drag order (Part 3).
+  const [manualOrder, setManualOrder] = useState(false);
   const [batch, setBatch] = useState<BatchSnapshot | null>(null);
   const [previewItem, setPreviewItem] = useState<VocabItem | null>(null);
   // Bumping this state forces the fetch effect to re-run even when none of
@@ -372,6 +378,7 @@ function VocabInner() {
       .then((d: ListResponse) => {
         setTotal(d.total);
         setHasMore(d.hasMore);
+        setManualOrder(d.manualOrder ?? false);
         if (loadedPages === 1 || pageSize === 'all') {
           setItems(d.items);
         } else {
@@ -469,7 +476,16 @@ function VocabInner() {
     });
   }
 
+  // Activating any sort control clears the manual drag order (Part 3.2) — the
+  // DELETE is fire-and-forget; a sort-param fetch ignores manual rows anyway.
+  function clearVocabOrder() {
+    if (!manualOrder) return;
+    setManualOrder(false);
+    fetch(withBase('/api/vocab/order'), { method: 'DELETE' }).catch(() => {});
+  }
+
   function cycleSort(col: SortCol) {
+    clearVocabOrder();
     updateParams((p) => {
       const cur = p.get('sort');
       const ord = p.get('order') === 'desc' ? 'desc' : 'asc';
@@ -483,6 +499,27 @@ function VocabInner() {
         p.delete('order');
       }
     });
+  }
+
+  // Drag-to-reorder (Part 3): optimistic local reorder, then persist the single
+  // move (server lazy-inits the full ordering on first drag). Revert on failure.
+  async function handleVocabMove({ movedId, beforeId, afterId, newIds }: ReorderMove) {
+    const prev = items;
+    const byId = new Map(items.map((i) => [i.id, i]));
+    const reordered = newIds.map((id) => byId.get(id)).filter((i): i is VocabItem => !!i);
+    setItems(reordered);
+    setManualOrder(true);
+    try {
+      const res = await fetch(withBase('/api/vocab/order'), {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ movedId, beforeId, afterId }),
+      });
+      if (!res.ok) throw new Error();
+    } catch {
+      setItems(prev);
+      toast.error('Could not save the new order');
+    }
   }
 
   function sortIcon(col: SortCol) {
@@ -595,21 +632,20 @@ function VocabInner() {
     });
     if (res.status === 402) {
       const data = await res.json().catch(() => ({}));
-      toast.error(data?.message ?? 'Hard stop reached.');
+      // Surface via the global bulk-gen toast (red Error: …) per Part 6.
+      emitBatchError(data?.message ?? 'Hard stop reached.');
       // Throw so BulkSelectBar leaves its dialog open and preserves the
       // selection for a retry.
       throw new Error('hard-stop');
     }
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      toast.error(data?.error ?? 'Bulk generate failed.');
+      emitBatchError(data?.error ?? 'Bulk generate failed.');
       throw new Error('generate-failed');
     }
     const data = (await res.json()) as { batchId: string; total: number };
-    toast.success(`Started generating ${data.total} image${data.total === 1 ? '' : 's'}.`);
-    // Signal the global BatchWatcher to poll immediately rather than
-    // wait up to 15s for its next idle tick.
-    window.dispatchEvent(new CustomEvent('batch-started'));
+    // Signal the global bulk-gen toast (and BatchWatcher) to poll immediately.
+    emitBatchStarted();
     setBatch({
       total: data.total,
       completed: 0,
@@ -951,9 +987,17 @@ function VocabInner() {
 
         {/* Mobile (< md): stacked card per item — no horizontal scroll. */}
         <div className="space-y-3 md:hidden">
+          <ReorderProvider
+            ids={items.map((i) => i.id)}
+            onMove={handleVocabMove}
+            disabled={sortCol !== null}
+          >
           {items.map((i) => (
-            <div key={i.id} className="rounded-lg border bg-card p-3">
+            <SortableRow key={i.id} id={i.id}>
+              {({ setNodeRef, style, handleProps }) => (
+            <div ref={setNodeRef} style={style} className="rounded-lg border bg-card p-3">
               <div className="flex gap-3">
+                <DragHandle handleProps={handleProps} className="mt-1 shrink-0" />
                 <Checkbox
                   className="mt-1 shrink-0"
                   checked={selectedIds.has(i.id)}
@@ -1056,7 +1100,10 @@ function VocabInner() {
                 </div>
               </div>
             </div>
+              )}
+            </SortableRow>
           ))}
+          </ReorderProvider>
           {items.length === 0 && !loading && (
             <div className="rounded-md border bg-muted/30 p-8 text-center text-muted-foreground">
               {t('noMatch')}
@@ -1066,10 +1113,17 @@ function VocabInner() {
 
         {/* Desktop (md+): the full table. */}
         <div className="hidden w-full max-w-full overflow-x-auto rounded-md border md:block">
+          <ReorderProvider
+            ids={items.map((i) => i.id)}
+            onMove={handleVocabMove}
+            disabled={sortCol !== null}
+          >
           <Table className="w-full">
             <TableHeader>
               <TableRow className="bg-muted border-b-2">
+                <TableHead className="w-8" />
                 <TableHead className="w-10" />
+                <TableHead className="w-10 font-semibold">Star</TableHead>
                 <TableHead className="w-14 font-semibold">{t('colImage')}</TableHead>
                 {SORT_COLS.map((c) => (
                   <TableHead
@@ -1082,19 +1136,34 @@ function VocabInner() {
                   </TableHead>
                 ))}
                 <TableHead className="w-28 font-semibold">Comprehension</TableHead>
-                <TableHead className="w-10 font-semibold">Star</TableHead>
                 <TableHead className="w-32 text-right font-semibold">{t('colActions')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {items.map((i) => (
-                <TableRow key={i.id}>
+                <SortableRow key={i.id} id={i.id}>
+                  {({ setNodeRef, style, handleProps }) => (
+                <TableRow ref={setNodeRef} style={style}>
+                  <TableCell className="align-top">
+                    <DragHandle handleProps={handleProps} />
+                  </TableCell>
                   <TableCell className="align-top">
                     <Checkbox
                       checked={selectedIds.has(i.id)}
                       disabled={i.imageStatus === 'generating'}
                       onCheckedChange={(c) => toggleSelect(i.id, c === true)}
                       aria-label={t('selectRow')}
+                    />
+                  </TableCell>
+                  <TableCell className="align-top">
+                    <StarToggle
+                      itemId={i.id}
+                      starred={i.starred}
+                      onChanged={(starred) =>
+                        setItems((prev) =>
+                          prev.map((it) => (it.id === i.id ? { ...it, starred } : it)),
+                        )
+                      }
                     />
                   </TableCell>
                   <TableCell className="align-top">
@@ -1177,17 +1246,6 @@ function VocabInner() {
                       }
                     />
                   </TableCell>
-                  <TableCell className="align-top">
-                    <StarToggle
-                      itemId={i.id}
-                      starred={i.starred}
-                      onChanged={(starred) =>
-                        setItems((prev) =>
-                          prev.map((it) => (it.id === i.id ? { ...it, starred } : it)),
-                        )
-                      }
-                    />
-                  </TableCell>
                   <TableCell className="text-right align-top">
                     <div className="inline-flex items-center gap-1">
                       <Button
@@ -1209,11 +1267,13 @@ function VocabInner() {
                     </div>
                   </TableCell>
                 </TableRow>
+                  )}
+                </SortableRow>
               ))}
               {items.length === 0 && !loading && (
                 <TableRow>
                   <TableCell
-                    colSpan={SORT_COLS.length + 5}
+                    colSpan={SORT_COLS.length + 6}
                     className="text-center py-8 text-muted-foreground"
                   >
                     {t('noMatch')}
@@ -1222,6 +1282,7 @@ function VocabInner() {
               )}
             </TableBody>
           </Table>
+          </ReorderProvider>
         </div>
 
         {pageSize !== 'all' && (

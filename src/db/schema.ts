@@ -7,6 +7,7 @@ import {
   uuid,
   integer,
   real,
+  doublePrecision,
   date,
   numeric,
   boolean,
@@ -570,6 +571,46 @@ export const vocabStars = pgTable(
 );
 
 // =============================================================================
+// vocab_order / lesson_order — per-user manual drag ordering. Presence of any
+// row for a (user, type) puts that type into "manual mode": the list is ordered
+// by `position` ASC, and items with no row sort last. `position` is a fractional
+// index (double precision) so a dragged item can take the midpoint of its new
+// neighbours without renumbering the rest — which keeps the relative order of
+// items hidden by a filter/lesson scope untouched. Invoking any sort control
+// deletes the rows for that type (reverting to the computed sort).
+// =============================================================================
+
+export const vocabOrder = pgTable(
+  'vocab_order',
+  {
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    vocabItemId: uuid('vocab_item_id')
+      .notNull()
+      .references(() => vocabItems.id, { onDelete: 'cascade' }),
+    position: doublePrecision('position').notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.vocabItemId] })],
+);
+
+export const lessonOrder = pgTable(
+  'lesson_order',
+  {
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    lessonId: uuid('lesson_id')
+      .notNull()
+      .references(() => lessons.id, { onDelete: 'cascade' }),
+    position: doublePrecision('position').notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.lessonId] })],
+);
+
+// =============================================================================
 // flashcards — decks, deck items, per-card FSRS state, study sessions (Feature B)
 // =============================================================================
 
@@ -749,3 +790,7 @@ export type VocabComprehension = typeof vocabComprehension.$inferSelect;
 export type NewVocabComprehension = typeof vocabComprehension.$inferInsert;
 export type VocabStar = typeof vocabStars.$inferSelect;
 export type NewVocabStar = typeof vocabStars.$inferInsert;
+export type VocabOrder = typeof vocabOrder.$inferSelect;
+export type NewVocabOrder = typeof vocabOrder.$inferInsert;
+export type LessonOrder = typeof lessonOrder.$inferSelect;
+export type NewLessonOrder = typeof lessonOrder.$inferInsert;

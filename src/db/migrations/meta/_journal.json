@@ -176,6 +176,13 @@
       "when": 1780814538922,
       "tag": "0024_dark_sentinels",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1780890736992,
+      "tag": "0025_shocking_marvel_boy",
+      "breakpoints": true
     }
   ]
 }

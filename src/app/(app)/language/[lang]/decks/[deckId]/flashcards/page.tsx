@@ -288,6 +288,20 @@ export default function StudyPage() {
       <div className="flex items-center justify-between sm:hidden">{backButton}</div>
 
       <div className="mx-auto w-full max-w-xl flex-1 flex flex-col">
+        {/* Star this word (same per-user star as the vocab tables). Sits ABOVE
+            the "card XX/YY" progress bar (Part 1.2). */}
+        <div className="flex justify-end pt-2">
+          <StarToggle
+            itemId={card.vocabItemId}
+            starred={card.starred ?? false}
+            onChanged={(starred) =>
+              setCards((prev) =>
+                prev.map((c, idx) => (idx === index ? { ...c, starred } : c)),
+              )
+            }
+          />
+        </div>
+
         {/* Progress */}
         <div className="space-y-1 pt-2">
           <div className="flex justify-between text-xs text-muted-foreground">
@@ -301,19 +315,6 @@ export default function StudyPage() {
               style={{ width: `${progressPct}%` }}
             />
           </div>
-        </div>
-
-        {/* Star this word (same per-user star as the vocab tables). */}
-        <div className="flex justify-end pt-2">
-          <StarToggle
-            itemId={card.vocabItemId}
-            starred={card.starred ?? false}
-            onChanged={(starred) =>
-              setCards((prev) =>
-                prev.map((c, idx) => (idx === index ? { ...c, starred } : c)),
-              )
-            }
-          />
         </div>
 
         {/* Card */}
@@ -335,12 +336,12 @@ export default function StudyPage() {
                 transform: flipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
               }}
             >
-              {/* Front */}
+              {/* Front. Image shows on BOTH faces when present (Part 1.3). */}
               <CardFace>
                 <CardContent
                   primaryText={isForward ? card.nativeText : card.targetText}
                   transliteration={isForward ? null : card.transliteration}
-                  imageUrl={isForward ? null : card.imageUrl}
+                  imageUrl={card.imageUrl}
                   machine={isForward ? card.nativeMachine : false}
                 />
               </CardFace>
@@ -349,7 +350,7 @@ export default function StudyPage() {
                 <CardContent
                   primaryText={isForward ? card.targetText : card.nativeText}
                   transliteration={isForward ? card.transliteration : null}
-                  imageUrl={isForward ? card.imageUrl : null}
+                  imageUrl={card.imageUrl}
                   machine={isForward ? false : card.nativeMachine}
                 />
               </CardFace>

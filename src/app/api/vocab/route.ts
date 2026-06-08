@@ -11,9 +11,10 @@ import {
   users,
   vocabComprehension,
   vocabStars,
+  vocabOrder,
 } from '@/db/schema';
 import { auth } from '@/lib/auth';
-import { buildOrderBy } from '@/lib/vocab';
+import { buildOrderBy, manualOrderSql, phrasesTiebreakerSql } from '@/lib/vocab';
 import { storage } from '@/lib/storage';
 import { escapeRegex, normalizeText } from '@/lib/text-normalize';
 import { vocabVisibleSql } from '@/lib/visibility';
@@ -164,8 +165,23 @@ export async function GET(req: Request) {
           ELSE 6
         END ASC, LEAST(LENGTH(${vocabItems.targetText}), LENGTH(${vocabItems.nativeText})) ASC`
       : null;
-  // Precedence: explicit sort > search relevance > default (newest first).
-  const finalOrder = orderByExpr ?? searchOrder ?? desc(vocabItems.createdAt);
+  // Manual drag order (Part 3): active ⇔ the user has any vocab_order rows AND
+  // no explicit column sort was requested (the client deletes the rows when a
+  // sort control is used, reverting to the computed sort). When active, order by
+  // `position ASC` (position-less items last); the phrases tiebreaker does NOT
+  // apply (positions are absolute). Otherwise: explicit sort > search relevance
+  // > default (newest first), each with the phrases tag as a final tiebreaker.
+  let manualMode = false;
+  if (!orderByExpr) {
+    const [mc] = await db
+      .select({ n: sql<number>`count(*)::int` })
+      .from(vocabOrder)
+      .where(eq(vocabOrder.userId, userId));
+    manualMode = (mc?.n ?? 0) > 0;
+  }
+  const finalOrder = manualMode
+    ? manualOrderSql(userId)
+    : sql`${orderByExpr ?? searchOrder ?? desc(vocabItems.createdAt)}, ${phrasesTiebreakerSql}`;
 
   const [totalRow] = await db
     .select({ n: sql<number>`count(*)::int` })
@@ -293,6 +309,7 @@ export async function GET(req: Request) {
     pageSize: pageSize === 'all' ? 'all' : pageSize,
     total,
     hasMore,
+    manualOrder: manualMode,
   });
 }
 

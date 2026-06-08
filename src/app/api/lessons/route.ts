@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { and, asc, desc, eq, sql } from 'drizzle-orm';
 import type { SQL } from 'drizzle-orm';
 import { db } from '@/db';
-import { lessons, vocabLessons } from '@/db/schema';
+import { lessons, vocabLessons, lessonOrder } from '@/db/schema';
 import { auth } from '@/lib/auth';
 import { lessonVisibleSql } from '@/lib/visibility';
 
@@ -36,7 +36,22 @@ export async function GET(req: Request) {
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const url = new URL(req.url);
-  const orderBy = buildOrderBy(url.searchParams.get('sort'), url.searchParams.get('order'));
+  const sortParam = url.searchParams.get('sort');
+
+  // Manual drag order (Part 3): active ⇔ the user has any lesson_order rows AND
+  // no explicit sort was requested. When active, order by `position ASC`
+  // (position-less lessons last). Otherwise use the computed column sort.
+  let manualMode = false;
+  if (!sortParam) {
+    const [mc] = await db
+      .select({ n: sql<number>`count(*)::int` })
+      .from(lessonOrder)
+      .where(eq(lessonOrder.userId, userId));
+    manualMode = (mc?.n ?? 0) > 0;
+  }
+  const orderBy = manualMode
+    ? sql`COALESCE((SELECT lo.position FROM lesson_order lo WHERE lo.user_id = ${userId} AND lo.lesson_id = ${lessons.id}), 'infinity'::double precision) ASC, ${lessons.name} ASC`
+    : buildOrderBy(sortParam, url.searchParams.get('order'));
 
   const rows = await db
     .select({
@@ -84,7 +99,7 @@ export async function GET(req: Request) {
     return { ...r, visibility };
   });
 
-  return NextResponse.json({ lessons: out });
+  return NextResponse.json({ lessons: out, manualOrder: manualMode });
 }
 
 const createSchema = z.object({

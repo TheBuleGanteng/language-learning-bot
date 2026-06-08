@@ -37,6 +37,28 @@ describe('sortLessons — natural name sort', () => {
   });
 });
 
+describe('sortLessons — default Z→A natural (Part 4.1)', () => {
+  // The lessons list defaults to descending natural order so the highest lesson
+  // number sits on top: 38, 37, …, 11, 10, 9, … (10 before 9, not lexicographic).
+  const rows = [
+    L('Lesson 9'),
+    L('Lesson 38'),
+    L('Lesson 10'),
+    L('Lesson 11'),
+    L('Lesson 1'),
+  ];
+
+  it('descending puts Lesson 38 on top and 10 before 9', () => {
+    const names = sortLessons(rows, 'name', 'desc').map((r) => r.name);
+    expect(names).toEqual(['Lesson 38', 'Lesson 11', 'Lesson 10', 'Lesson 9', 'Lesson 1']);
+  });
+
+  it('the A→Z toggle reverses it', () => {
+    const names = sortLessons(rows, 'name', 'asc').map((r) => r.name);
+    expect(names).toEqual(['Lesson 1', 'Lesson 9', 'Lesson 10', 'Lesson 11', 'Lesson 38']);
+  });
+});
+
 describe('sortLessons — other columns', () => {
   it('vocab_count ascending then descending', () => {
     const rows = [L('a', { vocabCount: 5 }), L('b', { vocabCount: 1 }), L('c', { vocabCount: 9 })];

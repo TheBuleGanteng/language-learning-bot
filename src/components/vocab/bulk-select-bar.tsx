@@ -27,6 +27,7 @@ import {
 import { cn } from '@/lib/utils';
 import { Star } from 'lucide-react';
 import { withBase } from '@/lib/base-path';
+import { emitBatchStarted, emitBatchError } from '@/lib/bulk-gen-events';
 
 interface BulkSelectBarProps {
   /** All selectable item IDs in the current view. */
@@ -153,18 +154,17 @@ export function BulkSelectBar({
     });
     if (res.status === 402) {
       const data = await res.json().catch(() => ({}));
-      toast.error(data?.message ?? t('hardStop'));
+      // Surface via the global bulk-gen toast (red Error: …) per Part 6.
+      emitBatchError(data?.message ?? t('hardStop'));
       throw new Error('hard-stop');
     }
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      toast.error(data?.error ?? t('generateFailed'));
+      emitBatchError(data?.error ?? t('generateFailed'));
       throw new Error('generate-failed');
     }
-    const data = (await res.json()) as { total: number };
-    toast.success(t('started', { count: data.total }));
-    // Nudge the global BatchWatcher to poll immediately.
-    window.dispatchEvent(new CustomEvent('batch-started'));
+    // Nudge the global bulk-gen toast to poll immediately.
+    emitBatchStarted();
   }
 
   async function handleGenerateConfirm(vocabIds: string[]) {
